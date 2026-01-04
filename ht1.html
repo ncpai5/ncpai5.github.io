@@ -1,0 +1,2419 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hệ Thống Phân Tích Cầu (Nâng Cấp)</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+body {
+font-family: 'Inter', sans-serif;
+background-color: #111827; /* Tailwind gray-900 */
+color: #F9FAFB; /* Tailwind gray-50 */
+}
+.btn {
+transition: all 0.3s ease;
+box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+.btn:hover {
+transform: translateY(-2px);
+box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+.btn:active {
+transform: translateY(1px);
+}
+.btn:disabled {
+opacity: 0.5;
+cursor: not-allowed;
+}
+.btn-export-small {
+    padding: 0.25rem 0.75rem; /* py-1 px-3 */
+    font-size: 0.75rem; /* text-xs */
+    font-weight: 600; /* font-semibold */
+    border-radius: 0.375rem; /* rounded-md */
+    margin-left: 0.5rem; /* ml-2 */
+}
+.card-glow-p { box-shadow: 0 0 20px rgba(59, 130, 246, 0.5); }
+.card-glow-b { box-shadow: 0 0 20px rgba(239, 68, 68, 0.5); }
+.card-glow-certain { box-shadow: 0 0 25px rgba(250, 204, 21, 0.7); }
+#bigRoadDisplay {
+display: grid;
+grid-auto-flow: column;
+grid-auto-columns: 2.5rem; /* 40px */
+gap: 2px;
+overflow-x: auto;
+padding: 8px;
+scrollbar-width: thin;
+scrollbar-color: #4B5563 #1F2937;
+}
+.road-col {
+display: grid;
+grid-auto-rows: 2.5rem; /* 40px */
+gap: 2px;
+}
+.road-item {
+width: 2.5rem; height: 2.5rem; border-radius: 9999px;
+display: flex; align-items: center; justify-content: center;
+font-weight: bold; font-size: 1.125rem; color: white;
+animation: fadeIn 0.5s ease;
+}
+@keyframes fadeIn {
+from { opacity: 0; transform: scale(0.8); }
+to { opacity: 1; transform: scale(1); }
+}
+/* Modal and Toast styles */
+.modal-backdrop {
+position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+background-color: rgba(0,0,0,0.7);
+display: flex; align-items: center; justify-content: center;
+z-index: 50; animation: fadeIn 0.3s ease;
+}
+.modal-content {
+background-color: #1f2937; /* gray-800 */
+padding: 1.5rem; border-radius: 1rem;
+width: 90%; max-width: 400px;
+animation: slideIn 0.3s ease-out;
+border: 1px solid #374151; /* gray-700 */
+}
+.toast-notification {
+position: fixed; top: 20px; right: 20px;
+background-color: #1f2937; color: white;
+padding: 1rem 1.5rem; border-radius: 0.5rem;
+box-shadow: 0 10px 15px -3px rgba(0,0,0,0.3);
+z-index: 100; animation: slideDown 0.5s ease;
+border-left: 4px solid;
+}
+@keyframes slideIn {
+from { opacity: 0; transform: translateY(-20px) scale(0.95); }
+to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes slideDown {
+from { opacity: 0; transform: translateY(-100%); }
+to { opacity: 1; transform: translateY(0); }
+}
+#sessionManagementContent {
+transition: max-height 0.5s ease-in-out;
+overflow: hidden;
+}
+/* SỬA LỖI: Di chuyển keyframes vào đây */
+@keyframes fadeOut {
+from { opacity: 1; transform: translateY(0); }
+to { opacity: 0; transform: translateY(-20px); }
+}
+/* Style cho biểu đồ cột mới */
+.history-chart { /* Đổi tên class chung */
+display: flex;
+align-items: flex-end; /* Căn cột từ dưới lên */
+justify-content: center; /* Căn giữa các cột */
+gap: 1px; /* Khoảng cách nhỏ giữa các cột */
+height: 40px; /* Chiều cao cố định cho khu vực biểu đồ */
+padding: 5px 0; /* Padding trên dưới */
+overflow: hidden; /* Ẩn nếu quá nhiều cột */
+}
+.history-bar { /* Đổi tên class chung */
+flex-shrink: 0; /* Ngăn cột bị co lại */
+width: 3px; /* Độ rộng mỗi cột */
+border-radius: 1px; /* Bo góc nhẹ */
+}
+.history-bar-correct { /* Đổi tên class chung */
+background-color: #3b82f6; /* Blue-500 */
+height: 100%; /* Cột dài */
+}
+.history-bar-incorrect { /* Đổi tên class chung */
+background-color: #ef4444; /* Red-500 */
+height: 40%; /* Cột ngắn */
+}
+/* Bỏ style Chiến lược */
+/* .strategy-highlight { ... } */
+
+</style>
+</head>
+<body class="p-4 md:p-8">
+<div id="modal-container"></div>
+<div id="toast-container"></div>
+<div class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
+<!-- Left Column: Input & History -->
+<div class="lg:col-span-2 space-y-6">
+<!-- Header -->
+<div class="bg-gray-800 p-6 rounded-2xl shadow-lg text-center">
+<h1 class="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-red-400">Hệ Thống Phân Tích Cầu</h1>
+<p class="text-gray-400 mt-2">Ghi nhớ - Đối chiếu - Phán đoán</p>
+</div>
+<!-- Session Management -->
+<div class="bg-gray-800 p-6 rounded-2xl shadow-lg">
+<div class="flex justify-between items-center cursor-pointer" onclick="toggleSessionManagement()">
+<h2 class="text-xl font-semibold text-blue-300">📁 Quản Lý Phiên</h2>
+<button id="toggleSessionBtn" class="text-gray-400 hover:text-white p-1">
+<svg id="toggleSessionIcon" class="w-6 h-6 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+</button>
+</div>
+<div id="sessionManagementContent">
+<div class="mt-4">
+<div class="flex flex-col sm:flex-row gap-4 mb-2">
+<select id="sessionSelector" multiple size="5" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 text-white focus:ring-2 focus:ring-blue-500 focus:outline-none"></select>
+<div class="grid grid-cols-2 gap-4">
+<button onclick="createNewSession()" class="btn w-full bg-green-600 hover:bg-green-500 text-white font-bold py-3 px-4 rounded-lg">➕ Mới</button>
+<button onclick="renameSession()" class="btn w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-4 rounded-lg">✏️ Đổi Tên</button>
+<button onclick="deleteSelectedSessions()" class="btn w-full bg-red-600 hover:bg-red-500 text-white font-bold py-3 px-4 rounded-lg col-span-2">🗑️ Xóa Mục Đã Chọn</button>
+<button onclick="deleteAllSessions()" class="btn w-full bg-red-800 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-lg col-span-2">💥 Xóa Tất Cả</button>
+</div>
+</div>
+<p class="text-xs text-gray-500 text-center mb-4 sm:text-left">Mẹo: Giữ phím Shift hoặc Ctrl (Cmd trên Mac) để chọn nhiều phiên.</p>
+<!-- Import/Export -->
+<div class="flex flex-col sm:flex-row gap-4">
+<button onclick="exportData()" class="btn w-full bg-sky-600 hover:bg-sky-500 text-white font-bold py-3 px-4 rounded-lg">📤 Xuất Tổng Thể</button>
+<button onclick="document.getElementById('fileInput').click()" class="btn w-full bg-purple-600 hover:bg-purple-500 text-white font-bold py-3 px-4 rounded-lg">📥 Nhập Dữ Liệu</button>
+<input type="file" id="fileInput" class="hidden" accept=".json" onchange="importData(event)">
+</div>
+</div>
+</div>
+</div>
+
+<!-- *** ĐÃ BỎ: STRATEGY PANEL *** -->
+<!--
+<div class="bg-gray-800 p-6 rounded-2xl shadow-lg">
+    ...
+</div>
+-->
+
+
+<!-- CHỐT ANALYSIS PANEL -->
+<div class="bg-gray-800 p-6 rounded-2xl shadow-lg">
+<h2 class="text-xl font-semibold mb-4 text-purple-300">🔐 Chốt Phán Quyết</h2>
+<div id="finalChotResult" class="text-center bg-gray-900 py-4 rounded-lg border-2 border-purple-500 mb-4 transition-all duration-300">
+<p class="text-sm text-gray-400 mb-1">Đề xuất "CHỐT" (Optimal/Max/Fallback):</p>
+<p id="finalChotResultText" class="text-2xl font-extrabold text-gray-400">... Chờ tín hiệu ...</p> <!-- Thêm ID -->
+</div>
+<!-- Sửa đổi: Hiển thị kết quả phân tích chi tiết cho Chốt -->
+<div id="chotAnalysisDetails" class="space-y-1">
+<!-- Rows will be generated by JS -->
+<p class="text-gray-500 text-center py-4">Đang tải dữ liệu phân tích Chốt...</p>
+</div>
+<!-- Biểu đồ lịch sử Chốt -->
+<div id="chotHistoryChartContainer" class="bg-gray-900 rounded-lg p-3 mt-4">
+<div class="flex justify-between items-center mb-2 px-1">
+<span class="text-xs font-medium text-gray-400">Lịch sử Đúng/Sai của Chốt (Tối đa 50 ván gần nhất):</span>
+<span id="chotAccuracyStats" class="text-xs font-semibold text-gray-300">Đúng: 0/0 (0.0%)</span>
+</div>
+<div id="chotHistoryChart" class="history-chart"> <!-- Sử dụng class chung -->
+<!-- Biểu đồ cột sẽ được tạo bởi JS -->
+<p class="text-gray-600 text-xs text-center w-full">Chưa có dữ liệu lịch sử Chốt...</p>
+</div>
+</div>
+</div>
+
+<!-- Input Section -->
+<div class="bg-gray-800 p-6 rounded-2xl shadow-lg">
+<h2 class="text-xl font-semibold mb-4 text-blue-300">🎲 Nhập Kết Quả Ván Hiện Tại</h2>
+<div class="grid grid-cols-2 gap-4 mb-4">
+<button onclick="addResult('P')" class="btn bg-blue-600 hover:bg-blue-500 text-white font-bold py-6 rounded-lg text-2xl"><span>👤</span> PLAYER</button>
+<button onclick="addResult('B')" class="btn bg-red-600 hover:bg-red-500 text-white font-bold py-6 rounded-lg text-2xl"><span>🏦</span> BANKER</button>
+</div>
+<div class="flex gap-4">
+<button onclick="undoLast()" class="btn flex-1 bg-gray-600 hover:bg-gray-500 text-white font-bold py-3 px-4 rounded-lg">↩️ Hoàn Tác</button>
+<button onclick="showCustomConfirm('Bạn có chắc muốn xóa toàn bộ lịch sử và thống kê của phiên này không?', clearCurrentSessionHistory)" class="btn flex-1 bg-yellow-600 hover:bg-yellow-500 text-white font-bold py-3 px-4 rounded-lg">🗑️ Xóa Lịch Sử</button>
+</div>
+</div>
+
+<!-- History Display (Big Road) -->
+<div class="bg-gray-800 p-6 rounded-2xl shadow-lg">
+<div class="flex justify-between items-center mb-4">
+<h2 class="text-xl font-semibold text-blue-300">📜 Bảng Cầu Big Road</h2>
+<span class="text-gray-400 font-medium">Tổng: <span id="totalGames">0</span> ván</span>
+</div>
+<div class="bg-gray-900 rounded-lg min-h-[280px] border border-gray-700">
+<div id="bigRoadDisplay">
+<p class="text-gray-500 p-4">Chưa có kết quả...</p>
+</div>
+</div>
+</div>
+
+<!-- Verdict Stats Table -->
+<div class="bg-gray-800 p-6 rounded-2xl shadow-lg">
+    <div class="flex justify-between items-center mb-2">
+        <h2 class="text-xl font-semibold text-indigo-300">⚖️ Thống Kê Phán Quyết (Phiên)</h2>
+        <button onclick="exportVerdictStats()" class="btn btn-export-small bg-indigo-600 hover:bg-indigo-500 text-white">📤 Xuất</button> <!-- MỚI -->
+    </div>
+    <div class="mt-4 space-y-2" id="verdictStatsTable">
+    <!-- Rows will be generated by JS -->
+    </div>
+</div>
+<!-- Confidence Stats Table -->
+<div class="bg-gray-800 p-6 rounded-2xl shadow-lg">
+    <div class="flex justify-between items-center mb-2">
+        <h2 class="text-xl font-semibold text-green-300">📊 Thống Kê Độ Tin Cậy (Phiên)</h2>
+         <button onclick="exportConfidenceStats()" class="btn btn-export-small bg-green-600 hover:bg-green-500 text-white">📤 Xuất</button> <!-- MỚI -->
+    </div>
+    <div id="confidenceRecommendation" class="my-4 p-3 bg-gray-900 rounded-lg text-center"></div>
+    <div class="space-y-2" id="confidenceStatsTable"></div>
+</div>
+
+</div>
+<!-- Right Column: Analysis & Stats -->
+<div class="space-y-6">
+<!-- Accuracy Stats -->
+<div class="bg-gray-800 p-6 rounded-2xl shadow-lg">
+<h2 class="text-xl font-semibold mb-4 text-green-300">🎯 Thống Kê (Phiên Hiện Tại)</h2>
+<div class="space-y-4">
+<div class="flex justify-between items-center bg-gray-700 p-4 rounded-lg">
+<span class="font-medium text-gray-300">Tỷ Lệ Thắng</span>
+<span id="accuracyRate" class="text-2xl font-bold text-green-400">0.0%</span>
+</div>
+<div class="flex justify-between items-center bg-gray-700 p-4 rounded-lg">
+<span class="font-medium text-gray-300">Thắng / Tổng Phán Đoán</span>
+<div><span id="correctPredictions" class="text-lg font-semibold text-white">0</span><span class="text-gray-400">/</span><span id="totalPredictions" class="text-lg font-semibold text-white">0</span></div>
+</div>
+</div>
+</div>
+<!-- Global Accuracy Stats -->
+<div class="bg-gray-800 p-6 rounded-2xl shadow-lg">
+<h2 class="text-xl font-semibold mb-4 text-cyan-300">🌐 Thống Kê (Toàn Cục)</h2>
+<div class="space-y-4">
+<div class="flex justify-between items-center bg-gray-700 p-4 rounded-lg">
+<span class="font-medium text-gray-300">Tỷ Lệ Thắng</span>
+<span id="globalAccuracyRate" class="text-2xl font-bold text-cyan-400">0.0%</span>
+</div>
+<div class="flex justify-between items-center bg-gray-700 p-4 rounded-lg">
+<span class="font-medium text-gray-300">Thắng / Tổng Phán Đoán</span>
+<div><span id="globalCorrectPredictions" class="text-lg font-semibold text-white">0</span><span class="text-gray-400">/</span><span id="globalTotalPredictions" class="text-lg font-semibold text-white">0</span></div>
+</div>
+</div>
+</div>
+<!-- Pattern Analysis -->
+<div id="analysis-card" class="bg-gray-800 p-6 rounded-2xl shadow-lg transition-shadow duration-500">
+<h2 class="text-xl font-semibold mb-4 text-yellow-300">🧠 Phán Quyết (Phân Tích Tổng Hợp)</h2>
+<div id="analysisResult" class="space-y-4">
+<p class="text-gray-400 text-center py-8">Cần ít nhất 10 kết quả để bắt đầu phân tích...</p>
+</div>
+</div>
+</div>
+</div>
+<script>
+ // --- GLOBAL CONSTANTS ---
+ const CHOT_SOURCES = ['follow', 'against', '90-100', '80-90', '70-80', '60-70', '50-60'];
+ const CONFIDENCE_RANGES = [
+    { key: '50-60', min: 50, max: 60 }, { key: '60-70', min: 60, max: 70 },
+    { key: '70-80', min: 70, max: 80 }, { key: '80-90', min: 80, max: 90 },
+    { key: '90-100', min: 90, max: 100.1 } // Use 100.1 to include 100
+ ];
+ // *** ĐÃ BỎ: Constants cho Chiến lược ***
+ // const STRATEGY_THRESHOLD = 80;
+ // const MAX_TRANSITION_CHECK = 5;
+
+// --- CORE LOGIC: PATTERN MATCHER (Standard) ---
+class PatternMatcher {
+constructor() {
+this.MIN_HISTORY_FOR_ANALYSIS = 10;
+this.MIN_PATTERN_LENGTH = 10; // <<<< ĐÃ THAY ĐỔI: Quay lại 10
+this.MAX_PATTERN_LENGTH = 20; // <<<< ĐÃ THAY ĐỔI: Giữ 20 theo yêu cầu
+this.MIN_CERTAIN_OCCURRENCES = 5;
+}
+calculateSimilarity(arr1, arr2) {
+if (arr1.length !== arr2.length || arr1.length === 0) return 0;
+const matches = arr1.filter((item, index) => item === arr2[index]).length;
+return matches / arr1.length;
+}
+findPatternOccurrences(pattern, allHistory) {
+const occurrences = [];
+const reversedPattern = [...pattern].reverse();
+for (const session of allHistory) {
+const sessionHistory = session.history || [];
+if (sessionHistory.length < pattern.length + 1) continue;
+for (let i = 0; i <= sessionHistory.length - pattern.length - 1; i++) {
+const segment = sessionHistory.slice(i, i + pattern.length);
+const nextResult = sessionHistory[i + pattern.length];
+const similarity = this.calculateSimilarity(pattern, segment);
+if (similarity >= 0.9) occurrences.push({ type: 'similar', next: nextResult, similarity });
+const reverseSimilarity = this.calculateSimilarity(reversedPattern, segment);
+if (reverseSimilarity >= 0.9) occurrences.push({ type: 'reversed', next: nextResult, similarity: reverseSimilarity });
+}
+}
+return occurrences;
+}
+getPredictionForPattern(pattern, allHistoricalSessions) {
+const occurrences = this.findPatternOccurrences(pattern, allHistoricalSessions);
+if (occurrences.length === 0) return { prediction: null };
+const votes = { P: 0, B: 0 };
+occurrences.forEach(match => { if (votes[match.next] !== undefined) votes[match.next] += match.similarity; });
+const totalVotes = votes.P + votes.B;
+if (totalVotes === 0) return { prediction: null };
+const predictedWinner = votes.P > votes.B ? 'P' : 'B';
+const confidence = (Math.max(votes.P, votes.B) / totalVotes) * 100;
+return { prediction: predictedWinner, confidence, votes, totalOccurrences: occurrences.length };
+}
+findCertainPrediction(currentHistory, allHistoricalSessions) {
+for (let len = Math.min(this.MAX_PATTERN_LENGTH, currentHistory.length); len >= this.MIN_PATTERN_LENGTH; len--) {
+const pattern = currentHistory.slice(-len);
+const patternString = pattern.join('');
+const occurrences = [];
+for (const session of allHistoricalSessions) {
+const sessionHistory = session.history || [];
+if (sessionHistory.length < pattern.length + 1) continue;
+for (let i = 0; i <= sessionHistory.length - pattern.length - 1; i++) {
+const segment = sessionHistory.slice(i, i + pattern.length);
+if (segment.join('') === patternString) {
+occurrences.push(sessionHistory[i + pattern.length]);
+}
+}
+}
+if (occurrences.length >= this.MIN_CERTAIN_OCCURRENCES && new Set(occurrences).size === 1) {
+return {
+prediction: occurrences[0],
+recommendation: 'TAY CHẮC CHẮN',
+analysisText: `Tìm thấy ${occurrences.length} lần xuất hiện chính xác của hình cầu này trong lịch sử.\nTất cả đều cho kết quả tiếp theo là: ${occurrences[0]}`,
+confidence: 100,
+isCertain: true
+};
+}
+}
+return null;
+}
+analyzeCurrentStreak(currentHistory) {
+if (currentHistory.length < 2) return { type: 'none', length: currentHistory.length };
+const last = currentHistory[currentHistory.length - 1];
+if (last === currentHistory[currentHistory.length - 2]) {
+let length = 0;
+for (let i = currentHistory.length - 1; i >= 0; i--) {
+if (currentHistory[i] === last) length++; else break;
+}
+return { type: 'bệt', length, value: last };
+} else {
+let length = 0;
+for (let i = currentHistory.length - 1; i >= 1; i--) {
+if (currentHistory[i] !== currentHistory[i-1]) length++; else break;
+}
+return { type: '1-1', length: length + 1 };
+}
+}
+getPrediction(currentHistory, allHistoricalSessions, { optimalLength = null, lengthPerformance = {} } = {}) {
+if (currentHistory.length < this.MIN_HISTORY_FOR_ANALYSIS) {
+return { prediction: null, analysisText: `Cần ít nhất ${this.MIN_HISTORY_FOR_ANALYSIS} kết quả...`, confidence: 0, isCertain: false };
+}
+if (optimalLength && currentHistory.length >= optimalLength) {
+const pattern = currentHistory.slice(-optimalLength);
+const result = this.getPredictionForPattern(pattern, allHistoricalSessions);
+if (result.prediction) {
+const perf = lengthPerformance[optimalLength] || { wins: 0, total: 0 };
+if (perf.wins > perf.total) {
+perf.wins = perf.total;
+}
+const rate = perf.total > 0 ? (perf.wins / perf.total * 100).toFixed(1) : 'N/A';
+return {
+prediction: result.prediction, recommendation: 'THEO CHIỀU DÀI TỐI ƯU',
+analysisText: `Sử dụng chiều dài cầu tối ưu: ${optimalLength} ván.\n(Tỷ lệ thắng của chiều dài này: ${rate}% - ${perf.wins}/${perf.total})\n\nLịch sử cho thấy:\n- PLAYER: ${result.votes.P.toFixed(1)} điểm\n- BANKER: ${result.votes.B.toFixed(1)} điểm`,
+confidence: result.confidence, isCertain: false
+};
+}
+}
+const certainPrediction = this.findCertainPrediction(currentHistory, allHistoricalSessions);
+if (certainPrediction) return certainPrediction;
+const allMatches = [];
+for (let len = Math.min(this.MAX_PATTERN_LENGTH, currentHistory.length); len >= this.MIN_PATTERN_LENGTH; len--) {
+const pattern = currentHistory.slice(-len);
+const occurrences = this.findPatternOccurrences(pattern, allHistoricalSessions);
+if (occurrences.length > 0) {
+allMatches.push(...occurrences);
+break; // Chỉ lấy pattern dài nhất tìm thấy
+}
+}
+if (allMatches.length === 0) return { prediction: null, analysisText: 'Không tìm thấy hình cầu tương tự.', confidence: 0, isCertain: false };
+const votes = { P: 0, B: 0 };
+allMatches.forEach(match => { if (votes[match.next] !== undefined) votes[match.next] += match.similarity; });
+const totalVotes = votes.P + votes.B;
+if (totalVotes === 0) return { prediction: null, analysisText: 'Không tìm thấy hình cầu tương tự.', confidence: 0, isCertain: false };
+const predictedWinner = votes.P > votes.B ? 'P' : 'B';
+const maxConfidence = (Math.max(votes.P, votes.B) / totalVotes) * 100;
+const analysisTextPrefix = `Tìm thấy ${allMatches.length} hình cầu tương tự. Lịch sử cho thấy:\n- PLAYER: ${votes.P.toFixed(1)} điểm\n- BANKER: ${votes.B.toFixed(1)} điểm`;
+const streakInfo = this.analyzeCurrentStreak(currentHistory);
+let recommendation = 'THEO PHÂN TÍCH LỊCH SỬ';
+if (streakInfo.type === 'bệt') recommendation = predictedWinner === streakInfo.value ? `THEO BỆT (${streakInfo.value}x${streakInfo.length})` : `BẺ CẦU BỆT (${streakInfo.value}x${streakInfo.length})`;
+else if (streakInfo.type === '1-1') recommendation = predictedWinner !== currentHistory[currentHistory.length - 1] ? `THEO CẦU 1-1 (Dài ${streakInfo.length})` : `BẺ CẦU 1-1 (Dài ${streakInfo.length})`;
+return { prediction: predictedWinner, recommendation, analysisText: `${analysisTextPrefix}\n\n🏆 Độ tin cậy: ${maxConfidence.toFixed(1)}%`, confidence: maxConfidence, isCertain: false };
+}
+}
+// --- GLOBAL STATE ---
+let state = {
+currentSessionId: null,
+sessions: {},
+matcher: new PatternMatcher(),
+currentPrediction: null,
+originalSystemPrediction: null,
+currentFinalPrediction: null,
+currentChotPredictionForLog: null,
+// *** ĐÃ BỎ: State Chiến lược ***
+// currentStrategyAnalysis: null,
+// currentStrategyRecommendation: null,
+goldenRange: null,
+deathRange: null,
+sessionConfidenceRanges: [],
+confidenceSequenceData: {}
+};
+// --- STATS CALCULATION ---
+function getPredictionStats(predictions) {
+const total = predictions.length;
+if (total === 0) return { rate: 0, correct: 0, total: 0 };
+const correct = predictions.filter(p => p.predicted === p.actual).length;
+return { rate: (correct / total) * 100, correct, total };
+}
+function calculateConfidenceRangeStats(predictions) {
+const ranges = CONFIDENCE_RANGES.map(r => ({ ...r, total: 0, wins: 0, rate: -1 })); // Use global
+ranges.forEach(range => {
+const predictionsForRange = predictions.filter(p => p.confidence >= range.min && (p.confidence < range.max)); // Use range.max
+range.total = predictionsForRange.length;
+range.wins = predictionsForRange.filter(p => p.predicted === p.actual).length;
+range.rate = range.total > 0 ? ((range.wins / range.total) * 100) : -1;
+});
+return ranges;
+}
+function getConfidenceSequenceData() {
+const sequenceData = {};
+CONFIDENCE_RANGES.forEach(r => { // Use global
+sequenceData[r.key] = {};
+});
+for (const sessionId in state.sessions) {
+const session = state.sessions[sessionId];
+if (!session.predictions || session.predictions.length === 0) continue;
+const sessionSequences = {};
+CONFIDENCE_RANGES.forEach(r => { // Use global
+sessionSequences[r.key] = [];
+});
+session.predictions.forEach(p => {
+const result = (p.predicted === p.actual) ? 'W' : 'L';
+const foundRange = CONFIDENCE_RANGES.find(r => p.confidence >= r.min && p.confidence < r.max); // Use global
+if (foundRange) {
+sessionSequences[foundRange.key].push(result);
+}
+});
+for (const key in sessionSequences) {
+if (sessionSequences[key].length > 0) {
+sequenceData[key][sessionId] = sessionSequences[key].join('');
+}
+}
+}
+return sequenceData;
+}
+// --- SELF-VERDICT LOGIC ---
+function getCurrentStreak(sequence) {
+if (!sequence || sequence.length === 0) return { type: null, length: 0 };
+const lastChar = sequence.slice(-1);
+let length = 0;
+for (let i = sequence.length - 1; i >= 0; i--) {
+if (sequence[i] === lastChar) {
+length++;
+} else {
+break;
+}
+}
+return { type: lastChar, length };
+}
+function calculateStreakStats(sequencesObject) {
+let maxW = 0, maxL = 0;
+const allSequences = Object.values(sequencesObject).join('');
+if (!allSequences) return { maxW: 0, maxL: 0 };
+const winStreaks = allSequences.match(/W+/g) || [];
+if (winStreaks.length > 0) {
+maxW = Math.max(...winStreaks.map(s => s.length));
+}
+const lossStreaks = allSequences.match(/L+/g) || [];
+if (lossStreaks.length > 0) {
+maxL = Math.max(...lossStreaks.map(s => s.length));
+}
+return { maxW, maxL };
+}
+function getFinalVerdict(context) {
+const { prediction, confidence, sequenceData, currentSessionId } = context;
+if (!prediction) {
+return { verdict: 'neutral', explanation: 'Chưa có đủ dữ liệu để đưa ra phán quyết.' };
+}
+const foundRange = CONFIDENCE_RANGES.find(r => confidence >= r.min && confidence < r.max); // Use global
+if (!foundRange) {
+return { verdict: 'neutral', explanation: 'Phán đoán không thuộc khoảng tin cậy nào.' };
+}
+const rangeKey = foundRange.key;
+const historicalSequences = { ...sequenceData[rangeKey] };
+const currentSequenceStr = historicalSequences[currentSessionId] || "";
+delete historicalSequences[currentSessionId];
+// --- Tier 1: Longest possible pattern search (Primary) ---
+const maxLen = Math.min(currentSequenceStr.length, 5);
+for (let len = maxLen; len >= 2; len--) {
+const patternToSearch = currentSequenceStr.slice(-len);
+let wins = 0, losses = 0;
+for (const sessionId in historicalSequences) {
+const history = historicalSequences[sessionId];
+let i = -1;
+while ((i = history.indexOf(patternToSearch, i + 1)) !== -1) {
+const nextCharIndex = i + patternToSearch.length;
+if (nextCharIndex < history.length) {
+if (history[nextCharIndex] === 'W') wins++; else losses++;
+}
+}
+}
+if (wins + losses >= 2) {
+const patternText = patternToSearch.replace(/W/g, 'Thắng-').replace(/L/g, 'Thua-').slice(0, -1);
+if (wins > losses) return { verdict: 'follow', explanation: `Nên theo. Quy luật dài ${len} ván của khoảng này cho thấy sau chuỗi ${patternText}, kết quả thường là Thắng.` };
+if (losses > wins) return { verdict: 'against', explanation: `Nên đi ngược lại. Quy luật dài ${len} ván của khoảng này cho thấy sau chuỗi ${patternText}, kết quả thường là Thua.` };
+}
+}
+// --- Tier 2: Max Streak Analysis (Secondary) ---
+const currentStreak = getCurrentStreak(currentSequenceStr);
+const streakStats = calculateStreakStats(historicalSequences);
+if (currentStreak.type === 'W' && streakStats.maxW > 0 && currentStreak.length >= streakStats.maxW) {
+return { verdict: 'against', explanation: `Nên đi ngược lại. Chuỗi Thắng hiện tại (${currentStreak.length}) đã bằng hoặc vượt ngưỡng tối đa (${streakStats.maxW}) trong lịch sử của khoảng này.` };
+}
+if (currentStreak.type === 'L' && streakStats.maxL > 0 && currentStreak.length >= streakStats.maxL) {
+return { verdict: 'follow', explanation: `Nên theo. Chuỗi Thua hiện tại (${currentStreak.length}) đã bằng hoặc vượt ngưỡng tối đa (${streakStats.maxL}) trong lịch sử của khoảng này.` };
+}
+// --- Tier 3: Cross-range "Absolute" pattern (Fallback) ---
+const absolutePatternLength = Math.min(currentSequenceStr.length, 3);
+if (absolutePatternLength >= 2) {
+const patternToSearch = currentSequenceStr.slice(-absolutePatternLength);
+let crossWins = 0, crossLosses = 0;
+const MIN_ABSOLUTE_OCCURRENCES = 4;
+for (const key in sequenceData) {
+const otherRangeSequences = sequenceData[key];
+for (const sessionId in otherRangeSequences) {
+if (sessionId === currentSessionId) continue;
+const history = otherRangeSequences[sessionId];
+let i = -1;
+while ((i = history.indexOf(patternToSearch, i + 1)) !== -1) {
+const nextCharIndex = i + patternToSearch.length;
+if (nextCharIndex < history.length) {
+if (history[nextCharIndex] === 'W') crossWins++;
+else crossLosses++;
+}
+}
+}
+}
+const patternText = patternToSearch.replace(/W/g, 'Thắng-').replace(/L/g, 'Thua-').slice(0, -1);
+if (crossWins + crossLosses >= MIN_ABSOLUTE_OCCURRENCES) {
+if (crossWins === 0) return { verdict: 'against', explanation: `Nên đi ngược lại. Quy luật tuyệt đối (${patternText} -> Thua) được tìm thấy trên toàn bộ lịch sử.` };
+if (crossLosses === 0) return { verdict: 'follow', explanation: `Nên theo. Quy luật tuyệt đối (${patternText} -> Thắng) được tìm thấy trên toàn bộ lịch sử.` };
+}
+}
+return { verdict: 'neutral', explanation: 'Không tìm thấy quy luật biểu đồ rõ ràng trong lịch sử.' };
+}
+// --- UI UPDATE FUNCTIONS ---
+function updateBigRoadUI() {
+const history = state.sessions[state.currentSessionId]?.history || [];
+const roadDiv = document.getElementById('bigRoadDisplay');
+document.getElementById('totalGames').textContent = history.length;
+if (history.length === 0) {
+roadDiv.innerHTML = '<p class="text-gray-500 p-4">Chưa có kết quả...</p>';
+roadDiv.style.display = 'block';
+return;
+}
+roadDiv.style.display = 'grid';
+roadDiv.innerHTML = '';
+const columns = [];
+if (history.length > 0) {
+let currentCol = [history[0]];
+for (let i = 1; i < history.length; i++) {
+if (history[i] === history[i-1]) currentCol.push(history[i]);
+else { columns.push(currentCol); currentCol = [history[i]]; }
+}
+columns.push(currentCol);
+}
+columns.forEach(colData => {
+const colDiv = document.createElement('div');
+colDiv.className = 'road-col';
+colData.forEach(item => {
+const itemDiv = document.createElement('div');
+itemDiv.className = `road-item ${item === 'P' ? 'bg-blue-600' : 'bg-red-600'}`;
+itemDiv.textContent = item;
+colDiv.appendChild(itemDiv);
+});
+roadDiv.appendChild(colDiv);
+});
+roadDiv.scrollLeft = roadDiv.scrollWidth;
+}
+function updateAccuracyUI() {
+const predictions = state.sessions[state.currentSessionId]?.predictions || [];
+const stats = getPredictionStats(predictions);
+document.getElementById('accuracyRate').textContent = `${stats.rate.toFixed(1)}%`;
+document.getElementById('correctPredictions').textContent = stats.correct;
+document.getElementById('totalPredictions').textContent = stats.total;
+}
+function updateGlobalAccuracyUI() {
+const allPredictions = Object.values(state.sessions).flatMap(s => s.predictions || []);
+const stats = getPredictionStats(allPredictions);
+document.getElementById('globalAccuracyRate').textContent = `${stats.rate.toFixed(1)}%`;
+document.getElementById('globalCorrectPredictions').textContent = stats.correct;
+document.getElementById('globalTotalPredictions').textContent = stats.total;
+}
+function updateAnalysisUI() {
+const session = state.sessions[state.currentSessionId] || { history: [], optimalLength: null, lengthPerformance: {} };
+const { prediction, recommendation, analysisText, confidence, isCertain } = state.matcher.getPrediction(session.history, Object.values(state.sessions), {
+optimalLength: session.optimalLength,
+lengthPerformance: session.lengthPerformance
+});
+state.currentPrediction = { prediction, confidence };
+state.originalSystemPrediction = prediction;
+const verdictContext = {
+prediction, confidence,
+sequenceData: state.confidenceSequenceData,
+currentSessionId: state.currentSessionId
+};
+const finalVerdict = getFinalVerdict(verdictContext);
+let finalPredictionForDisplay = prediction;
+if (finalVerdict.verdict === 'against' && !isCertain) {
+finalPredictionForDisplay = prediction === 'P' ? 'B' : 'P';
+}
+state.currentFinalPrediction = { verdict: finalVerdict.verdict, prediction: finalPredictionForDisplay };
+let verdictHTML = `<div class="mt-3 p-3 text-center bg-gray-800 rounded-lg text-sm font-semibold ${
+finalVerdict.verdict === 'follow' || isCertain ? 'text-green-300' :
+finalVerdict.verdict === 'against' ? 'text-red-300' : 'text-yellow-300'
+}"><strong>Phán Quyết Hệ Thống:</strong> ${isCertain ? 'Tay chắc chắn, luôn ưu tiên theo hệ thống.' : finalVerdict.explanation}</div>`;
+let recommendationText = recommendation;
+if(finalVerdict.verdict === 'against' && !isCertain) {
+recommendationText = 'ĐI NGƯỢC HỆ THỐNG';
+}
+const analysisResultDiv = document.getElementById('analysisResult'), analysisCard = document.getElementById('analysis-card');
+analysisCard.classList.remove('card-glow-p', 'card-glow-b', 'card-glow-certain');
+let optimalLengthDisplay = session.optimalLength ? `<div class="mb-4 p-3 bg-gray-900 rounded-lg text-center text-cyan-300 text-sm"><span class="font-semibold">Chiều dài cầu tối ưu:</span><span class="text-lg font-bold ml-2">${session.optimalLength}</span></div>` : '';
+if (prediction) {
+let predictionBlockHTML = `
+<div class="text-center bg-gray-900 py-6 rounded-lg border-2 ${finalPredictionForDisplay === 'P' ? 'border-blue-500' : 'border-red-500'}">
+<p class="text-lg text-gray-400 mb-2">Đề xuất theo hệ thống:</p>
+<p class="text-3xl font-extrabold ${finalPredictionForDisplay === 'P' ? 'text-blue-400' : 'text-red-400'}">${recommendationText}</p>
+<p class="text-4xl font-bold mt-2">${finalPredictionForDisplay === 'P' ? '👤 PLAYER' : '🏦 BANKER'}</p>
+${verdictHTML}
+</div>
+<div class="bg-gray-700 p-4 rounded-lg mt-4">
+<p class="font-semibold text-gray-300">Phân tích ban đầu của hệ thống:</p>
+<p class="text-gray-400 whitespace-pre-wrap text-sm">${analysisText}</p>
+</div>
+`;
+if (isCertain) {
+predictionBlockHTML = `
+<div class="text-center bg-yellow-800 bg-opacity-50 py-6 rounded-lg border-2 border-yellow-400">
+<p class="text-lg text-yellow-300 mb-2 animate-pulse">Đề Xuất Chắc Chắn (Lịch sử):</p>
+<p class="text-3xl font-extrabold text-yellow-300">${recommendation}</p>
+<p class="text-4xl font-bold mt-2">${prediction === 'P' ? '👤 PLAYER' : '🏦 BANKER'}</p>
+${verdictHTML}
+</div>
+<div class="bg-gray-700 p-4 rounded-lg mt-4">
+<p class="font-semibold text-gray-300">Phân tích ban đầu của hệ thống:</p>
+<p class="text-gray-400 whitespace-pre-wrap text-sm">${analysisText}</p>
+</div>
+`;
+analysisCard.classList.add('card-glow-certain');
+} else {
+analysisCard.classList.add(finalPredictionForDisplay === 'P' ? 'card-glow-p' : 'card-glow-b');
+}
+analysisResultDiv.innerHTML = optimalLengthDisplay + predictionBlockHTML;
+} else {
+analysisResultDiv.innerHTML = `${optimalLengthDisplay}<p class="text-gray-400 text-center py-8 whitespace-pre-wrap">${analysisText}</p>`;
+}
+}
+function updateConfidenceStatsUI() {
+if (!state.currentSessionId || !state.sessions[state.currentSessionId]) return;
+const sessionPredictions = state.sessions[state.currentSessionId].predictions || [];
+state.sessionConfidenceRanges = calculateConfidenceRangeStats(sessionPredictions);
+state.confidenceSequenceData = getConfidenceSequenceData();
+const currentConfidence = state.currentPrediction?.confidence;
+const previousConfidence = sessionPredictions.length > 0 ? sessionPredictions[sessionPredictions.length - 1].confidence : null;
+let bestRange = null, maxRate = -1;
+let worstRange = null, minRate = 101;
+state.sessionConfidenceRanges.forEach(range => {
+if (range.total >= 3 && range.rate > maxRate) {
+maxRate = range.rate;
+bestRange = range;
+}
+if (range.total >= 3 && range.rate !== -1 && range.rate < minRate) {
+minRate = range.rate;
+worstRange = range;
+}
+const predictionsForRange = sessionPredictions.filter(p => p.confidence >= range.min && (p.confidence < range.max)); // Use range.max
+let trendIndicator = '', streak = 0;
+if (predictionsForRange.length >= 1) {
+const lastWin = (predictionsForRange.slice(-1)[0].predicted === predictionsForRange.slice(-1)[0].actual);
+for (let i = predictionsForRange.length - 1; i >= 0; i--) {
+if ((predictionsForRange[i].predicted === predictionsForRange[i].actual) === lastWin) streak++; else break;
+}
+if(streak >= 1) trendIndicator = `<span class="flex items-center ${lastWin ? 'text-green-400' : 'text-red-400'} ml-1.5">${lastWin ? '<svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" clip-rule="evenodd"></path></svg>' : '<svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"></path></svg>'}<span class="font-bold text-xs">${streak}</span></span>`;
+}
+range.trendIndicator = trendIndicator;
+});
+state.goldenRange = bestRange;
+state.deathRange = worstRange;
+const recommendationDiv = document.getElementById('confidenceRecommendation');
+let recommendationHTML = '';
+if (bestRange) {
+recommendationHTML += `<p class="text-sm text-yellow-300"><span class="font-bold">✨ Khoảng Vàng:</span> Tỷ lệ thắng cao nhất là <b class="text-green-400">${maxRate.toFixed(1)}%</b> trong khoảng <b class="text-white">${bestRange.min}%-${bestRange.max === 100.1 ? 100 : bestRange.max}%</b>.</p>`; // Fix display for 100
+}
+if (worstRange) {
+recommendationHTML += `<p class="text-sm text-yellow-300 mt-1"><span class="font-bold">💀 Khoảng Tử Thần:</span> Tỷ lệ thắng thấp nhất là <b class="text-red-400">${minRate.toFixed(1)}%</b> trong khoảng <b class="text-white">${worstRange.min}%-${worstRange.max === 100.1 ? 100 : worstRange.max}%</b>.</p>`; // Fix display for 100
+}
+if (!bestRange && !worstRange) {
+recommendationDiv.innerHTML = `<p class="text-sm text-gray-400">Chưa đủ dữ liệu để tìm khoảng vàng/tử thần (cần tối thiểu 3 phán đoán trong 1 khoảng).</p>`;
+} else {
+recommendationDiv.innerHTML = recommendationHTML;
+}
+const tableDiv = document.getElementById('confidenceStatsTable');
+let html = `<div class="grid gap-x-2 text-xs font-semibold text-gray-400 px-3" style="grid-template-columns: 2fr 4fr 2fr 2fr 3fr;"><span>Khoảng</span><span class="text-center">Diễn Biến Gần Đây</span><span class="text-center">Tổng</span><span class="text-center">Thắng</span><span class="text-right">Tỷ Lệ</span></div>`;
+if (sessionPredictions.length === 0 && !currentConfidence) {
+tableDiv.innerHTML = '<p class="text-gray-500 text-center py-4">Chưa có dữ liệu thống kê.</p>';
+} else {
+state.sessionConfidenceRanges.forEach(range => {
+let highlightClass = 'bg-gray-700 bg-opacity-50';
+if (range === bestRange) {
+highlightClass = 'bg-green-800 bg-opacity-40 border border-green-500';
+} else if (range === worstRange) {
+highlightClass = 'bg-red-800 bg-opacity-40 border border-red-500';
+}
+let indicatorsHTML = '';
+// Check confidence against range.max (use < for normal ranges, <= for 100)
+const isInCurrentRange = currentConfidence && currentConfidence >= range.min && currentConfidence < range.max;
+if (isInCurrentRange && state.currentFinalPrediction?.prediction) {
+const finalPrediction = state.currentFinalPrediction.prediction;
+const sideText = finalPrediction === 'P' ? 'PLAYER' : 'BANKER';
+const sideColor = finalPrediction === 'P' ? 'bg-blue-600' : 'bg-red-600';
+indicatorsHTML += `<span class="ml-2 px-1.5 py-0.5 text-xs rounded font-semibold ${sideColor} text-white" title="Đề xuất ván hiện tại">${sideText}</span>`;
+}
+const isInPreviousRange = previousConfidence && previousConfidence >= range.min && previousConfidence < range.max;
+if (isInPreviousRange) {
+const marginLeft = indicatorsHTML ? 'ml-1' : 'ml-2';
+indicatorsHTML += `<span class="${marginLeft} px-1.5 py-0.5 text-xs rounded font-semibold bg-gray-500 text-white" title="Phán đoán ván trước">Trước</span>`;
+}
+const predictionsForRange = sessionPredictions.filter(p => p.confidence >= range.min && p.confidence < range.max); // Use range.max
+const displayedPredictions = predictionsForRange.slice(-30);
+let individualBarsHTML = `<div class="flex items-end justify-center gap-px h-5 my-auto overflow-hidden" title="Hiển thị tối đa 30 ván gần nhất">`;
+if (displayedPredictions.length > 0) {
+for (const p of displayedPredictions) {
+const isWin = p.predicted === p.actual;
+const barClass = isWin ? 'bg-green-500 h-5' : 'bg-red-500 h-2';
+const title = `Đề xuất: ${p.predicted}, Ra: ${p.actual} -> ${isWin ? 'THẮNG' : 'THUA'}\nĐộ tin cậy: ${p.confidence.toFixed(1)}%`;
+individualBarsHTML += `<div class="flex-shrink-0 w-1 ${barClass} rounded-t-sm" title="${title}"></div>`;
+}
+} else {
+individualBarsHTML += `<div class="w-full text-center"><span class="text-gray-600 text-xs">Chưa có</span></div>`;
+}
+individualBarsHTML += '</div>';
+html += `<div class="grid gap-x-2 items-center ${highlightClass} p-3 rounded-lg mt-2 text-sm" style="grid-template-columns: 2fr 4fr 2fr 2fr 3fr;">
+<span class="font-medium text-gray-300">${range.min}%-${range.max === 100.1 ? 100 : range.max}%</span> <!-- Fix display 100 -->
+${individualBarsHTML}
+<span class="text-white font-semibold text-center">${range.total}</span>
+<span class="text-green-400 font-semibold text-center">${range.wins}</span>
+<span class="font-bold flex items-center justify-end ${range.rate >= 70 ? 'text-green-400' : (range.rate >= 50 ? 'text-yellow-400' : 'text-red-400')}">
+${range.rate > -1 ? range.rate.toFixed(1) + '%' : '-'}${range.trendIndicator}${indicatorsHTML}
+</span></div>`;
+});
+tableDiv.innerHTML = html;
+}
+}
+function updateVerdictStatsUI() {
+if (!state.currentSessionId || !state.sessions[state.currentSessionId]) return;
+const verdictPredictions = state.sessions[state.currentSessionId].verdictPredictions || [];
+const tableDiv = document.getElementById('verdictStatsTable');
+const stats = {
+follow: { total: 0, wins: 0, predictions: [] },
+against: { total: 0, wins: 0, predictions: [] }
+};
+verdictPredictions.forEach(p => {
+if (p.verdict === 'follow') {
+stats.follow.total++;
+stats.follow.predictions.push(p);
+if (p.predicted === p.actual) stats.follow.wins++;
+} else if (p.verdict === 'against') {
+stats.against.total++;
+stats.against.predictions.push(p);
+if (p.predicted === p.actual) stats.against.wins++;
+}
+});
+let html = `<div class="grid gap-x-2 text-xs font-semibold text-gray-400 px-3" style="grid-template-columns: 2fr 4fr 2fr 2fr 3fr;"><span>Phán Quyết</span><span class="text-center">Diễn Biến Gần Đây</span><span class="text-center">Tổng</span><span class="text-center">Thắng</span><span class="text-right">Tỷ Lệ</span></div>`;
+if (verdictPredictions.length === 0) {
+tableDiv.innerHTML = '<p class="text-gray-500 text-center py-4">Chưa có dữ liệu phán quyết.</p>';
+return;
+}
+const createRowHTML = (label, data) => {
+const rate = data.total > 0 ? (data.wins / data.total) * 100 : -1;
+const displayedPredictions = data.predictions.slice(-30);
+let individualBarsHTML = `<div class="flex items-end justify-center gap-px h-5 my-auto overflow-hidden" title="Hiển thị tối đa 30 ván gần nhất">`;
+if (displayedPredictions.length > 0) {
+displayedPredictions.forEach(p => {
+const isWin = p.predicted === p.actual;
+const barClass = isWin ? 'bg-green-500 h-5' : 'bg-red-500 h-2';
+const title = `Đề xuất: ${p.predicted}, Ra: ${p.actual} -> ${isWin ? 'THẮNG' : 'THUA'}`;
+individualBarsHTML += `<div class="flex-shrink-0 w-1 ${barClass} rounded-t-sm" title="${title}"></div>`;
+});
+} else {
+individualBarsHTML += `<div class="w-full text-center"><span class="text-gray-600 text-xs">Chưa có</span></div>`;
+}
+individualBarsHTML += '</div>';
+return `
+<div class="grid gap-x-2 items-center bg-gray-700 bg-opacity-50 p-3 rounded-lg mt-2 text-sm" style="grid-template-columns: 2fr 4fr 2fr 2fr 3fr;">
+<span class="font-medium text-gray-300">${label}</span>
+${individualBarsHTML}
+<span class="text-white font-semibold text-center">${data.total}</span>
+<span class="text-green-400 font-semibold text-center">${data.wins}</span>
+<span class="font-bold text-right ${rate >= 70 ? 'text-green-400' : (rate >= 50 ? 'text-yellow-400' : 'text-red-400')}">
+${rate > -1 ? rate.toFixed(1) + '%' : '-'}
+</span>
+</div>
+`;
+};
+html += createRowHTML('Theo Hệ Thống', stats.follow);
+html += createRowHTML('Ngược Hệ Thống', stats.against);
+tableDiv.innerHTML = html;
+}
+function updateAllUI() {
+updateBigRoadUI();
+updateAccuracyUI();
+updateGlobalAccuracyUI();
+updateAnalysisUI(); // Tính toán Phán quyết HT và lưu P/B gốc
+updateConfidenceStatsUI();
+updateVerdictStatsUI();
+updateChotAnalysisUI(); // Tính toán Chốt
+// *** ĐÃ BỎ: Lệnh gọi updateStrategyUI ***
+// updateStrategyUI(chotAnalysis);
+}
+function toggleSessionManagement() {
+const content = document.getElementById('sessionManagementContent');
+const icon = document.getElementById('toggleSessionIcon');
+if (content.style.maxHeight && content.style.maxHeight !== '0px') {
+content.style.maxHeight = '0px';
+icon.style.transform = 'rotate(-180deg)';
+} else {
+content.style.maxHeight = content.scrollHeight + 'px';
+icon.style.transform = 'rotate(0deg)';
+}
+}
+// --- START: LOGIC CHO PHÂN TÍCH "CHỐT" ---
+function getChotAnalysisData() {
+    const sequencesBySource = CHOT_SOURCES.reduce((acc, key) => { acc[key] = {}; return acc; }, {});
+    for (const sessionId in state.sessions) {
+        const session = state.sessions[sessionId];
+        let followSeq = '', againstSeq = '';
+        (session.verdictPredictions || []).forEach(p => {
+            const result = p.predicted === p.actual ? 'W' : 'L';
+            if (p.verdict === 'follow') followSeq += result;
+            else if (p.verdict === 'against') againstSeq += result;
+        });
+        sequencesBySource.follow[sessionId] = followSeq;
+        sequencesBySource.against[sessionId] = againstSeq;
+
+        CONFIDENCE_RANGES.forEach(r => {
+             if (!sequencesBySource[r.key]) sequencesBySource[r.key] = {};
+             sequencesBySource[r.key][sessionId] = "";
+        });
+
+        (session.predictions || []).forEach(p => {
+            const result = (p.predicted === p.actual) ? 'W' : 'L';
+            const foundRange = CONFIDENCE_RANGES.find(r => p.confidence >= r.min && p.confidence < r.max);
+            if (foundRange) {
+                 sequencesBySource[foundRange.key][sessionId] += result;
+            }
+        });
+    }
+    return sequencesBySource;
+ }
+function findNextOutcomeInHistory(pattern, historicalSequences) {
+    if (!pattern || pattern.length < 1) return { W: 0, L: 0, total: 0 };
+    let W = 0, L = 0;
+    for (const sessionId in historicalSequences) {
+        const history = historicalSequences[sessionId];
+        if (!history || history.length < pattern.length + 1) continue;
+        let i = -1;
+        while ((i = history.indexOf(pattern, i + 1)) !== -1) {
+            const nextCharIndex = i + pattern.length;
+            // Chỉ đếm nếu là sự xuất hiện riêng lẻ (không phải là phần của chuỗi dài hơn)
+             // Kiểm tra ký tự TRƯỚC pattern (nếu có)
+            const prevCharDifferent = (i === 0 || history[i - 1] !== pattern[pattern.length - 1]);
+             // Chỉ đếm nếu ký tự trước khác VÀ có ký tự tiếp theo
+            if (prevCharDifferent && nextCharIndex < history.length) {
+                 if (history[nextCharIndex] === 'W') W++;
+                 else L++;
+            }
+        }
+    }
+    return { W, L, total: W + L };
+}
+
+// *** ĐÃ BỎ: Hàm findExactEndPatternOccurrences vì không dùng nữa ***
+/*
+function findExactEndPatternOccurrences(pattern, historicalSequences) { ... }
+*/
+
+
+function findBestChotPatternLength(currentSequence, historicalSequences, minLen = 3, maxLen = 20, minOccurrences = 2) {
+const possibleResults = [];
+for (let len = Math.min(maxLen, currentSequence.length); len >= minLen; len--) {
+const pattern = currentSequence.slice(-len);
+if (!pattern) continue;
+const stats = findNextOutcomeInHistory(pattern, historicalSequences); // Use original inexact
+if (stats.total >= minOccurrences) {
+    const rateW = stats.total > 0 ? stats.W / stats.total : 0;
+    possibleResults.push({ length: len, stats: stats, rate: rateW });
+}
+}
+if (possibleResults.length === 0) return null;
+possibleResults.sort((a, b) => {
+    const deviationA = Math.abs(a.rate - 0.5);
+    const deviationB = Math.abs(b.rate - 0.5);
+    if (deviationA !== deviationB) return deviationB - deviationA;
+    return b.stats.total - a.stats.total;
+});
+return possibleResults[0];
+}
+function analyzeMaxStreak(currentSequence, historicalSequences) {
+const { type: currentType, length: currentLength } = getCurrentStreak(currentSequence);
+if (!currentType) return null;
+const { maxW, maxL } = calculateStreakStats(historicalSequences);
+if (currentType === 'W' && maxW > 0 && currentLength >= maxW) {
+return {
+predictionType: 'MAX_STREAK', predictedWL: 'L',
+explanation: `Max W (${maxW})`, stats: { W: 0, L: 999, total: 999 }
+};
+}
+if (currentType === 'L' && maxL > 0 && currentLength >= maxL) {
+return {
+predictionType: 'MAX_STREAK', predictedWL: 'W',
+explanation: `Max L (${maxL})`, stats: { W: 999, L: 0, total: 999 }
+};
+}
+return null;
+}
+function getChotRowHTML(name, currentSequence, analysisResult, isActive, finalPBprediction) {
+let wlPredictionText = '-';
+let wlPredictionColor = 'text-gray-500';
+let analysisTypeDisplay = '-';
+let predictedWL = analysisResult.predictedWL;
+if (predictedWL) {
+    const { stats } = analysisResult;
+    const rate = stats.total > 0 ? (predictedWL === 'W' ? stats.W / stats.total : stats.L / stats.total) * 100 : 0;
+    wlPredictionText = `-> ${predictedWL} (${rate.toFixed(0)}%)`;
+    wlPredictionColor = predictedWL === 'W' ? 'text-green-400' : 'text-red-400';
+} else if (analysisResult.predictionType === 'BALANCED') {
+    wlPredictionText = 'Cân bằng';
+    wlPredictionColor = 'text-yellow-400';
+} else if (analysisResult.predictionType === 'NOT_ENOUGH_SAMPLES') {
+    wlPredictionText = 'Ít mẫu';
+    wlPredictionColor = 'text-gray-500';
+} else if (analysisResult.predictionType === 'NO_HISTORY_PATTERN') {
+    wlPredictionText = 'Ko mẫu LS';
+    wlPredictionColor = 'text-gray-600';
+} else if (analysisResult.predictionType === 'NOT_ENOUGH_WL') {
+     wlPredictionText = 'Chờ W/L';
+     wlPredictionColor = 'text-gray-600';
+}
+
+if (analysisResult.predictionType === 'OPTIMAL') {
+    analysisTypeDisplay = `Optimal ${analysisResult.optimalLength}`;
+} else if (analysisResult.predictionType === 'MAX_STREAK') {
+    analysisTypeDisplay = analysisResult.explanation;
+    wlPredictionText = `-> ${predictedWL} (Max Streak)`;
+} else if (analysisResult.predictionType === 'FALLBACK') {
+    analysisTypeDisplay = `Fallback ${analysisResult.optimalLength}`;
+} else if (analysisResult.predictionType === 'BALANCED') {
+     analysisTypeDisplay = `FB ${analysisResult.optimalLength} (Cân)`;
+} else if (analysisResult.predictionType === 'NOT_ENOUGH_SAMPLES') {
+     analysisTypeDisplay = `FB ${analysisResult.optimalLength} (Ít mẫu)`;
+} else if (analysisResult.predictionType === 'NO_HISTORY_PATTERN') {
+     analysisTypeDisplay = 'Ko mẫu LS';
+} else if (analysisResult.predictionType === 'NOT_ENOUGH_WL') {
+     analysisTypeDisplay = 'Chờ W/L';
+}
+
+
+let pbIndicator = '';
+if (isActive && finalPBprediction) {
+const pbColor = finalPBprediction === 'P' ? 'text-blue-400' : 'text-red-400';
+pbIndicator = `<span class="font-bold ${pbColor} ml-1">[${finalPBprediction}]</span>`;
+}
+const activeClass = isActive ? 'bg-gray-700 bg-opacity-60 ring-1 ring-purple-500' : 'bg-gray-900';
+const displayedHistory = currentSequence.slice(-30);
+let individualBarsHTML = `<div class="flex items-end justify-center gap-px h-5 my-auto overflow-hidden" title="Diễn biến W/L gần đây (Tối đa 30)">`;
+if (displayedHistory.length > 0) {
+for (const result of displayedHistory) {
+const isWin = result === 'W';
+const barClass = isWin ? 'bg-green-500 h-5' : 'bg-red-500 h-2';
+const title = `Kết quả: ${isWin ? 'THẮNG' : 'THUA'}`;
+individualBarsHTML += `<div class="flex-shrink-0 w-1 ${barClass} rounded-t-sm" title="${title}"></div>`;
+}
+} else {
+individualBarsHTML += `<div class="w-full text-center"><span class="text-gray-600 text-xs">Chưa có</span></div>`;
+}
+individualBarsHTML += '</div>';
+return `
+<div class="grid grid-cols-12 gap-2 items-center text-xs mb-1 p-1.5 ${activeClass} rounded-lg transition-colors duration-300">
+<div class="col-span-2 font-semibold ${isActive ? 'text-purple-300' : 'text-gray-300'} truncate" title="${name}">${name}</div>
+<div class="col-span-3 text-center text-gray-400" title="Loại phân tích (Optimal / Max / Fallback)">${analysisTypeDisplay}</div>
+<div class="col-span-3">
+${individualBarsHTML}
+</div>
+<div class="col-span-4 text-right font-bold ${wlPredictionColor} truncate" title="${wlPredictionText}">
+${wlPredictionText}
+${pbIndicator}
+</div>
+</div>
+`;
+}
+function getChotPrediction(currentSequence, historicalSequences, sourceKey) {
+const MIN_PATTERN_LEN = 3;
+const MAX_PATTERN_LEN = 20;
+const MIN_PATTERN_OCCURRENCES = 2;
+const session = state.sessions[state.currentSessionId];
+if (!session) return { predictionType: 'NOT_ENOUGH_WL' };
+const optimalLength = session.chotOptimalLengths ? session.chotOptimalLengths[sourceKey] : null;
+// --- BƯỚC 1: ƯU TIÊN ĐỘ DÀI TỐI ƯU ---
+if (optimalLength && currentSequence.length >= optimalLength) {
+const pattern = currentSequence.slice(-optimalLength);
+const stats = findNextOutcomeInHistory(pattern, historicalSequences); // Use inexact for optimal
+if (stats.total > 0) {
+if (stats.W > stats.L) return { predictionType: 'OPTIMAL', predictedWL: 'W', stats: stats, optimalLength: optimalLength };
+if (stats.L > stats.W) return { predictionType: 'OPTIMAL', predictedWL: 'L', stats: stats, optimalLength: optimalLength };
+}
+}
+
+// --- BƯỚC 2: MAX STREAK ---
+const maxStreakAnalysis = analyzeMaxStreak(currentSequence, historicalSequences);
+if (maxStreakAnalysis) return maxStreakAnalysis;
+
+// --- BƯỚC 3: PATTERN FALLBACK ---
+if (currentSequence.length < MIN_PATTERN_LEN) return { predictionType: 'NOT_ENOUGH_WL' };
+const bestPatternInfo = findBestChotPatternLength(currentSequence, historicalSequences, MIN_PATTERN_LEN, MAX_PATTERN_LEN, MIN_PATTERN_OCCURRENCES);
+if (!bestPatternInfo) return { predictionType: 'NO_HISTORY_PATTERN' };
+const { stats, length } = bestPatternInfo;
+if (stats.W > stats.L) return { predictionType: 'FALLBACK', predictedWL: 'W', stats: stats, optimalLength: length };
+if (stats.L > stats.W) return { predictionType: 'FALLBACK', predictedWL: 'L', stats: stats, optimalLength: length };
+return { predictionType: 'BALANCED', stats: stats, optimalLength: length };
+
+}
+function updateChotAnalysisUI() {
+const MAX_BARS_TO_SHOW = 50;
+const finalChotResultDiv = document.getElementById('finalChotResult');
+const finalChotResultText = document.getElementById('finalChotResultText'); // Lấy element text
+const chotAnalysisDetailsDiv = document.getElementById('chotAnalysisDetails');
+const chotHistoryChartDiv = document.getElementById('chotHistoryChart');
+const chotAccuracyStatsSpan = document.getElementById('chotAccuracyStats');
+if (!finalChotResultDiv || !chotAnalysisDetailsDiv || !chotHistoryChartDiv || !chotAccuracyStatsSpan || !finalChotResultText) return { activeSourcesKeys: new Set(), chotAnalysisResults: {} }; // Return empty object if elements not found
+const activeSourcesKeys = new Set();
+const originalSystemPB = state.originalSystemPrediction;
+const currentConfidence = state.currentPrediction?.confidence;
+const finalVerdictInfo = state.currentFinalPrediction;
+state.currentChotPredictionForLog = null;
+let analysisRowsHTML = '';
+const finalVotesPB = { P: 0, B: 0 };
+let chotAnalysisResults = {}; // (MỚI) Lưu kết quả phân tích Chốt chi tiết
+
+if (originalSystemPB && finalVerdictInfo !== null) {
+if (finalVerdictInfo.verdict === 'follow') activeSourcesKeys.add('follow');
+else if (finalVerdictInfo.verdict === 'against') activeSourcesKeys.add('against');
+const activeConfidenceRange = CONFIDENCE_RANGES.find(r => currentConfidence >= r.min && currentConfidence < r.max);
+if (activeConfidenceRange) activeSourcesKeys.add(activeConfidenceRange.key);
+const allSequences = getChotAnalysisData();
+const currentSessionId = state.currentSessionId;
+const sources = CHOT_SOURCES.map(key => ({
+    key: key,
+    name: key === 'follow' ? 'Theo HT' : key === 'against' ? 'Ngược HT' : `${key.replace('-', ' - ')}%`
+}));
+
+if (currentSessionId) {
+for (const source of sources) {
+const isActive = activeSourcesKeys.has(source.key);
+const currentSequence = allSequences[source.key]?.[currentSessionId] || "";
+const historicalData = { ...allSequences[source.key] };
+if(historicalData) delete historicalData[currentSessionId];
+const analysisResult = getChotPrediction(currentSequence, historicalData, source.key);
+chotAnalysisResults[source.key] = analysisResult; // (MỚI) Lưu kết quả
+const predictedWL = analysisResult.predictedWL || null;
+let finalPBprediction = null;
+let voteFor = null; // (MỚI) Biến trung gian để giữ phiếu bầu
+if (isActive && predictedWL) {
+    if (source.key === 'against') {
+        // Logic ĐÃ SỬA LỖI cho "Ngược HT"
+        voteFor = (predictedWL === 'W')
+            ? (originalSystemPB === 'P' ? 'B' : 'P') // W (Ngược đúng) -> Vote ngược P/B Gốc
+            : originalSystemPB;                      // L (Ngược sai) -> Vote cho P/B Gốc
+    } else {
+        // Logic cho "Theo HT" và các khoảng tin cậy (ĐÃ ĐÚNG)
+        voteFor = (predictedWL === 'W')
+            ? originalSystemPB                      // W (Theo đúng) -> Vote cho P/B Gốc
+            : (originalSystemPB === 'P' ? 'B' : 'P'); // L (Theo sai) -> Vote ngược P/B Gốc
+    }
+    finalVotesPB[voteFor]++;
+    finalPBprediction = voteFor; // Gán P/B cuối cùng để hiển thị [P] hoặc [B]
+}
+analysisRowsHTML += getChotRowHTML(source.name, currentSequence, analysisResult, isActive, finalPBprediction);
+}
+}
+chotAnalysisDetailsDiv.innerHTML = analysisRowsHTML || '<p class="text-gray-500 text-center py-4">Chưa đủ dữ liệu W/L để phân tích Chốt...</p>';
+} else {
+state.currentChotPredictionForLog = null;
+chotAnalysisDetailsDiv.innerHTML = '<p class="text-gray-500 text-center py-4">Chờ tín hiệu từ Phán Quyết Hệ Thống...</p>';
+}
+let finalChotPredictionTextContent = '... Chờ tín hiệu ...'; // Đổi tên biến
+let finalChotPredictionColor = 'text-gray-400';
+let finalChotBorderColor = 'border-purple-500';
+let finalChotPB = null;
+const totalVotes = finalVotesPB.P + finalVotesPB.B;
+if (totalVotes > 0) {
+if (finalVotesPB.P > finalVotesPB.B) {
+finalChotPB = 'P';
+finalChotPredictionTextContent = `PLAYER ( ${finalVotesPB.P} / ${totalVotes} phiếu )`;
+finalChotPredictionColor = 'text-blue-400';
+finalChotBorderColor = 'border-blue-500';
+} else if (finalVotesPB.B > finalVotesPB.P) {
+finalChotPB = 'B';
+finalChotPredictionTextContent = `BANKER ( ${finalVotesPB.B} / ${totalVotes} phiếu )`;
+finalChotPredictionColor = 'text-red-400';
+finalChotBorderColor = 'border-red-500';
+} else {
+finalChotPredictionTextContent = `HÒA PHIẾU (${finalVotesPB.P} - ${finalVotesPB.B})`;
+finalChotPredictionColor = 'text-yellow-400';
+finalChotBorderColor = 'border-yellow-500';
+}
+} else if (originalSystemPB && finalVerdictInfo !== null) {
+finalChotPredictionTextContent = 'Không đủ tín hiệu bỏ phiếu';
+}
+// Lưu đề xuất Chốt (Optimal/Max/Fallback)
+state.currentChotPredictionForLog = {
+    prediction: finalChotPB,
+    source: 'CHOT_VOTE' // Nguồn là CHOT_VOTE
+};
+finalChotResultDiv.className = `text-center bg-gray-900 py-4 rounded-lg border-2 ${finalChotBorderColor} mb-4 transition-all duration-300`;
+finalChotResultText.textContent = finalChotPredictionTextContent; // Cập nhật textContent
+finalChotResultText.className = `text-2xl font-extrabold ${finalChotPredictionColor}`; // Cập nhật class
+
+const session = state.currentSessionId ? state.sessions[state.currentSessionId] : null;
+const chotHistory = session?.chotPredictions || [];
+let correctChot = 0;
+const totalChot = chotHistory.length;
+let barsHTML = '';
+const historyToShow = chotHistory.slice(-MAX_BARS_TO_SHOW);
+if (historyToShow.length > 0) {
+historyToShow.forEach(p => {
+    // Kiểm tra xem p có tồn tại và có thuộc tính predicted không
+    if (p && p.predicted !== undefined && p.actual !== undefined) {
+        const isCorrect = p.predicted === p.actual;
+        if (isCorrect) correctChot++;
+        const barClass = isCorrect ? 'history-bar-correct' : 'history-bar-incorrect';
+        const title = `Chốt: ${p.predicted}, Ra: ${p.actual} -> ${isCorrect ? 'Đúng' : 'Sai'}`;
+        barsHTML += `<div class="history-bar ${barClass}" title="${title}"></div>`;
+    } else {
+        // Ghi log nếu có dự đoán không hợp lệ trong lịch sử
+         console.warn("Invalid chot prediction found in history:", p);
+    }
+});
+chotHistoryChartDiv.innerHTML = barsHTML;
+} else {
+chotHistoryChartDiv.innerHTML = '<p class="text-gray-600 text-xs text-center w-full">Chưa có dữ liệu lịch sử Chốt...</p>';
+}
+const accuracyRate = totalChot > 0 ? (correctChot / totalChot * 100).toFixed(1) : '0.0';
+chotAccuracyStatsSpan.textContent = `Đúng: ${correctChot}/${totalChot} (${accuracyRate}%)`;
+// Trả về kết quả phân tích chi tiết để Chiến Lược sử dụng (nếu cần)
+return { activeSourcesKeys, chotAnalysisResults };
+}
+// --- END: LOGIC CHO PHÂN TÍCH "CHỐT" ---
+
+// --- START: ĐÃ BỎ LOGIC CHIẾN LƯỢC ---
+/*
+function analyzeStrategyRules(...) { ... }
+function getStrategyRecommendation(...) { ... }
+function updateStrategyUI(...) { ... }
+*/
+// --- END: ĐÃ BỎ LOGIC CHIẾN LƯỢC ---
+
+
+/**
+* Cập nhật tỷ lệ thắng (performance) cho các độ dài W/L của Chốt.
+*/
+function updateChotLengthPerformance(session, tier1Prediction, actualResult) {
+if (!session || !tier1Prediction) return;
+const actualWL = (tier1Prediction === actualResult) ? 'W' : 'L';
+const allSequences = getChotAnalysisData();
+if (!session.chotLengthPerformance) session.chotLengthPerformance = CHOT_SOURCES.reduce((acc, key) => { acc[key] = {}; return acc; }, {});
+if (!session.chotOptimalLengths) session.chotOptimalLengths = CHOT_SOURCES.reduce((acc, key) => { acc[key] = null; return acc; }, {});
+
+const newChotOptimalLengths = { ...session.chotOptimalLengths };
+for (const sourceKey of CHOT_SOURCES) {
+const perfData = session.chotLengthPerformance[sourceKey];
+const historicalSequences = { ...allSequences[sourceKey] };
+if(historicalSequences) delete historicalSequences[state.currentSessionId];
+const fullCurrentSequence = allSequences[sourceKey]?.[state.currentSessionId] || "";
+const prevSequence = fullCurrentSequence.slice(0, -1);
+const candidates = [];
+
+for (let len = 3; len <= 20; len++) {
+if (prevSequence.length < len) continue;
+const pattern = prevSequence.slice(-len);
+const stats = findNextOutcomeInHistory(pattern, historicalSequences); // use inexact
+if (stats.total > 0 && stats.W !== stats.L) {
+    const predictedWL = (stats.W > stats.L) ? 'W' : 'L';
+    if (!perfData[len]) perfData[len] = { wins: 0, total: 0 };
+    perfData[len].total++;
+    if (predictedWL === actualWL) perfData[len].wins++;
+}
+if (perfData[len] && perfData[len].total > 0) {
+    candidates.push({
+        length: len,
+        rate: perfData[len].wins / perfData[len].total,
+        total: perfData[len].total
+    });
+}
+}
+
+
+if (candidates.length > 0) {
+candidates.sort((a, b) => b.rate !== a.rate ? b.rate - a.rate : b.total - a.total);
+newChotOptimalLengths[sourceKey] = candidates[0].length;
+} else {
+newChotOptimalLengths[sourceKey] = null;
+}
+}
+session.chotOptimalLengths = newChotOptimalLengths;
+}
+// --- EVENT HANDLERS & ACTIONS ---
+function addResult(result) {
+    if (!state.currentSessionId) return;
+    const session = state.sessions[state.currentSessionId];
+
+    // Lấy đề xuất cuối cùng (Chỉ từ Chốt vì Chiến Lược đã bỏ)
+    const chotRec = state.currentChotPredictionForLog;
+    let finalPredictionForLog = null;
+    if (chotRec && chotRec.prediction) {
+        finalPredictionForLog = chotRec;
+    } else {
+        finalPredictionForLog = { prediction: null, source: 'None', type: 'None', reason: 'No prediction available' }; // Ensure object exists
+    }
+
+
+    const tier1Prediction = state.originalSystemPrediction; // HT1 P/B (lấy trước)
+
+    // --- Ghi log Prediction HT1 ---
+    if (state.currentPrediction && state.currentPrediction.prediction) {
+        session.predictions.push({ predicted: state.currentPrediction.prediction, actual: result, confidence: state.currentPrediction.confidence });
+    }
+    // --- Ghi log Verdict ---
+    if (!session.verdictPredictions) session.verdictPredictions = [];
+    if (state.currentFinalPrediction && state.currentFinalPrediction.prediction) {
+        session.verdictPredictions.push({
+            verdict: state.currentFinalPrediction.verdict,
+            predicted: state.currentFinalPrediction.prediction,
+            actual: result
+        });
+    }
+    // --- Ghi log Chốt ---
+    if (!session.chotPredictions) session.chotPredictions = [];
+    // Chỉ ghi log nếu có dự đoán Chốt
+    if (finalPredictionForLog && finalPredictionForLog.prediction) {
+        session.chotPredictions.push({
+            predicted: finalPredictionForLog.prediction,
+            actual: result,
+            source: finalPredictionForLog.source, // 'CHOT_VOTE'
+            type: finalPredictionForLog.type,     // undefined (vì không có type từ vote)
+            reason: finalPredictionForLog.reason // undefined (vì không có reason từ vote)
+        });
+     } else {
+         // Optionally log a 'no prediction' entry if needed for consistency
+          // session.chotPredictions.push({ predicted: null, actual: result, source: 'None', type: 'None', reason: 'No prediction' });
+     }
+
+
+    // --- Cập nhật Performance ---
+    updateChotLengthPerformance(session, tier1Prediction, result);
+
+    // --- Cập nhật History & Optimal Length HT1 ---
+    session.history.push(result);
+    const newOptimalLength = updateLengthPerformanceAndFindOptimal([...session.history].slice(0, -1), Object.values(state.sessions), result);
+    session.optimalLength = newOptimalLength;
+
+    // --- Reset state cho ván sau ---
+    state.currentPrediction = null;
+    state.originalSystemPrediction = null;
+    state.currentFinalPrediction = null;
+    state.currentChotPredictionForLog = null;
+    // *** ĐÃ BỎ: Reset strategy ***
+    // state.currentStrategyAnalysis = null;
+    // state.currentStrategyRecommendation = null;
+
+    saveSessions();
+    updateAllUI();
+}
+function updateLengthPerformanceAndFindOptimal(history, allSessions, newResult) {
+const session = state.sessions[state.currentSessionId];
+if (!session) return null;
+if (!session.lengthPerformance) session.lengthPerformance = {};
+const candidates = [];
+// <<<< ĐÃ THAY ĐỔI: Loop từ 10
+for (let len = 10; len <= 20; len++) {
+if (history.length < len) continue;
+const pattern = history.slice(-len);
+const { prediction } = state.matcher.getPredictionForPattern(pattern, allSessions);
+if (prediction) {
+if (!session.lengthPerformance[len]) session.lengthPerformance[len] = { wins: 0, total: 0 };
+const stats = session.lengthPerformance[len];
+stats.total++;
+if (prediction === newResult) stats.wins++;
+if (stats.total > 0) {
+    candidates.push({ length: len, rate: stats.wins / stats.total, total: stats.total });
+}
+}
+}
+
+if (candidates.length === 0) return session.optimalLength;
+candidates.sort((a, b) => b.rate !== a.rate ? b.rate - a.rate : b.total - a.total);
+return candidates[0].length;
+}
+function undoLast() {
+    if (!state.currentSessionId || !state.sessions[state.currentSessionId].history.length === 0) return;
+    const session = state.sessions[state.currentSessionId];
+
+    const lastResult = session.history.pop();
+    const historyForUndo = session.history;
+
+     // --- Hoàn tác Chốt ---
+     if (session.chotPredictions && session.chotPredictions.length > 0) {
+         session.chotPredictions.pop(); // Chỉ cần xóa cái cuối cùng
+     }
+
+    // --- Hoàn tác Chốt Performance ---
+    const tier1PredictionToUndo = session.predictions.length > 0 ? session.predictions[session.predictions.length - 1].predicted : null;
+    if (tier1PredictionToUndo) {
+        const actualWLHt1 = (tier1PredictionToUndo === lastResult) ? 'W' : 'L';
+        const allSequencesChot = getChotAnalysisData();
+        const newChotOptimalLengths = { ...session.chotOptimalLengths };
+        for (const sourceKey of CHOT_SOURCES) {
+            const perfDataChot = session.chotLengthPerformance[sourceKey];
+            const historicalSequencesChot = { ...allSequencesChot[sourceKey] };
+            if (historicalSequencesChot) delete historicalSequencesChot[state.currentSessionId];
+            const prevSequenceChot = allSequencesChot[sourceKey]?.[state.currentSessionId] || "";
+            const candidatesChot = [];
+            for (let len = 3; len <= 20; len++) {
+                if (prevSequenceChot.length < len) continue;
+                const pattern = prevSequenceChot.slice(-len);
+                const stats = findNextOutcomeInHistory(pattern, historicalSequencesChot); // use inexact
+                if (stats.total > 0 && stats.W !== stats.L) {
+                    const predictedWL = (stats.W > stats.L) ? 'W' : 'L';
+                    if (perfDataChot[len] && perfDataChot[len].total > 0) {
+                        perfDataChot[len].total--;
+                        if (predictedWL === actualWLHt1 && perfDataChot[len].wins > 0) {
+                            perfDataChot[len].wins--;
+                        }
+                    }
+                }
+                if (perfDataChot[len] && perfDataChot[len].total > 0) {
+                    candidatesChot.push({ length: len, rate: perfDataChot[len].wins / perfDataChot[len].total, total: perfDataChot[len].total });
+                }
+            }
+            if (candidatesChot.length > 0) {
+                candidatesChot.sort((a, b) => b.rate !== a.rate ? b.rate - a.rate : b.total - a.total);
+                newChotOptimalLengths[sourceKey] = candidatesChot[0].length;
+            } else {
+                newChotOptimalLengths[sourceKey] = null;
+            }
+        }
+        session.chotOptimalLengths = newChotOptimalLengths;
+    }
+
+    // --- Hoàn tác HT1 Performance ---
+    if (session.lengthPerformance) {
+        // <<<< ĐÃ THAY ĐỔI: Loop từ 10
+        for (let len = 10; len <= 20; len++) {
+            if (historyForUndo.length < len) continue;
+            const pattern = historyForUndo.slice(-len);
+             const tempAllSessions = Object.values(state.sessions).map(s =>
+                 s.sessionId === state.currentSessionId ? { ...s, history: [...historyForUndo] } : s
+             );
+            const { prediction } = state.matcher.getPredictionForPattern(pattern, tempAllSessions);
+            if (prediction) {
+                const stats = session.lengthPerformance[len];
+                if (stats && stats.total > 0) {
+                    stats.total--;
+                    if (prediction === lastResult && stats.wins > 0) {
+                        stats.wins--;
+                    }
+                }
+            }
+        }
+    }
+    // Tính lại optimalLength HT1
+    const candidatesHt1 = [];
+    if (session.lengthPerformance) {
+        for (const len in session.lengthPerformance) {
+            const stats = session.lengthPerformance[len];
+            if (stats.total > 0) {
+                candidatesHt1.push({ length: parseInt(len, 10), rate: stats.wins / stats.total, total: stats.total });
+            }
+        }
+    }
+    if (candidatesHt1.length > 0) {
+        candidatesHt1.sort((a, b) => b.rate !== a.rate ? b.rate - a.rate : b.total - a.total);
+        session.optimalLength = candidatesHt1[0].length;
+    } else {
+        session.optimalLength = null;
+    }
+
+    // Pop predictions HT1 và Verdict
+    if (session.predictions.length > 0) session.predictions.pop();
+    if (session.verdictPredictions && session.verdictPredictions.length > 0) session.verdictPredictions.pop();
+
+    saveSessions();
+    updateAllUI();
+}
+function clearCurrentSessionHistory() {
+    if (!state.currentSessionId) return;
+    const session = state.sessions[state.currentSessionId];
+    session.history = [];
+    session.predictions = [];
+    session.verdictPredictions = [];
+    session.chotPredictions = [];
+    session.lengthPerformance = {};
+    session.optimalLength = null;
+    session.chotLengthPerformance = CHOT_SOURCES.reduce((acc, key) => { acc[key] = {}; return acc; }, {});
+    session.chotOptimalLengths = CHOT_SOURCES.reduce((acc, key) => { acc[key] = null; return acc; }, {});
+    saveSessions();
+    updateAllUI();
+}
+// --- SESSION MANAGEMENT ---
+function getSessions() { try { return JSON.parse(localStorage.getItem('baccaratPatternSessions_v11_sim')) || {}; } catch (e) { return {}; }}
+function saveSessions() { localStorage.setItem('baccaratPatternSessions_v11_sim', JSON.stringify(state.sessions)); localStorage.setItem('lastActiveSession_v11_sim', state.currentSessionId); }
+function renameSession() {
+if (!state.currentSessionId) return;
+const currentName = state.sessions[state.currentSessionId].name;
+showCustomPrompt("Nhập tên mới cho phiên:", currentName, (newName) => {
+if (newName && newName.trim() !== "") {
+state.sessions[state.currentSessionId].name = newName.trim();
+saveSessions();
+updateSessionSelector();
+}
+});
+}
+function updateSessionSelector() {
+const selector = document.getElementById('sessionSelector');
+selector.innerHTML = '';
+const sortedKeys = Object.keys(state.sessions).sort((a, b) => {
+const timeA = parseInt(a.split('-')[1] || 0);
+const timeB = parseInt(b.split('-')[1] || 0);
+return timeA - timeB;
+});
+sortedKeys.reverse().forEach(sessionId => {
+const option = document.createElement('option');
+option.value = sessionId;
+option.textContent = `${state.sessions[sessionId].name} (${state.sessions[sessionId].history.length} ván)`;
+if (sessionId === state.currentSessionId) {
+option.selected = true;
+}
+selector.appendChild(option);
+});
+selector.onclick = () => {
+if(selector.selectedOptions.length === 1) {
+if(selector.value !== state.currentSessionId) {
+loadSession(selector.value);
+}
+}
+};
+}
+function createNewSession() {
+    const newId = `session-${Date.now()}`;
+    state.currentSessionId = newId;
+    state.sessions[newId] = {
+        name: `Phiên ${new Date().toLocaleString('vi-VN')}`,
+        history: [], predictions: [], verdictPredictions: [], chotPredictions: [],
+        lengthPerformance: {}, optimalLength: null,
+        chotLengthPerformance: CHOT_SOURCES.reduce((acc, key) => { acc[key] = {}; return acc; }, {}),
+        chotOptimalLengths: CHOT_SOURCES.reduce((acc, key) => { acc[key] = null; return acc; }, {}),
+    };
+    saveSessions();
+    updateSessionSelector();
+    updateAllUI();
+}
+function deleteSelectedSessions() {
+const selector = document.getElementById('sessionSelector');
+const selectedIds = Array.from(selector.selectedOptions).map(opt => opt.value);
+if (selectedIds.length === 0) {
+showToast('Vui lòng chọn ít nhất một phiên để xóa.', 'warning');
+return;
+}
+if (selectedIds.length === Object.keys(state.sessions).length && Object.keys(state.sessions).length > 0) {
+showToast('Không thể xóa tất cả các phiên. Hãy dùng nút "Xóa Tất Cả".', 'error');
+return;
+}
+showCustomConfirm(`Bạn có chắc muốn xóa ${selectedIds.length} phiên đã chọn không?`, () => {
+let wasCurrentSessionDeleted = false;
+selectedIds.forEach(id => {
+if (id === state.currentSessionId) {
+wasCurrentSessionDeleted = true;
+}
+delete state.sessions[id];
+});
+if (wasCurrentSessionDeleted) {
+state.currentSessionId = null;
+localStorage.removeItem('lastActiveSession_v11_sim');
+}
+saveSessions();
+initializeApp();
+showToast(`Đã xóa ${selectedIds.length} phiên.`, 'success');
+});
+}
+function deleteAllSessions() {
+showCustomConfirm('BẠN CÓ CHẮC MUỐN XÓA TẤT CẢ CÁC PHIÊN KHÔNG? Hành động này không thể hoàn tác.', () => {
+state.sessions = {};
+state.currentSessionId = null;
+localStorage.removeItem('baccaratPatternSessions_v11_sim');
+localStorage.removeItem('lastActiveSession_v11_sim');
+initializeApp();
+showToast('Tất cả các phiên đã được xóa.', 'success');
+});
+}
+function loadSession(sessionId) {
+if (state.sessions[sessionId]) {
+state.currentSessionId = sessionId;
+state.currentPrediction = null;
+state.originalSystemPrediction = null;
+state.currentFinalPrediction = null;
+state.currentChotPredictionForLog = null;
+// *** ĐÃ BỎ: Reset strategy ***
+// state.currentStrategyAnalysis = null;
+// state.currentStrategyRecommendation = null;
+localStorage.setItem('lastActiveSession_v11_sim', state.currentSessionId);
+updateSessionSelector();
+updateAllUI();
+}
+}
+// --- IMPORT / EXPORT & RECALCULATION ---
+// *** MỚI: Hàm trợ giúp tạo CSV ***
+function escapeCsvValue(value) {
+    if (value === null || value === undefined) {
+        return '';
+    }
+    value = String(value);
+    if (value.includes(',') || value.includes('"') || value.includes('\n')) {
+        value = value.replace(/"/g, '""');
+        return `"${value}"`;
+    }
+    return value;
+}
+
+function convertToCsv(data, headers) {
+    const headerRow = headers.map(escapeCsvValue).join(',');
+    const dataRows = data.map(row =>
+        headers.map(header => escapeCsvValue(row[header])).join(',')
+    );
+    return [headerRow, ...dataRows].join('\n');
+}
+
+function downloadCsv(csvContent, filename) {
+    const blob = new Blob([`\uFEFF${csvContent}`], { type: 'text/csv;charset=utf-8;' }); // Add BOM for Excel UTF-8
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+// *** MỚI: Hàm xuất Verdict Stats ***
+function exportVerdictStats() {
+    if (!state.currentSessionId || !state.sessions[state.currentSessionId]) {
+        showToast('Không có phiên hiện tại để xuất.', 'warning');
+        return;
+    }
+    const session = state.sessions[state.currentSessionId];
+    const predictions = session.verdictPredictions || [];
+
+    if (predictions.length === 0) {
+        showToast('Phiên hiện tại chưa có dữ liệu Phán Quyết để xuất.', 'warning');
+        return;
+    }
+
+    const dataToExport = predictions.map((p, index) => {
+        const result = p.predicted === p.actual ? 'W' : 'L';
+        const verdictType = p.verdict === 'follow' ? 'Theo HT' : p.verdict === 'against' ? 'Ngược HT' : 'Không xác định';
+        return {
+            'Ván số': index + 1,
+            'Loại Phán Quyết': verdictType,
+            'Đề xuất (P/B)': p.predicted,
+            'Kết quả (P/B)': p.actual,
+            'Kết quả (W/L)': result
+        };
+    });
+
+    const headers = ['Ván số', 'Loại Phán Quyết', 'Đề xuất (P/B)', 'Kết quả (P/B)', 'Kết quả (W/L)'];
+    const csvContent = convertToCsv(dataToExport, headers);
+    const timestamp = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+    const sessionName = session.name.replace(/[^a-z0-9]/gi, '_'); // Sanitize name
+    const filename = `${sessionName}_VerdictStats_${timestamp}.csv`;
+    downloadCsv(csvContent, filename);
+    showToast('Đã xuất dữ liệu Phán Quyết (Phiên)!', 'success');
+}
+
+// *** MỚI: Hàm xuất Confidence Stats ***
+function exportConfidenceStats() {
+    if (!state.currentSessionId || !state.sessions[state.currentSessionId]) {
+        showToast('Không có phiên hiện tại để xuất.', 'warning');
+        return;
+    }
+    const session = state.sessions[state.currentSessionId];
+    const predictions = session.predictions || [];
+
+    if (predictions.length === 0) {
+        showToast('Phiên hiện tại chưa có dữ liệu Tin Cậy để xuất.', 'warning');
+        return;
+    }
+
+    const dataToExport = predictions.map((p, index) => {
+        const result = p.predicted === p.actual ? 'W' : 'L';
+        const range = CONFIDENCE_RANGES.find(r => p.confidence >= r.min && p.confidence < r.max);
+        const rangeKey = range ? range.key : 'N/A';
+        return {
+            'Ván số': index + 1,
+            'Độ tin cậy (%)': p.confidence.toFixed(1),
+            'Khoảng tin cậy': rangeKey,
+            'Đề xuất HT1 (P/B)': p.predicted,
+            'Kết quả (P/B)': p.actual,
+            'Kết quả (W/L)': result
+        };
+    });
+
+    const headers = ['Ván số', 'Độ tin cậy (%)', 'Khoảng tin cậy', 'Đề xuất HT1 (P/B)', 'Kết quả (P/B)', 'Kết quả (W/L)'];
+    const csvContent = convertToCsv(dataToExport, headers);
+    const timestamp = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+    const sessionName = session.name.replace(/[^a-z0-9]/gi, '_'); // Sanitize name
+    const filename = `${sessionName}_ConfidenceStats_${timestamp}.csv`;
+    downloadCsv(csvContent, filename);
+    showToast('Đã xuất dữ liệu Độ Tin Cậy (Phiên)!', 'success');
+}
+// *** END: Hàm xuất mới ***
+
+function runSimulation(importedSessions) {
+    state.sessions = {};
+    state.currentSessionId = null;
+    localStorage.removeItem('baccaratPatternSessions_v11_sim');
+    localStorage.removeItem('lastActiveSession_v11_sim');
+    const sortedSessionIds = Object.keys(importedSessions).sort((a, b) => {
+        const timeA = parseInt(a.split('-')[1] || 0);
+        const timeB = parseInt(b.split('-')[1] || 0);
+        return timeA - timeB;
+    });
+    sortedSessionIds.forEach((sessionId, index) => {
+        const importedSession = importedSessions[sessionId];
+        if (!importedSession || !importedSession.name || !Array.isArray(importedSession.history)) {
+            console.warn(`Skipping invalid imported session (name or history missing/invalid): ${sessionId}`);
+            return;
+        }
+        const newId = sessionId;
+        state.sessions[newId] = {
+            name: importedSession.name,
+            history: [], predictions: [], verdictPredictions: [], chotPredictions: [],
+            lengthPerformance: {}, optimalLength: null,
+            chotLengthPerformance: CHOT_SOURCES.reduce((acc, key) => { acc[key] = {}; return acc; }, {}),
+            chotOptimalLengths: CHOT_SOURCES.reduce((acc, key) => { acc[key] = null; return acc; }, {}),
+        };
+        importedSession.history.forEach((result, resultIndex) => {
+            state.currentSessionId = newId;
+            if (result === 'P' || result === 'B') {
+                updateAnalysisUI(); // Tính toán trước khi add
+                updateChotAnalysisUI(); // Tính toán trước khi add
+                // *** ĐÃ BỎ: Lệnh gọi updateStrategyUI ***
+                // updateStrategyUI(chotAnalysis);
+                addResult(result);
+            } else {
+                console.warn(`Skipping invalid result '${result}' at index ${resultIndex} in session ${sessionId}`);
+            }
+        });
+    });
+    if (Object.keys(state.sessions).length > 0) {
+        const lastValidProcessedId = Object.keys(state.sessions).sort((a, b) => parseInt(a.split('-')[1] || 0) - parseInt(b.split('-')[1] || 0)).pop();
+        if (lastValidProcessedId) {
+            loadSession(lastValidProcessedId);
+        } else {
+            createNewSession();
+        }
+    } else {
+        createNewSession();
+    }
+    updateSessionSelector();
+    updateAllUI();
+}
+
+function importData(event) {
+const file = event.target.files[0];
+if (!file) return;
+const reader = new FileReader();
+reader.onload = function(e) {
+try {
+const importedSessions = JSON.parse(e.target.result);
+if (typeof importedSessions !== 'object' || importedSessions === null) throw new Error("Invalid format: Not an object");
+let dataOk = true;
+for(const key in importedSessions) {
+const s = importedSessions[key];
+if(!s.name || !Array.isArray(s.history)) {
+console.error(`Invalid data for session ${key}: Missing name or history is not an array.`);
+dataOk = false; break;
+};
+}
+if (!dataOk && Object.keys(importedSessions).length > 0) throw new Error("Invalid session data: name or history format incorrect.");
+
+showCustomConfirm('Dữ liệu hiện tại sẽ bị ghi đè (chỉ nhập lịch sử). Bạn có chắc muốn tiếp tục?', () => {
+showLoadingModal('Đang nhập lịch sử và tính toán lại...');
+setTimeout(() => {
+try {
+runSimulation(importedSessions);
+hideLoadingModal();
+showToast('Nhập lịch sử và tính toán lại thành công!', 'success');
+} catch (simError) {
+hideLoadingModal();
+showToast('Lỗi trong quá trình tính toán lại dữ liệu.', 'error');
+console.error("Calculation error during import:", simError);
+initializeApp();
+}
+}, 100);
+});
+} catch (error) {
+hideLoadingModal();
+showToast(`Lỗi: File dữ liệu không hợp lệ hoặc lỗi đọc file. (${error.message})`, 'error');
+console.error("Import error:", error);
+} finally {
+event.target.value = '';
+}
+};
+reader.onerror = function() {
+hideLoadingModal();
+showToast('Lỗi đọc file.', 'error');
+event.target.value = '';
+};
+reader.readAsText(file);
+}
+function exportData() {
+if (!state.sessions || Object.keys(state.sessions).length === 0) {
+showToast('Không có dữ liệu để xuất.', 'warning');
+return;
+}
+const sessionsToExport = {};
+for(const sessionId in state.sessions) {
+sessionsToExport[sessionId] = {
+name: state.sessions[sessionId].name,
+history: state.sessions[sessionId].history
+};
+}
+const dataToExport = JSON.stringify(sessionsToExport, null, 2);
+const blob = new Blob([dataToExport], { type: 'application/json' });
+const url = URL.createObjectURL(blob);
+const a = document.createElement('a');
+a.href = url;
+const timestamp = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+a.download = `BaccaratAnalysis_HistoryOnly_${timestamp}.json`;
+document.body.appendChild(a);
+a.click();
+document.body.removeChild(a);
+URL.revokeObjectURL(url);
+showToast('Lịch sử các phiên đã được xuất (chỉ gồm history)!', 'success');
+}
+// --- CUSTOM UI COMPONENTS (MODAL, TOAST, PROMPT) ---
+function showToast(message, type = 'info') {
+const container = document.getElementById('toast-container');
+const toast = document.createElement('div');
+const colors = { success: 'border-green-500', info: 'border-blue-500', warning: 'border-yellow-500', error: 'border-red-500' };
+toast.className = `toast-notification ${colors[type]}`;
+toast.textContent = message;
+container.appendChild(toast);
+setTimeout(() => {
+toast.style.animation = 'fadeOut 0.5s ease';
+setTimeout(() => toast.remove(), 500);
+}, 3000);
+}
+function showLoadingModal(message) {
+const container = document.getElementById('modal-container');
+container.innerHTML = `
+<div id="loading-modal" class="modal-backdrop">
+<div class="modal-content text-center">
+<p class="text-lg text-gray-200">${message}</p>
+<div class="mt-4">
+<svg class="animate-spin h-8 w-8 text-white mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+</svg>
+</div>
+</div>
+</div>`;
+}
+function hideLoadingModal() {
+const modal = document.getElementById('loading-modal');
+if (modal) {
+modal.style.animation = 'fadeOut 0.3s ease';
+setTimeout(() => { document.getElementById('modal-container').innerHTML = ''; }, 300);
+} else {
+document.getElementById('modal-container').innerHTML = '';
+}
+}
+function showCustomConfirm(message, onConfirm) {
+const container = document.getElementById('modal-container');
+const modalHTML = `
+<div id="custom-confirm" class="modal-backdrop">
+<div class="modal-content">
+<p class="text-lg text-gray-200 mb-6">${message}</p>
+<div class="flex justify-end gap-4">
+<button id="confirm-cancel" class="btn bg-gray-600 hover:bg-gray-500 px-6 py-2 rounded-lg">Hủy</button>
+<button id="confirm-ok" class="btn bg-red-600 hover:bg-red-500 px-6 py-2 rounded-lg">Xác nhận</button>
+</div>
+</div>
+</div>`;
+container.innerHTML = modalHTML;
+const modalElement = document.getElementById('custom-confirm');
+document.getElementById('confirm-ok').onclick = () => {
+onConfirm();
+modalElement.style.animation = 'fadeOut 0.3s ease';
+setTimeout(() => { container.innerHTML = ''; }, 300);
+};
+document.getElementById('confirm-cancel').onclick = () => {
+modalElement.style.animation = 'fadeOut 0.3s ease';
+setTimeout(() => { container.innerHTML = ''; }, 300);
+};
+}
+function showCustomPrompt(message, defaultValue, onConfirm) {
+const container = document.getElementById('modal-container');
+const modalHTML = `
+<div id="custom-prompt" class="modal-backdrop">
+<div class="modal-content">
+<p class="text-lg text-gray-200 mb-4">${message}</p>
+<input type="text" id="prompt-input" value="${defaultValue}" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:outline-none mb-6">
+<div class="flex justify-end gap-4">
+<button id="prompt-cancel" class="btn bg-gray-600 hover:bg-gray-500 px-6 py-2 rounded-lg">Hủy</button>
+<button id="prompt-ok" class="btn bg-blue-600 hover:bg-blue-500 px-6 py-2 rounded-lg">Lưu</button>
+</div>
+</div>
+</div>`;
+container.innerHTML = modalHTML;
+const modalElement = document.getElementById('custom-prompt');
+const input = document.getElementById('prompt-input');
+input.focus(); input.select();
+const closePrompt = (value) => {
+modalElement.style.animation = 'fadeOut 0.3s ease';
+setTimeout(() => { container.innerHTML = ''; if (value !== null) onConfirm(value); }, 300);
+};
+document.getElementById('prompt-ok').onclick = () => { closePrompt(input.value); };
+document.getElementById('prompt-cancel').onclick = () => { closePrompt(null); };
+input.onkeydown = (e) => { if (e.key === 'Enter') document.getElementById('prompt-ok').click(); };
+}
+function initializeApp() {
+    state.sessions = getSessions();
+    Object.values(state.sessions).forEach(s => {
+        if (!s.lengthPerformance) s.lengthPerformance = {};
+        if (s.optimalLength === undefined) s.optimalLength = null;
+        if (!s.verdictPredictions) s.verdictPredictions = [];
+        if (!s.chotPredictions) s.chotPredictions = [];
+        if (!s.chotLengthPerformance) s.chotLengthPerformance = CHOT_SOURCES.reduce((acc, key) => { acc[key] = {}; return acc; }, {});
+        if (!s.chotOptimalLengths) s.chotOptimalLengths = CHOT_SOURCES.reduce((acc, key) => { acc[key] = null; return acc; }, {});
+        delete s.simulation; // Remove old property
+    });
+    const lastActiveId = localStorage.getItem('lastActiveSession_v11_sim');
+    if (Object.keys(state.sessions).length === 0) {
+        createNewSession();
+    } else {
+        const sortedKeys = Object.keys(state.sessions).sort((a, b) => parseInt(a.split('-')[1] || 0) - parseInt(b.split('-')[1] || 0));
+        const idToLoad = (lastActiveId && state.sessions[lastActiveId]) ? lastActiveId : sortedKeys[sortedKeys.length - 1];
+        state.currentSessionId = idToLoad;
+        loadSession(idToLoad);
+    }
+    const sessionContent = document.getElementById('sessionManagementContent');
+    sessionContent.style.maxHeight = '0px';
+    document.getElementById('toggleSessionIcon').style.transform = 'rotate(-180deg)';
+}
+// --- INITIALIZATION ---
+document.addEventListener('DOMContentLoaded', initializeApp)
+</script>
+  <script>
+// =================== IFRAME COMMUNICATION FOR HT1 ===================
+// KHÓA RIÊNG CHO HT1
+const HT1_STORAGE_KEY = 'baccaratPatternSessions_HT1_v11_sim';
+const HT1_LAST_SESSION_KEY = 'lastActiveSession_HT1_v11_sim';
+
+(function() {
+    // Notify parent that system is ready
+    window.addEventListener('load', function() {
+        setTimeout(() => {
+            window.parent.postMessage({
+                source: 'ht1',
+                type: 'ready'
+            }, '*');
+        }, 1000);
+    });
+
+    // Listen for messages from parent
+    window.addEventListener('message', function(event) {
+        if (event.data.source === 'master') {
+            handleMasterCommand(event.data);
+        }
+    });
+
+    function handleMasterCommand(data) {
+        console.log("HT1 received command:", data.command);
+        
+        switch(data.command) {
+            case 'get_accuracy':
+                sendAccuracyUpdate();
+                break;
+                
+            case 'get_chot_history':
+                sendChotHistory();
+                break;
+                
+            case 'get_session_info':
+                sendSessionInfo();
+                break;
+                
+            case 'get_prediction':
+                sendPrediction();
+                break;
+                
+            case 'create_session':
+                createSession(data.data);
+                break;
+                
+            case 'rename_session':
+                renameSession(data.data);
+                break;
+                
+            case 'load_session':
+                loadSession(data.data);
+                break;
+                
+            case 'add_result':
+                addResult(data.data);
+                break;
+                
+            case 'undo_last':
+                undoLast();
+                break;
+                
+            case 'clear_history':
+                clearCurrentSessionHistory();
+                break;
+                
+            case 'import_data':
+                importSimulatedData(data.data);
+                break;
+                
+            case 'export_data':
+                exportSessionData();
+                break;
+                
+            case 'reset_system':
+                resetSystem();
+                break;
+        }
+    }
+
+    function sendAccuracyUpdate() {
+        const session = state.sessions[state.currentSessionId];
+        if (session && session.chotPredictions) {
+            const total = session.chotPredictions.length;
+            const correct = session.chotPredictions.filter(p => p.predicted === p.actual).length;
+            const accuracy = total > 0 ? (correct / total) * 100 : 0;
+            
+            window.parent.postMessage({
+                source: 'ht1',
+                type: 'accuracy_update',
+                accuracy: accuracy,
+                correct: correct,
+                total: total
+            }, '*');
+        } else {
+            window.parent.postMessage({
+                source: 'ht1',
+                type: 'accuracy_update',
+                accuracy: 0,
+                correct: 0,
+                total: 0
+            }, '*');
+        }
+    }
+
+    function sendChotHistory() {
+        const session = state.sessions[state.currentSessionId];
+        if (session && session.chotPredictions) {
+            window.parent.postMessage({
+                source: 'ht1',
+                type: 'chot_history_update',
+                history: session.chotPredictions
+            }, '*');
+        } else {
+            window.parent.postMessage({
+                source: 'ht1',
+                type: 'chot_history_update',
+                history: []
+            }, '*');
+        }
+    }
+
+    function sendSessionInfo() {
+        const session = state.sessions[state.currentSessionId];
+        if (session) {
+            window.parent.postMessage({
+                source: 'ht1',
+                type: 'session_update',
+                session: {
+                    id: state.currentSessionId,
+                    name: session.name,
+                    history: session.history,
+                    current: true
+                }
+            }, '*');
+        } else {
+            window.parent.postMessage({
+                source: 'ht1',
+                type: 'session_update',
+                session: null
+            }, '*');
+        }
+    }
+
+    function sendPrediction() {
+        window.parent.postMessage({
+            source: 'ht1',
+            type: 'prediction_update',
+            prediction: state.currentChotPredictionForLog?.prediction || state.currentFinalPrediction?.prediction || state.originalSystemPrediction
+        }, '*');
+    }
+
+    function createSession(sessionData) {
+        if (!sessionData || !sessionData.name) return;
+        
+        const newId = sessionData.id || `session-${Date.now()}`;
+        state.currentSessionId = newId;
+        state.sessions[newId] = {
+            name: sessionData.name,
+            history: [],
+            predictions: [],
+            verdictPredictions: [],
+            chotPredictions: [],
+            lengthPerformance: {},
+            optimalLength: null,
+            chotLengthPerformance: CHOT_SOURCES.reduce((acc, key) => { acc[key] = {}; return acc; }, {}),
+            chotOptimalLengths: CHOT_SOURCES.reduce((acc, key) => { acc[key] = null; return acc; }, {}),
+        };
+        
+        // Use HT1's own save function
+        if (typeof saveSessions === 'function') {
+            saveSessions();
+        } else {
+            // Fallback
+            localStorage.setItem(HT1_STORAGE_KEY, JSON.stringify(state.sessions));
+            localStorage.setItem(HT1_LAST_SESSION_KEY, state.currentSessionId);
+        }
+        
+        if (typeof updateSessionSelector === 'function') updateSessionSelector();
+        if (typeof updateAllUI === 'function') updateAllUI();
+        
+        sendSessionInfo();
+    }
+
+    function renameSession(sessionData) {
+        if (!sessionData || !sessionData.id || !sessionData.name) return;
+        
+        if (state.sessions[sessionData.id]) {
+            state.sessions[sessionData.id].name = sessionData.name;
+            if (state.currentSessionId === sessionData.id) {
+                if (typeof saveSessions === 'function') {
+                    saveSessions();
+                } else {
+                    localStorage.setItem(HT1_STORAGE_KEY, JSON.stringify(state.sessions));
+                }
+                if (typeof updateSessionSelector === 'function') updateSessionSelector();
+                if (typeof updateAllUI === 'function') updateAllUI();
+            }
+        }
+    }
+
+    function loadSession(sessionData) {
+        if (!sessionData || !sessionData.id) return;
+        
+        // Create session if doesn't exist
+        if (!state.sessions[sessionData.id]) {
+            state.sessions[sessionData.id] = {
+                name: sessionData.name || `Phiên ${sessionData.id}`,
+                history: sessionData.history || [],
+                predictions: [],
+                verdictPredictions: [],
+                chotPredictions: [],
+                lengthPerformance: {},
+                optimalLength: null,
+                chotLengthPerformance: CHOT_SOURCES.reduce((acc, key) => { acc[key] = {}; return acc; }, {}),
+                chotOptimalLengths: CHOT_SOURCES.reduce((acc, key) => { acc[key] = null; return acc; }, {}),
+            };
+        }
+        
+        // Load the session
+        state.currentSessionId = sessionData.id;
+        
+        // If there's history, simulate it
+        if (sessionData.history && sessionData.history.length > 0) {
+            // Clear existing data
+            state.sessions[sessionData.id].history = [];
+            state.sessions[sessionData.id].predictions = [];
+            state.sessions[sessionData.id].verdictPredictions = [];
+            state.sessions[sessionData.id].chotPredictions = [];
+            
+            // Simulate each result
+            sessionData.history.forEach((result, index) => {
+                state.sessions[sessionData.id].history.push(result);
+                
+                // Update analysis after each result
+                if (index >= 9) {
+                    if (typeof updateAnalysisUI === 'function') updateAnalysisUI();
+                    if (typeof updateChotAnalysisUI === 'function') updateChotAnalysisUI();
+                }
+            });
+            
+            // Recalculate everything
+            if (typeof updateAllUI === 'function') updateAllUI();
+        }
+        
+        if (typeof saveSessions === 'function') {
+            saveSessions();
+        } else {
+            localStorage.setItem(HT1_STORAGE_KEY, JSON.stringify(state.sessions));
+            localStorage.setItem(HT1_LAST_SESSION_KEY, state.currentSessionId);
+        }
+        
+        if (typeof updateSessionSelector === 'function') updateSessionSelector();
+        if (typeof updateAllUI === 'function') updateAllUI();
+        
+        sendSessionInfo();
+    }
+
+    function addResult(result) {
+        if (!state.currentSessionId) return;
+        
+        const session = state.sessions[state.currentSessionId];
+        if (!session) return;
+        
+        const chotRec = state.currentChotPredictionForLog;
+        const tier1Prediction = state.originalSystemPrediction;
+        
+        if (state.currentPrediction) {
+            session.predictions.push({ 
+                predicted: state.currentPrediction.prediction, 
+                actual: result, 
+                confidence: state.currentPrediction.confidence 
+            });
+        }
+        
+        if (state.currentFinalPrediction) {
+            session.verdictPredictions.push({
+                verdict: state.currentFinalPrediction.verdict,
+                predicted: state.currentFinalPrediction.prediction,
+                actual: result
+            });
+        }
+        
+        if (chotRec && chotRec.prediction) {
+            session.chotPredictions.push({ 
+                predicted: chotRec.prediction, 
+                actual: result, 
+                source: 'CHOT_VOTE' 
+            });
+        }
+        
+        if (typeof updateChotLengthPerformance === 'function') {
+            updateChotLengthPerformance(session, tier1Prediction, result);
+        }
+        
+        session.history.push(result);
+        
+        if (typeof updateLengthPerformanceAndFindOptimal === 'function') {
+            session.optimalLength = updateLengthPerformanceAndFindOptimal(
+                [...session.history].slice(0, -1), 
+                Object.values(state.sessions), 
+                result
+            );
+        }
+        
+        state.currentPrediction = null;
+        state.originalSystemPrediction = null;
+        state.currentFinalPrediction = null;
+        state.currentChotPredictionForLog = null;
+        
+        if (typeof saveSessions === 'function') {
+            saveSessions();
+        } else {
+            localStorage.setItem(HT1_STORAGE_KEY, JSON.stringify(state.sessions));
+        }
+        
+        if (typeof updateAllUI === 'function') updateAllUI();
+        
+        // Send updates
+        sendAccuracyUpdate();
+        sendChotHistory();
+        sendPrediction();
+    }
+
+    function undoLast() {
+        if (!state.currentSessionId) return;
+        
+        const session = state.sessions[state.currentSessionId];
+        if (!session || session.history.length === 0) return;
+        
+        session.history.pop();
+        if (session.predictions.length > 0) session.predictions.pop();
+        if (session.verdictPredictions.length > 0) session.verdictPredictions.pop();
+        if (session.chotPredictions.length > 0) session.chotPredictions.pop();
+        
+        if (typeof saveSessions === 'function') {
+            saveSessions();
+        } else {
+            localStorage.setItem(HT1_STORAGE_KEY, JSON.stringify(state.sessions));
+        }
+        
+        if (typeof updateAllUI === 'function') updateAllUI();
+        
+        sendAccuracyUpdate();
+        sendChotHistory();
+    }
+
+    function clearCurrentSessionHistory() {
+        if (!state.currentSessionId) return;
+        
+        const session = state.sessions[state.currentSessionId];
+        if (!session) return;
+        
+        session.history = [];
+        session.predictions = [];
+        session.verdictPredictions = [];
+        session.chotPredictions = [];
+        
+        if (typeof saveSessions === 'function') {
+            saveSessions();
+        } else {
+            localStorage.setItem(HT1_STORAGE_KEY, JSON.stringify(state.sessions));
+        }
+        
+        if (typeof updateAllUI === 'function') updateAllUI();
+        
+        sendAccuracyUpdate();
+        sendChotHistory();
+    }
+
+    function importSimulatedData(data) {
+        if (!data || !data.sessions) return;
+        
+        // Clear existing data
+        state.sessions = {};
+        state.currentSessionId = null;
+        
+        // Import sessions
+        Object.keys(data.sessions).forEach(sessionId => {
+            const importedSession = data.sessions[sessionId];
+            state.sessions[sessionId] = {
+                name: importedSession.name || `Phiên ${sessionId}`,
+                history: importedSession.history || [],
+                predictions: importedSession.predictions || [],
+                verdictPredictions: importedSession.verdictPredictions || [],
+                chotPredictions: importedSession.chotPredictions || [],
+                lengthPerformance: importedSession.lengthPerformance || {},
+                optimalLength: importedSession.optimalLength || null,
+                chotLengthPerformance: importedSession.chotLengthPerformance || CHOT_SOURCES.reduce((acc, key) => { acc[key] = {}; return acc; }, {}),
+                chotOptimalLengths: importedSession.chotOptimalLengths || CHOT_SOURCES.reduce((acc, key) => { acc[key] = null; return acc; }, {}),
+            };
+        });
+        
+        // Set first session as current if available
+        const sessionIds = Object.keys(state.sessions);
+        if (sessionIds.length > 0) {
+            state.currentSessionId = sessionIds[0];
+        }
+        
+        if (typeof saveSessions === 'function') {
+            saveSessions();
+        } else {
+            localStorage.setItem(HT1_STORAGE_KEY, JSON.stringify(state.sessions));
+            if (state.currentSessionId) {
+                localStorage.setItem(HT1_LAST_SESSION_KEY, state.currentSessionId);
+            }
+        }
+        
+        if (typeof updateSessionSelector === 'function') updateSessionSelector();
+        if (typeof updateAllUI === 'function') updateAllUI();
+        
+        // Send updates
+        sendAccuracyUpdate();
+        sendChotHistory();
+        sendSessionInfo();
+        
+        window.parent.postMessage({
+            source: 'ht1',
+            type: 'import_complete'
+        }, '*');
+    }
+
+    function exportSessionData() {
+        window.parent.postMessage({
+            source: 'ht1',
+            type: 'export_response',
+            sessions: state.sessions
+        }, '*');
+    }
+
+    function resetSystem() {
+        state.sessions = {};
+        state.currentSessionId = null;
+        state.currentPrediction = null;
+        state.originalSystemPrediction = null;
+        state.currentFinalPrediction = null;
+        state.currentChotPredictionForLog = null;
+        
+        // Use HT1's own storage keys
+        localStorage.removeItem(HT1_STORAGE_KEY);
+        localStorage.removeItem(HT1_LAST_SESSION_KEY);
+        
+        // Create new session
+        if (typeof createNewSession === 'function') {
+            createNewSession();
+        } else {
+            const newId = `session-${Date.now()}`;
+            state.currentSessionId = newId;
+            state.sessions[newId] = {
+                name: `Phiên mới ${new Date().toLocaleString('vi-VN')}`,
+                history: [],
+                predictions: [],
+                verdictPredictions: [],
+                chotPredictions: [],
+                lengthPerformance: {},
+                optimalLength: null,
+                chotLengthPerformance: CHOT_SOURCES.reduce((acc, key) => { acc[key] = {}; return acc; }, {}),
+                chotOptimalLengths: CHOT_SOURCES.reduce((acc, key) => { acc[key] = null; return acc; }, {}),
+            };
+            
+            localStorage.setItem(HT1_STORAGE_KEY, JSON.stringify(state.sessions));
+            localStorage.setItem(HT1_LAST_SESSION_KEY, state.currentSessionId);
+        }
+        
+        if (typeof updateAllUI === 'function') updateAllUI();
+        
+        window.parent.postMessage({
+            source: 'ht1',
+            type: 'system_reset_complete'
+        }, '*');
+    }
+
+    // Override HT1's saveSessions and loadSessions functions if they exist
+    if (typeof saveSessions === 'function') {
+        const originalSaveSessions = saveSessions;
+        saveSessions = function() {
+            localStorage.setItem(HT1_STORAGE_KEY, JSON.stringify(state.sessions));
+            if (state.currentSessionId) {
+                localStorage.setItem(HT1_LAST_SESSION_KEY, state.currentSessionId);
+            }
+            originalSaveSessions();
+        };
+    }
+
+    if (typeof loadSessions === 'function') {
+        const originalLoadSessions = loadSessions;
+        loadSessions = function() {
+            const saved = localStorage.getItem(HT1_STORAGE_KEY);
+            if (saved) {
+                state.sessions = JSON.parse(saved);
+            }
+            state.currentSessionId = localStorage.getItem(HT1_LAST_SESSION_KEY);
+            originalLoadSessions();
+        };
+    }
+})();
+</script>
+</body>
+</html>
+
