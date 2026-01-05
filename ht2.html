@@ -1476,7 +1476,7 @@ function initializeApp() {
 document.addEventListener('DOMContentLoaded', initializeApp);
 </script>
 <script>
-// =================== IFRAME COMMUNICATION FOR HT2 - UPDATED ===================
+// =================== IFRAME COMMUNICATION FOR HT2 ===================
 (function() {
     // Notify parent that system is ready
     window.addEventListener('load', function() {
@@ -1565,14 +1565,6 @@ document.addEventListener('DOMContentLoaded', initializeApp);
                 correct: correct,
                 total: total
             }, '*');
-        } else {
-            window.parent.postMessage({
-                source: 'ht2',
-                type: 'accuracy_update',
-                accuracy: 0,
-                correct: 0,
-                total: 0
-            }, '*');
         }
     }
 
@@ -1583,12 +1575,6 @@ document.addEventListener('DOMContentLoaded', initializeApp);
                 source: 'ht2',
                 type: 'chot_history_update',
                 history: session.chotPredictions
-            }, '*');
-        } else {
-            window.parent.postMessage({
-                source: 'ht2',
-                type: 'chot_history_update',
-                history: []
             }, '*');
         }
     }
@@ -1606,31 +1592,21 @@ document.addEventListener('DOMContentLoaded', initializeApp);
                     current: true
                 }
             }, '*');
-        } else {
-            window.parent.postMessage({
-                source: 'ht2',
-                type: 'session_update',
-                session: null
-            }, '*');
         }
     }
 
     function sendPrediction() {
-        const prediction = state.currentChotPredictionForLog?.prediction || 
-                          state.currentFinalPrediction?.prediction || 
-                          state.originalSystemPrediction;
-        
         window.parent.postMessage({
             source: 'ht2',
             type: 'prediction_update',
-            prediction: prediction
+            prediction: state.currentChotPredictionForLog?.prediction
         }, '*');
     }
 
     function createSession(sessionData) {
         if (!sessionData || !sessionData.name) return;
         
-        const newId = sessionData.id || `session-${Date.now()}`;
+        const newId = `session-${Date.now()}`;
         state.currentSessionId = newId;
         state.sessions[newId] = {
             name: sessionData.name,
@@ -1640,8 +1616,8 @@ document.addEventListener('DOMContentLoaded', initializeApp);
             chotPredictions: [],
             lengthPerformance: {},
             optimalLength: null,
-            chotLengthPerformance: CHOT_SOURCES ? CHOT_SOURCES.reduce((acc, key) => { acc[key] = {}; return acc; }, {}) : {},
-            chotOptimalLengths: CHOT_SOURCES ? CHOT_SOURCES.reduce((acc, key) => { acc[key] = null; return acc; }, {}) : {},
+            chotLengthPerformance: CHOT_SOURCES.reduce((acc, key) => { acc[key] = {}; return acc; }, {}),
+            chotOptimalLengths: CHOT_SOURCES.reduce((acc, key) => { acc[key] = null; return acc; }, {}),
         };
         
         saveSessions();
@@ -1677,8 +1653,8 @@ document.addEventListener('DOMContentLoaded', initializeApp);
                 chotPredictions: [],
                 lengthPerformance: {},
                 optimalLength: null,
-                chotLengthPerformance: CHOT_SOURCES ? CHOT_SOURCES.reduce((acc, key) => { acc[key] = {}; return acc; }, {}) : {},
-                chotOptimalLengths: CHOT_SOURCES ? CHOT_SOURCES.reduce((acc, key) => { acc[key] = null; return acc; }, {}) : {},
+                chotLengthPerformance: CHOT_SOURCES.reduce((acc, key) => { acc[key] = {}; return acc; }, {}),
+                chotOptimalLengths: CHOT_SOURCES.reduce((acc, key) => { acc[key] = null; return acc; }, {}),
             };
         }
         
@@ -1699,8 +1675,8 @@ document.addEventListener('DOMContentLoaded', initializeApp);
                 
                 // Update analysis after each result
                 if (index >= 9) {
-                    if (typeof updateAnalysisUI === 'function') updateAnalysisUI();
-                    if (typeof updateChotAnalysisUI === 'function') updateChotAnalysisUI();
+                    updateAnalysisUI();
+                    updateChotAnalysisUI();
                 }
             });
             
@@ -1717,6 +1693,7 @@ document.addEventListener('DOMContentLoaded', initializeApp);
     function addResult(result) {
         if (!state.currentSessionId) return;
         
+        // Use existing handleAddResultClick function logic
         const session = state.sessions[state.currentSessionId];
         if (!session) return;
         
@@ -1739,27 +1716,21 @@ document.addEventListener('DOMContentLoaded', initializeApp);
             });
         }
         
-        if (chotRec) {
+        if (chotRec && chotRec.prediction) {
             session.chotPredictions.push({ 
-                predicted: chotRec.prediction || chotRec, 
+                predicted: chotRec.prediction, 
                 actual: result, 
                 source: 'CHOT_VOTE' 
             });
         }
         
-        if (typeof updateChotLengthPerformance === 'function') {
-            updateChotLengthPerformance(session, tier1Prediction, result);
-        }
-        
+        updateChotLengthPerformance(session, tier1Prediction, result);
         session.history.push(result);
-        
-        if (typeof updateLengthPerformanceAndFindOptimal === 'function') {
-            session.optimalLength = updateLengthPerformanceAndFindOptimal(
-                [...session.history].slice(0, -1), 
-                Object.values(state.sessions), 
-                result
-            );
-        }
+        session.optimalLength = updateLengthPerformanceAndFindOptimal(
+            [...session.history].slice(0, -1), 
+            Object.values(state.sessions), 
+            result
+        );
         
         state.currentPrediction = null;
         state.originalSystemPrediction = null;
@@ -1769,6 +1740,7 @@ document.addEventListener('DOMContentLoaded', initializeApp);
         saveSessions();
         updateAllUI();
         
+        // Send updates
         sendAccuracyUpdate();
         sendChotHistory();
         sendPrediction();
@@ -1785,53 +1757,10 @@ document.addEventListener('DOMContentLoaded', initializeApp);
         
         setTimeout(() => {
             try {
-                // If it's master data, we need to process it differently
-                if (data.isMasterData) {
-                    console.log('[HT2] Importing MASTER data');
-                    // Master data may not have HT2-specific structures
-                    // We need to convert it to HT2 format
-                    const convertedSessions = {};
-                    
-                    Object.keys(data.sessions).forEach(sessionId => {
-                        const masterSession = data.sessions[sessionId];
-                        convertedSessions[sessionId] = {
-                            name: masterSession.name,
-                            history: masterSession.history || [],
-                            predictions: [],
-                            verdictPredictions: [],
-                            chotPredictions: [],
-                            lengthPerformance: {},
-                            optimalLength: null,
-                            chotLengthPerformance: CHOT_SOURCES ? CHOT_SOURCES.reduce((acc, key) => { acc[key] = {}; return acc; }, {}) : {},
-                            chotOptimalLengths: CHOT_SOURCES ? CHOT_SOURCES.reduce((acc, key) => { acc[key] = null; return acc; }, {}) : {},
-                        };
-                    });
-                    
-                    if (typeof runSimulation === 'function') {
-                        runSimulation(convertedSessions);
-                    } else {
-                        // If runSimulation doesn't exist, load sessions directly
-                        state.sessions = convertedSessions;
-                        if (Object.keys(convertedSessions).length > 0) {
-                            state.currentSessionId = Object.keys(convertedSessions)[0];
-                        }
-                        updateAllUI();
-                    }
-                } else {
-                    // Regular HT2 data
-                    if (typeof runSimulation === 'function') {
-                        runSimulation(data.sessions);
-                    } else {
-                        state.sessions = data.sessions;
-                        if (Object.keys(data.sessions).length > 0) {
-                            state.currentSessionId = Object.keys(data.sessions)[0];
-                        }
-                        updateAllUI();
-                    }
-                }
-                
+                runSimulation(data.sessions);
                 hideLoadingModal();
                 
+                // Send updates
                 sendAccuracyUpdate();
                 sendChotHistory();
                 sendSessionInfo();
@@ -1842,8 +1771,7 @@ document.addEventListener('DOMContentLoaded', initializeApp);
                 }, '*');
             } catch (error) {
                 hideLoadingModal();
-                console.error('[HT2] Import simulation error:', error);
-                showToast('Lỗi khi import dữ liệu', 'error');
+                console.error('Import simulation error:', error);
             }
         }, 100);
     }
@@ -1853,10 +1781,7 @@ document.addEventListener('DOMContentLoaded', initializeApp);
         for (const sessionId in state.sessions) {
             sessionsToExport[sessionId] = {
                 name: state.sessions[sessionId].name,
-                history: state.sessions[sessionId].history,
-                chotPredictions: state.sessions[sessionId].chotPredictions || [],
-                predictions: state.sessions[sessionId].predictions || [],
-                verdictPredictions: state.sessions[sessionId].verdictPredictions || []
+                history: state.sessions[sessionId].history
             };
         }
         
@@ -1880,8 +1805,6 @@ document.addEventListener('DOMContentLoaded', initializeApp);
         
         createNewSession();
         updateAllUI();
-        
-        sendSessionInfo();
     }
 })();
 </script>
