@@ -1915,270 +1915,23 @@ function initializeApp() {
 // --- INITIALIZATION ---
 document.addEventListener('DOMContentLoaded', initializeApp)
 </script>
-<script>
-// =================== ĐỊNH DANH RIÊNG CHO HT1 ===================
-const HT1_SYSTEM_ID = 'ht1';
-const HT1_STORAGE_KEY_SESSIONS = 'HT1_baccaratPatternSessions_v11_sim';
-const HT1_STORAGE_KEY_LAST = 'HT1_lastActiveSession_v11_sim';
-
-// =================== CORE LOGIC: PATTERN MATCHER (HT1 SPECIFIC) ===================
-class PatternMatcherHT1 {
-    constructor() {
-        this.MIN_HISTORY_FOR_ANALYSIS = 10;
-        this.MIN_PATTERN_LENGTH = 10;
-        this.MAX_PATTERN_LENGTH = 20;
-        this.MIN_CERTAIN_OCCURRENCES = 5;
-    }
-    
-    calculateSimilarity(arr1, arr2) {
-        if (arr1.length !== arr2.length || arr1.length === 0) return 0;
-        const matches = arr1.filter((item, index) => item === arr2[index]).length;
-        return matches / arr1.length;
-    }
-    
-    findPatternOccurrences(pattern, allHistory) {
-        const occurrences = [];
-        const reversedPattern = [...pattern].reverse();
-        
-        for (const session of allHistory) {
-            const sessionHistory = session.history || [];
-            if (sessionHistory.length < pattern.length + 1) continue;
-            
-            for (let i = 0; i <= sessionHistory.length - pattern.length - 1; i++) {
-                const segment = sessionHistory.slice(i, i + pattern.length);
-                const nextResult = sessionHistory[i + pattern.length];
-                
-                // So khớp pattern
-                const similarity = this.calculateSimilarity(pattern, segment);
-                if (similarity >= 0.9) {
-                    occurrences.push({ type: 'similar', next: nextResult, similarity });
-                }
-                
-                // So khớp pattern đảo ngược
-                const reverseSimilarity = this.calculateSimilarity(reversedPattern, segment);
-                if (reverseSimilarity >= 0.9) {
-                    occurrences.push({ type: 'reversed', next: nextResult, similarity: reverseSimilarity });
-                }
-            }
-        }
-        return occurrences;
-    }
-    
-    // LOGIC CHÍNH CỦA HT1: Pattern Matching nâng cao
-    getPrediction(currentHistory, allHistoricalSessions, { optimalLength = null, lengthPerformance = {} } = {}) {
-        if (currentHistory.length < this.MIN_HISTORY_FOR_ANALYSIS) {
-            return { 
-                prediction: null, 
-                analysisText: `HT1: Cần ít nhất ${this.MIN_HISTORY_FOR_ANALYSIS} kết quả để phân tích pattern...`, 
-                confidence: 0, 
-                isCertain: false 
-            };
-        }
-        
-        // Ưu tiên sử dụng optimal length nếu có
-        if (optimalLength && currentHistory.length >= optimalLength) {
-            const pattern = currentHistory.slice(-optimalLength);
-            const occurrences = this.findPatternOccurrences(pattern, allHistoricalSessions);
-            
-            if (occurrences.length > 0) {
-                const votes = { P: 0, B: 0 };
-                occurrences.forEach(match => { 
-                    if (votes[match.next] !== undefined) votes[match.next] += match.similarity; 
-                });
-                
-                const totalVotes = votes.P + votes.B;
-                if (totalVotes > 0) {
-                    const predictedWinner = votes.P > votes.B ? 'P' : 'B';
-                    const confidence = (Math.max(votes.P, votes.B) / totalVotes) * 100;
-                    const perf = lengthPerformance[optimalLength] || { wins: 0, total: 0 };
-                    const rate = perf.total > 0 ? (perf.wins / perf.total * 100).toFixed(1) : 'N/A';
-                    
-                    return {
-                        prediction: predictedWinner,
-                        recommendation: 'HT1 OPTIMAL PATTERN',
-                        analysisText: `HT1: Tìm thấy ${occurrences.length} pattern tương tự với độ dài ${optimalLength} (tỷ lệ thắng: ${rate}%).\nDự đoán dựa trên pattern matching nâng cao.`,
-                        confidence: confidence,
-                        isCertain: false
-                    };
-                }
-            }
-        }
-        
-        // Tìm pattern dài nhất có thể
-        for (let len = Math.min(this.MAX_PATTERN_LENGTH, currentHistory.length); len >= this.MIN_PATTERN_LENGTH; len--) {
-            const pattern = currentHistory.slice(-len);
-            const occurrences = this.findPatternOccurrences(pattern, allHistoricalSessions);
-            
-            if (occurrences.length > 0) {
-                const votes = { P: 0, B: 0 };
-                occurrences.forEach(match => { 
-                    if (votes[match.next] !== undefined) votes[match.next] += match.similarity; 
-                });
-                
-                const totalVotes = votes.P + votes.B;
-                if (totalVotes > 0) {
-                    const predictedWinner = votes.P > votes.B ? 'P' : 'B';
-                    const confidence = (Math.max(votes.P, votes.B) / totalVotes) * 100;
-                    
-                    return {
-                        prediction: predictedWinner,
-                        recommendation: `HT1 PATTERN LEN ${len}`,
-                        analysisText: `HT1: Phát hiện pattern độ dài ${len} với ${occurrences.length} lần xuất hiện.\nPattern matching là điểm mạnh của HT1.`,
-                        confidence: confidence,
-                        isCertain: false
-                    };
-                }
-            }
-        }
-        
-        return { 
-            prediction: null, 
-            analysisText: 'HT1: Không tìm thấy pattern phù hợp trong lịch sử.', 
-            confidence: 0, 
-            isCertain: false 
-        };
-    }
-}
-
-// =================== GLOBAL STATE HT1 ===================
-let stateHT1 = {
-    currentSessionId: null,
-    sessions: {},
-    matcher: new PatternMatcherHT1(),
-    currentPrediction: null,
-    originalSystemPrediction: null,
-    currentFinalPrediction: null,
-    currentChotPredictionForLog: null,
-    goldenRange: null,
-    deathRange: null,
-    sessionConfidenceRanges: [],
-    confidenceSequenceData: {}
-};
-
-// =================== HÀM LƯU/TẢI RIÊNG CHO HT1 ===================
-function getSessionsHT1() {
-    try {
-        return JSON.parse(localStorage.getItem(HT1_STORAGE_KEY_SESSIONS)) || {};
-    } catch (e) {
-        return {};
-    }
-}
-
-function saveSessionsHT1() {
-    localStorage.setItem(HT1_STORAGE_KEY_SESSIONS, JSON.stringify(stateHT1.sessions));
-    localStorage.setItem(HT1_STORAGE_KEY_LAST, stateHT1.currentSessionId);
-}
-
-function resetSystemHT1() {
-    stateHT1.sessions = {};
-    stateHT1.currentSessionId = null;
-    stateHT1.currentPrediction = null;
-    stateHT1.originalSystemPrediction = null;
-    stateHT1.currentFinalPrediction = null;
-    stateHT1.currentChotPredictionForLog = null;
-    
-    // XÓA ĐÚNG KEY CỦA HT1
-    localStorage.removeItem(HT1_STORAGE_KEY_SESSIONS);
-    localStorage.removeItem(HT1_STORAGE_KEY_LAST);
-    
-    createNewSessionHT1();
-    updateAllUIHT1();
-}
-
-// =================== CÁC HÀM KHỞI TẠO RIÊNG CHO HT1 ===================
-function createNewSessionHT1() {
-    const newId = `session-${Date.now()}`;
-    stateHT1.currentSessionId = newId;
-    stateHT1.sessions[newId] = {
-        name: `HT1-Phiên ${new Date().toLocaleString('vi-VN')}`,
-        history: [], 
-        predictions: [], 
-        verdictPredictions: [], 
-        chotPredictions: [],
-        lengthPerformance: {}, 
-        optimalLength: null,
-        chotLengthPerformance: CHOT_SOURCES.reduce((acc, key) => { acc[key] = {}; return acc; }, {}),
-        chotOptimalLengths: CHOT_SOURCES.reduce((acc, key) => { acc[key] = null; return acc; }, {}),
-    };
-    
-    saveSessionsHT1();
-    updateSessionSelectorHT1();
-    updateAllUIHT1();
-}
-
-function initializeAppHT1() {
-    stateHT1.sessions = getSessionsHT1();
-    
-    // Khởi tạo dữ liệu mặc định cho các session cũ
-    Object.values(stateHT1.sessions).forEach(s => {
-        if (!s.lengthPerformance) s.lengthPerformance = {};
-        if (s.optimalLength === undefined) s.optimalLength = null;
-        if (!s.verdictPredictions) s.verdictPredictions = [];
-        if (!s.chotPredictions) s.chotPredictions = [];
-        if (!s.chotLengthPerformance) s.chotLengthPerformance = CHOT_SOURCES.reduce((acc, key) => { acc[key] = {}; return acc; }, {});
-        if (!s.chotOptimalLengths) s.chotOptimalLengths = CHOT_SOURCES.reduce((acc, key) => { acc[key] = null; return acc; }, {});
-    });
-    
-    const lastActiveId = localStorage.getItem(HT1_STORAGE_KEY_LAST);
-    if (Object.keys(stateHT1.sessions).length === 0) {
-        createNewSessionHT1();
-    } else {
-        const sortedKeys = Object.keys(stateHT1.sessions).sort((a, b) => parseInt(a.split('-')[1] || 0) - parseInt(b.split('-')[1] || 0));
-        const idToLoad = (lastActiveId && stateHT1.sessions[lastActiveId]) ? lastActiveId : sortedKeys[sortedKeys.length - 1];
-        stateHT1.currentSessionId = idToLoad;
-        loadSessionHT1(idToLoad);
-    }
-    
-    const sessionContent = document.getElementById('sessionManagementContent');
-    if (sessionContent) {
-        sessionContent.style.maxHeight = '0px';
-    }
-    const toggleSessionIcon = document.getElementById('toggleSessionIcon');
-    if (toggleSessionIcon) {
-        toggleSessionIcon.style.transform = 'rotate(-180deg)';
-    }
-}
-
-// =================== CÁC HÀM CẬP NHẬT UI RIÊNG CHO HT1 ===================
-function updateAllUIHT1() {
-    updateBigRoadUIHT1();
-    updateAccuracyUIHT1();
-    updateGlobalAccuracyUIHT1();
-    updateAnalysisUIHT1();
-    updateConfidenceStatsUIHT1();
-    updateVerdictStatsUIHT1();
-    updateChotAnalysisUIHT1();
-}
-
-function updateAnalysisUIHT1() {
-    const session = stateHT1.sessions[stateHT1.currentSessionId] || { history: [], optimalLength: null, lengthPerformance: {} };
-    
-    // SỬ DỤNG LOGIC RIÊNG CỦA HT1
-    const { prediction, recommendation, analysisText, confidence, isCertain } = 
-        stateHT1.matcher.getPrediction(session.history, Object.values(stateHT1.sessions), {
-            optimalLength: session.optimalLength,
-            lengthPerformance: session.lengthPerformance
-        });
-    
-    stateHT1.currentPrediction = { prediction, confidence };
-    stateHT1.originalSystemPrediction = prediction;
-    
-    // ... (phần còn lại giữ nguyên logic UI) ...
-}
-
 // =================== IFRAME COMMUNICATION FOR HT1 ===================
 (function() {
-    // ĐỊNH DANH RIÊNG CHO HT1
-    const SYSTEM_ID = 'ht1';
-    const STORAGE_KEY_SESSIONS = HT1_STORAGE_KEY_SESSIONS;
-    const STORAGE_KEY_LAST = HT1_STORAGE_KEY_LAST;
-
+    const SYSTEM_NAME = 'ht1';
+    const STORAGE_KEY = 'ht1_pattern_sessions_v3';
+    const LAST_SESSION_KEY = 'ht1_last_session_v3';
+    
+    console.log(`🚀 ${SYSTEM_NAME.toUpperCase()} - Pattern Matching System đang khởi động...`);
+    
     // Notify parent that system is ready
     window.addEventListener('load', function() {
+        console.log(`${SYSTEM_NAME.toUpperCase()} đã tải xong`);
         setTimeout(() => {
             window.parent.postMessage({
-                source: 'ht1',
-                type: 'ready'
+                source: SYSTEM_NAME,
+                type: 'ready',
+                timestamp: Date.now(),
+                version: '3.0'
             }, '*');
         }, 1000);
     });
@@ -2186,12 +1939,22 @@ function updateAnalysisUIHT1() {
     // Listen for messages from parent
     window.addEventListener('message', function(event) {
         if (event.data.source === 'master') {
+            console.log(`${SYSTEM_NAME.toUpperCase()} nhận lệnh từ master:`, event.data.command);
             handleMasterCommand(event.data);
         }
     });
 
     function handleMasterCommand(data) {
         switch(data.command) {
+            case 'ping':
+                window.parent.postMessage({
+                    source: SYSTEM_NAME,
+                    type: 'pong',
+                    timestamp: Date.now(),
+                    data: data.data
+                }, '*');
+                break;
+                
             case 'get_accuracy':
                 sendAccuracyUpdate();
                 break;
@@ -2241,71 +2004,163 @@ function updateAnalysisUIHT1() {
                 break;
                 
             case 'reset_system':
-                resetSystemHT1(); // Sử dụng hàm reset riêng
+                resetSystem();
                 break;
         }
     }
 
     function sendAccuracyUpdate() {
-        const session = stateHT1.sessions[stateHT1.currentSessionId];
-        if (session && session.chotPredictions) {
-            const total = session.chotPredictions.length;
-            const correct = session.chotPredictions.filter(p => p.predicted === p.actual).length;
-            const accuracy = total > 0 ? (correct / total) * 100 : 0;
+        try {
+            // HT1 SPECIFIC LOGIC: Pattern Matching accuracy
+            const session = window.state?.sessions?.[window.state?.currentSessionId];
+            let accuracy = 0;
+            let correct = 0;
+            let total = 0;
+            
+            if (session && session.chotPredictions) {
+                total = session.chotPredictions.length;
+                correct = session.chotPredictions.filter(p => {
+                    if (p && typeof p === 'object') {
+                        return p.predicted === p.actual;
+                    }
+                    return false;
+                }).length;
+                accuracy = total > 0 ? (correct / total) * 100 : 0;
+            }
+            
+            console.log(`${SYSTEM_NAME.toUpperCase()} gửi accuracy:`, accuracy);
             
             window.parent.postMessage({
-                source: 'ht1',
+                source: SYSTEM_NAME,
                 type: 'accuracy_update',
                 accuracy: accuracy,
                 correct: correct,
                 total: total
             }, '*');
+        } catch (error) {
+            console.error(`${SYSTEM_NAME.toUpperCase()} lỗi sendAccuracyUpdate:`, error);
+            window.parent.postMessage({
+                source: SYSTEM_NAME,
+                type: 'accuracy_update',
+                accuracy: 0,
+                correct: 0,
+                total: 0
+            }, '*');
         }
     }
 
     function sendChotHistory() {
-        const session = stateHT1.sessions[stateHT1.currentSessionId];
-        if (session && session.chotPredictions) {
+        try {
+            const session = window.state?.sessions?.[window.state?.currentSessionId];
+            if (session && session.chotPredictions) {
+                window.parent.postMessage({
+                    source: SYSTEM_NAME,
+                    type: 'chot_history_update',
+                    history: session.chotPredictions.map(p => ({
+                        predicted: p.predicted,
+                        actual: p.actual,
+                        correct: p.predicted === p.actual,
+                        timestamp: p.timestamp || Date.now()
+                    }))
+                }, '*');
+            } else {
+                window.parent.postMessage({
+                    source: SYSTEM_NAME,
+                    type: 'chot_history_update',
+                    history: []
+                }, '*');
+            }
+        } catch (error) {
+            console.error(`${SYSTEM_NAME.toUpperCase()} lỗi sendChotHistory:`, error);
             window.parent.postMessage({
-                source: 'ht1',
+                source: SYSTEM_NAME,
                 type: 'chot_history_update',
-                history: session.chotPredictions
+                history: []
             }, '*');
         }
     }
 
     function sendSessionInfo() {
-        const session = stateHT1.sessions[stateHT1.currentSessionId];
-        if (session) {
-            window.parent.postMessage({
-                source: 'ht1',
-                type: 'session_update',
-                session: {
-                    id: stateHT1.currentSessionId,
-                    name: session.name,
-                    history: session.history,
-                    current: true,
-                    system: 'ht1'
-                }
-            }, '*');
+        try {
+            const session = window.state?.sessions?.[window.state?.currentSessionId];
+            if (session) {
+                window.parent.postMessage({
+                    source: SYSTEM_NAME,
+                    type: 'session_update',
+                    session: {
+                        id: window.state.currentSessionId,
+                        name: session.name,
+                        history: session.history || [],
+                        current: true,
+                        system: SYSTEM_NAME
+                    }
+                }, '*');
+            } else {
+                window.parent.postMessage({
+                    source: SYSTEM_NAME,
+                    type: 'session_update',
+                    session: null
+                }, '*');
+            }
+        } catch (error) {
+            console.error(`${SYSTEM_NAME.toUpperCase()} lỗi sendSessionInfo:`, error);
         }
     }
 
     function sendPrediction() {
-        window.parent.postMessage({
-            source: 'ht1',
-            type: 'prediction_update',
-            prediction: stateHT1.currentChotPredictionForLog?.prediction,
-            confidence: stateHT1.currentPrediction?.confidence || 0
-        }, '*');
+        try {
+            // HT1 SPECIFIC: Pattern Matching prediction
+            let prediction = null;
+            
+            // Check for pattern in recent history
+            if (window.state?.currentSessionId) {
+                const session = window.state.sessions[window.state.currentSessionId];
+                if (session?.history && session.history.length >= 3) {
+                    const recent = session.history.slice(-3);
+                    
+                    // Pattern 1: Same result twice in a row -> predict opposite
+                    if (recent[1] === recent[2]) {
+                        prediction = recent[2] === 'P' ? 'B' : 'P';
+                    }
+                    // Pattern 2: Alternating pattern -> continue pattern
+                    else if (recent[0] !== recent[1] && recent[1] !== recent[2]) {
+                        prediction = recent[2] === 'P' ? 'B' : 'P';
+                    }
+                    // Pattern 3: Trend continuation
+                    else {
+                        prediction = recent[2];
+                    }
+                }
+            }
+            
+            // Fallback to existing prediction
+            if (!prediction && window.state?.currentChotPredictionForLog) {
+                prediction = window.state.currentChotPredictionForLog.prediction;
+            }
+            
+            console.log(`${SYSTEM_NAME.toUpperCase()} dự đoán:`, prediction);
+            
+            window.parent.postMessage({
+                source: SYSTEM_NAME,
+                type: 'prediction_update',
+                prediction: prediction
+            }, '*');
+        } catch (error) {
+            console.error(`${SYSTEM_NAME.toUpperCase()} lỗi sendPrediction:`, error);
+            window.parent.postMessage({
+                source: SYSTEM_NAME,
+                type: 'prediction_update',
+                prediction: null
+            }, '*');
+        }
     }
 
     function createSession(sessionData) {
         if (!sessionData || !sessionData.name) return;
         
-        const newId = `session-${Date.now()}`;
-        stateHT1.currentSessionId = newId;
-        stateHT1.sessions[newId] = {
+        const newId = sessionData.id || `session-${Date.now()}`;
+        window.state.currentSessionId = newId;
+        window.state.sessions[newId] = {
             name: sessionData.name,
             history: [],
             predictions: [],
@@ -2313,13 +2168,18 @@ function updateAnalysisUIHT1() {
             chotPredictions: [],
             lengthPerformance: {},
             optimalLength: null,
-            chotLengthPerformance: CHOT_SOURCES.reduce((acc, key) => { acc[key] = {}; return acc; }, {}),
-            chotOptimalLengths: CHOT_SOURCES.reduce((acc, key) => { acc[key] = null; return acc; }, {}),
+            chotLengthPerformance: {},
+            chotOptimalLengths: {},
+            created: new Date().toISOString(),
+            system: SYSTEM_NAME
         };
         
-        saveSessionsHT1();
-        updateSessionSelectorHT1();
-        updateAllUIHT1();
+        // Use HT1 specific storage
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(window.state.sessions));
+        localStorage.setItem(LAST_SESSION_KEY, newId);
+        
+        if (typeof updateSessionSelector === 'function') updateSessionSelector();
+        if (typeof updateAllUI === 'function') updateAllUI();
         
         sendSessionInfo();
     }
@@ -2327,12 +2187,12 @@ function updateAnalysisUIHT1() {
     function renameSession(sessionData) {
         if (!sessionData || !sessionData.id || !sessionData.name) return;
         
-        if (stateHT1.sessions[sessionData.id]) {
-            stateHT1.sessions[sessionData.id].name = sessionData.name;
-            if (stateHT1.currentSessionId === sessionData.id) {
-                saveSessionsHT1();
-                updateSessionSelectorHT1();
-                updateAllUIHT1();
+        if (window.state.sessions[sessionData.id]) {
+            window.state.sessions[sessionData.id].name = sessionData.name;
+            if (window.state.currentSessionId === sessionData.id) {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(window.state.sessions));
+                if (typeof updateSessionSelector === 'function') updateSessionSelector();
+                if (typeof updateAllUI === 'function') updateAllUI();
             }
         }
     }
@@ -2341,89 +2201,91 @@ function updateAnalysisUIHT1() {
         if (!sessionData || !sessionData.id) return;
         
         // Create session if doesn't exist
-        if (!stateHT1.sessions[sessionData.id]) {
-            stateHT1.sessions[sessionData.id] = {
-                name: sessionData.name || `HT1-Phiên ${sessionData.id}`,
+        if (!window.state.sessions[sessionData.id]) {
+            window.state.sessions[sessionData.id] = {
+                name: sessionData.name || `Phiên ${sessionData.id}`,
                 history: sessionData.history || [],
                 predictions: [],
                 verdictPredictions: [],
                 chotPredictions: [],
                 lengthPerformance: {},
                 optimalLength: null,
-                chotLengthPerformance: CHOT_SOURCES.reduce((acc, key) => { acc[key] = {}; return acc; }, {}),
-                chotOptimalLengths: CHOT_SOURCES.reduce((acc, key) => { acc[key] = null; return acc; }, {}),
+                chotLengthPerformance: {},
+                chotOptimalLengths: {},
+                created: new Date().toISOString(),
+                system: SYSTEM_NAME
             };
         }
         
         // Load the session
-        stateHT1.currentSessionId = sessionData.id;
+        window.state.currentSessionId = sessionData.id;
         
         // If there's history, simulate it
         if (sessionData.history && sessionData.history.length > 0) {
-            // Clear existing data
-            stateHT1.sessions[sessionData.id].history = [];
-            stateHT1.sessions[sessionData.id].predictions = [];
-            stateHT1.sessions[sessionData.id].verdictPredictions = [];
-            stateHT1.sessions[sessionData.id].chotPredictions = [];
+            const session = window.state.sessions[sessionData.id];
+            session.history = [];
+            session.predictions = [];
+            session.verdictPredictions = [];
+            session.chotPredictions = [];
             
             // Simulate each result
             sessionData.history.forEach((result, index) => {
-                stateHT1.sessions[sessionData.id].history.push(result);
+                session.history.push(result);
                 
                 // Update analysis after each result
-                if (index >= 9) {
-                    updateAnalysisUIHT1();
-                    updateChotAnalysisUIHT1();
+                if (index >= 3) { // HT1 needs at least 3 for pattern matching
+                    if (typeof updateAnalysisUI === 'function') updateAnalysisUI();
+                    if (typeof updateChotAnalysisUI === 'function') updateChotAnalysisUI();
                 }
             });
             
             // Recalculate everything
-            updateAllUIHT1();
+            if (typeof updateAllUI === 'function') updateAllUI();
         }
         
-        saveSessionsHT1();
-        updateSessionSelectorHT1();
-        updateAllUIHT1();
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(window.state.sessions));
+        localStorage.setItem(LAST_SESSION_KEY, window.state.currentSessionId);
+        if (typeof updateSessionSelector === 'function') updateSessionSelector();
+        if (typeof updateAllUI === 'function') updateAllUI();
+        
         sendSessionInfo();
     }
 
     function addResult(result) {
-        if (!stateHT1.currentSessionId) return;
+        if (!window.state.currentSessionId) return;
         
-        const session = stateHT1.sessions[stateHT1.currentSessionId];
+        const session = window.state.sessions[window.state.currentSessionId];
         if (!session) return;
         
-        // SỬ DỤNG LOGIC RIÊNG CỦA HT1
-        const chotRec = stateHT1.currentChotPredictionForLog;
-        const tier1Prediction = stateHT1.originalSystemPrediction;
+        // HT1 SPECIFIC: Pattern analysis before adding result
+        const patternPrediction = analyzePattern(session.history);
         
-        if (stateHT1.currentPrediction) {
+        if (window.state.currentPrediction) {
             session.predictions.push({ 
-                predicted: stateHT1.currentPrediction.prediction, 
+                predicted: window.state.currentPrediction.prediction, 
                 actual: result, 
-                confidence: stateHT1.currentPrediction.confidence 
+                confidence: window.state.currentPrediction.confidence,
+                system: SYSTEM_NAME
             });
         }
         
-        // ... (giữ nguyên phần còn lại) ...
+        if (patternPrediction) {
+            session.chotPredictions.push({ 
+                predicted: patternPrediction, 
+                actual: result,
+                correct: patternPrediction === result,
+                timestamp: Date.now(),
+                system: SYSTEM_NAME
+            });
+        }
         
-        // CẬP NHẬT PERFORMANCE VỚI LOGIC RIÊNG HT1
         session.history.push(result);
         
-        // Tính toán optimal length với logic HT1
-        session.optimalLength = updateLengthPerformanceAndFindOptimalHT1(
-            [...session.history].slice(0, -1), 
-            Object.values(stateHT1.sessions), 
-            result
-        );
+        window.state.currentPrediction = null;
+        window.state.currentChotPredictionForLog = null;
         
-        stateHT1.currentPrediction = null;
-        stateHT1.originalSystemPrediction = null;
-        stateHT1.currentFinalPrediction = null;
-        stateHT1.currentChotPredictionForLog = null;
-        
-        saveSessionsHT1();
-        updateAllUIHT1();
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(window.state.sessions));
+        if (typeof updateAllUI === 'function') updateAllUI();
         
         // Send updates
         sendAccuracyUpdate();
@@ -2431,101 +2293,184 @@ function updateAnalysisUIHT1() {
         sendPrediction();
     }
 
-    function updateLengthPerformanceAndFindOptimalHT1(history, allSessions, newResult) {
-        const session = stateHT1.sessions[stateHT1.currentSessionId];
-        if (!session) return null;
-        if (!session.lengthPerformance) session.lengthPerformance = {};
+    function analyzePattern(history) {
+        // HT1 SPECIFIC: Pattern matching algorithm
+        if (history.length < 3) return null;
         
-        const candidates = [];
-        for (let len = 10; len <= 20; len++) {
-            if (history.length < len) continue;
-            const pattern = history.slice(-len);
-            const occurrences = stateHT1.matcher.findPatternOccurrences(pattern, allSessions);
-            
-            if (occurrences.length > 0) {
-                if (!session.lengthPerformance[len]) session.lengthPerformance[len] = { wins: 0, total: 0 };
-                const stats = session.lengthPerformance[len];
-                
-                // Tính prediction dựa trên occurrences
-                const votes = { P: 0, B: 0 };
-                occurrences.forEach(match => { 
-                    if (votes[match.next] !== undefined) votes[match.next] += match.similarity; 
-                });
-                
-                const predictedWinner = votes.P > votes.B ? 'P' : 'B';
-                
-                if (newResult) {
-                    stats.total++;
-                    if (predictedWinner === newResult) stats.wins++;
-                }
-                
-                if (stats.total > 0) {
-                    candidates.push({ length: len, rate: stats.wins / stats.total, total: stats.total });
-                }
-            }
+        const recent = history.slice(-3);
+        
+        // Check for repeating patterns
+        if (recent[0] === recent[1] && recent[1] === recent[2]) {
+            return recent[2]; // Continue streak
         }
         
-        if (candidates.length === 0) return session.optimalLength;
-        candidates.sort((a, b) => b.rate !== a.rate ? b.rate - a.rate : b.total - a.total);
-        return candidates[0].length;
+        // Check for alternating pattern
+        if (recent[0] !== recent[1] && recent[1] !== recent[2] && recent[0] !== recent[2]) {
+            return recent[0]; // Complete the cycle
+        }
+        
+        // Check for double-single pattern
+        if (recent[0] === recent[1] && recent[1] !== recent[2]) {
+            return recent[2]; // Continue the change
+        }
+        
+        return Math.random() > 0.5 ? 'P' : 'B'; // Random if no clear pattern
+    }
+
+    function undoLast() {
+        if (typeof undoLastResult === 'function') {
+            undoLastResult();
+        } else {
+            const session = window.state.sessions[window.state.currentSessionId];
+            if (session && session.history.length > 0) {
+                session.history.pop();
+                if (session.predictions.length > 0) {
+                    session.predictions.pop();
+                }
+                if (session.verdictPredictions.length > 0) {
+                    session.verdictPredictions.pop();
+                }
+                if (session.chotPredictions.length > 0) {
+                    session.chotPredictions.pop();
+                }
+                
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(window.state.sessions));
+                if (typeof updateAllUI === 'function') updateAllUI();
+            }
+        }
+    }
+
+    function clearCurrentSessionHistory() {
+        const session = window.state.sessions[window.state.currentSessionId];
+        if (session) {
+            session.history = [];
+            session.predictions = [];
+            session.verdictPredictions = [];
+            session.chotPredictions = [];
+            
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(window.state.sessions));
+            if (typeof updateAllUI === 'function') updateAllUI();
+        }
     }
 
     function importSimulatedData(data) {
         if (!data || !data.sessions) return;
         
-        // Clear existing data
-        stateHT1.sessions = {};
-        stateHT1.currentSessionId = null;
+        window.state.sessions = {};
+        window.state.currentSessionId = null;
         
-        showLoadingModal('HT1: Đang nhập dữ liệu mô phỏng...');
+        showLoadingModal('Đang nhập dữ liệu mô phỏng...');
         
         setTimeout(() => {
             try {
-                // Sử dụng simulation logic riêng cho HT1
-                runSimulationHT1(data.sessions);
+                Object.keys(data.sessions).forEach(sessionId => {
+                    window.state.sessions[sessionId] = {
+                        name: data.sessions[sessionId].name,
+                        history: data.sessions[sessionId].history || [],
+                        predictions: [],
+                        verdictPredictions: [],
+                        chotPredictions: [],
+                        lengthPerformance: {},
+                        optimalLength: null,
+                        chotLengthPerformance: {},
+                        chotOptimalLengths: {},
+                        created: new Date().toISOString(),
+                        system: SYSTEM_NAME
+                    };
+                });
+                
+                // Select first session
+                const firstSessionId = Object.keys(data.sessions)[0];
+                if (firstSessionId) {
+                    window.state.currentSessionId = firstSessionId;
+                    localStorage.setItem(LAST_SESSION_KEY, firstSessionId);
+                }
+                
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(window.state.sessions));
+                
+                if (typeof updateSessionSelector === 'function') updateSessionSelector();
+                if (typeof updateAllUI === 'function') updateAllUI();
+                
                 hideLoadingModal();
                 
-                // Send updates
                 sendAccuracyUpdate();
                 sendChotHistory();
                 sendSessionInfo();
                 
                 window.parent.postMessage({
-                    source: 'ht1',
+                    source: SYSTEM_NAME,
                     type: 'import_complete'
                 }, '*');
             } catch (error) {
                 hideLoadingModal();
-                console.error('HT1 Import simulation error:', error);
+                console.error(`${SYSTEM_NAME.toUpperCase()} import error:`, error);
             }
         }, 100);
     }
 
-    function runSimulationHT1(importedSessions) {
-        // ... (logic simulation riêng cho HT1) ...
-    }
-
     function exportSessionData() {
         const sessionsToExport = {};
-        for (const sessionId in stateHT1.sessions) {
+        for (const sessionId in window.state.sessions) {
             sessionsToExport[sessionId] = {
-                name: stateHT1.sessions[sessionId].name,
-                history: stateHT1.sessions[sessionId].history,
-                system: 'ht1'
+                name: window.state.sessions[sessionId].name,
+                history: window.state.sessions[sessionId].history || [],
+                system: SYSTEM_NAME
             };
         }
         
         window.parent.postMessage({
-            source: 'ht1',
+            source: SYSTEM_NAME,
             type: 'export_data',
             sessions: sessionsToExport
         }, '*');
     }
-})();
 
-// =================== KHỞI TẠO HT1 ===================
-document.addEventListener('DOMContentLoaded', initializeAppHT1);
-</script>
+    function resetSystem() {
+        window.state.sessions = {};
+        window.state.currentSessionId = null;
+        window.state.currentPrediction = null;
+        window.state.currentChotPredictionForLog = null;
+        
+        localStorage.removeItem(STORAGE_KEY);
+        localStorage.removeItem(LAST_SESSION_KEY);
+        
+        if (typeof createNewSession === 'function') {
+            createNewSession();
+        } else {
+            // Create a default session
+            const newId = `session-${Date.now()}`;
+            window.state.currentSessionId = newId;
+            window.state.sessions[newId] = {
+                name: `Phiên ${SYSTEM_NAME.toUpperCase()} mới`,
+                history: [],
+                predictions: [],
+                verdictPredictions: [],
+                chotPredictions: [],
+                lengthPerformance: {},
+                optimalLength: null,
+                chotLengthPerformance: {},
+                chotOptimalLengths: {},
+                created: new Date().toISOString(),
+                system: SYSTEM_NAME
+            };
+            
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(window.state.sessions));
+            localStorage.setItem(LAST_SESSION_KEY, newId);
+        }
+        
+        if (typeof updateAllUI === 'function') updateAllUI();
+    }
+    
+    // Initialize system-specific storage
+    if (!window.state) window.state = {};
+    if (!window.state.sessions) {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        window.state.sessions = saved ? JSON.parse(saved) : {};
+        window.state.currentSessionId = localStorage.getItem(LAST_SESSION_KEY);
+    }
+    
+    console.log(`${SYSTEM_NAME.toUpperCase()} đã sẵn sàng với ${Object.keys(window.state.sessions).length} phiên`);
+})();
 </body>
 </html>
 
