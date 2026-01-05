@@ -1916,23 +1916,14 @@ function initializeApp() {
 document.addEventListener('DOMContentLoaded', initializeApp)
 </script>
 <script>
-    // =================== IFRAME COMMUNICATION FOR HT1 ===================
+// =================== IFRAME COMMUNICATION FOR HT1 - UPDATED ===================
 (function() {
-    const SYSTEM_NAME = 'ht1';
-    const STORAGE_KEY = 'ht1_pattern_sessions_v3';
-    const LAST_SESSION_KEY = 'ht1_last_session_v3';
-    
-    console.log(`🚀 ${SYSTEM_NAME.toUpperCase()} - Pattern Matching System đang khởi động...`);
-    
     // Notify parent that system is ready
     window.addEventListener('load', function() {
-        console.log(`${SYSTEM_NAME.toUpperCase()} đã tải xong`);
         setTimeout(() => {
             window.parent.postMessage({
-                source: SYSTEM_NAME,
-                type: 'ready',
-                timestamp: Date.now(),
-                version: '3.0'
+                source: 'ht1',
+                type: 'ready'
             }, '*');
         }, 1000);
     });
@@ -1940,22 +1931,12 @@ document.addEventListener('DOMContentLoaded', initializeApp)
     // Listen for messages from parent
     window.addEventListener('message', function(event) {
         if (event.data.source === 'master') {
-            console.log(`${SYSTEM_NAME.toUpperCase()} nhận lệnh từ master:`, event.data.command);
             handleMasterCommand(event.data);
         }
     });
 
     function handleMasterCommand(data) {
         switch(data.command) {
-            case 'ping':
-                window.parent.postMessage({
-                    source: SYSTEM_NAME,
-                    type: 'pong',
-                    timestamp: Date.now(),
-                    data: data.data
-                }, '*');
-                break;
-                
             case 'get_accuracy':
                 sendAccuracyUpdate();
                 break;
@@ -2011,157 +1992,63 @@ document.addEventListener('DOMContentLoaded', initializeApp)
     }
 
     function sendAccuracyUpdate() {
-        try {
-            // HT1 SPECIFIC LOGIC: Pattern Matching accuracy
-            const session = window.state?.sessions?.[window.state?.currentSessionId];
-            let accuracy = 0;
-            let correct = 0;
-            let total = 0;
-            
-            if (session && session.chotPredictions) {
-                total = session.chotPredictions.length;
-                correct = session.chotPredictions.filter(p => {
-                    if (p && typeof p === 'object') {
-                        return p.predicted === p.actual;
-                    }
-                    return false;
-                }).length;
-                accuracy = total > 0 ? (correct / total) * 100 : 0;
-            }
-            
-            console.log(`${SYSTEM_NAME.toUpperCase()} gửi accuracy:`, accuracy);
+        const session = state.sessions[state.currentSessionId];
+        if (session && session.chotPredictions) {
+            const total = session.chotPredictions.length;
+            const correct = session.chotPredictions.filter(p => p.predicted === p.actual).length;
+            const accuracy = total > 0 ? (correct / total) * 100 : 0;
             
             window.parent.postMessage({
-                source: SYSTEM_NAME,
+                source: 'ht1',
                 type: 'accuracy_update',
                 accuracy: accuracy,
                 correct: correct,
                 total: total
             }, '*');
-        } catch (error) {
-            console.error(`${SYSTEM_NAME.toUpperCase()} lỗi sendAccuracyUpdate:`, error);
-            window.parent.postMessage({
-                source: SYSTEM_NAME,
-                type: 'accuracy_update',
-                accuracy: 0,
-                correct: 0,
-                total: 0
-            }, '*');
         }
     }
 
     function sendChotHistory() {
-        try {
-            const session = window.state?.sessions?.[window.state?.currentSessionId];
-            if (session && session.chotPredictions) {
-                window.parent.postMessage({
-                    source: SYSTEM_NAME,
-                    type: 'chot_history_update',
-                    history: session.chotPredictions.map(p => ({
-                        predicted: p.predicted,
-                        actual: p.actual,
-                        correct: p.predicted === p.actual,
-                        timestamp: p.timestamp || Date.now()
-                    }))
-                }, '*');
-            } else {
-                window.parent.postMessage({
-                    source: SYSTEM_NAME,
-                    type: 'chot_history_update',
-                    history: []
-                }, '*');
-            }
-        } catch (error) {
-            console.error(`${SYSTEM_NAME.toUpperCase()} lỗi sendChotHistory:`, error);
+        const session = state.sessions[state.currentSessionId];
+        if (session && session.chotPredictions) {
             window.parent.postMessage({
-                source: SYSTEM_NAME,
+                source: 'ht1',
                 type: 'chot_history_update',
-                history: []
+                history: session.chotPredictions
             }, '*');
         }
     }
 
     function sendSessionInfo() {
-        try {
-            const session = window.state?.sessions?.[window.state?.currentSessionId];
-            if (session) {
-                window.parent.postMessage({
-                    source: SYSTEM_NAME,
-                    type: 'session_update',
-                    session: {
-                        id: window.state.currentSessionId,
-                        name: session.name,
-                        history: session.history || [],
-                        current: true,
-                        system: SYSTEM_NAME
-                    }
-                }, '*');
-            } else {
-                window.parent.postMessage({
-                    source: SYSTEM_NAME,
-                    type: 'session_update',
-                    session: null
-                }, '*');
-            }
-        } catch (error) {
-            console.error(`${SYSTEM_NAME.toUpperCase()} lỗi sendSessionInfo:`, error);
+        const session = state.sessions[state.currentSessionId];
+        if (session) {
+            window.parent.postMessage({
+                source: 'ht1',
+                type: 'session_update',
+                session: {
+                    id: state.currentSessionId,
+                    name: session.name,
+                    history: session.history,
+                    current: true
+                }
+            }, '*');
         }
     }
 
     function sendPrediction() {
-        try {
-            // HT1 SPECIFIC: Pattern Matching prediction
-            let prediction = null;
-            
-            // Check for pattern in recent history
-            if (window.state?.currentSessionId) {
-                const session = window.state.sessions[window.state.currentSessionId];
-                if (session?.history && session.history.length >= 3) {
-                    const recent = session.history.slice(-3);
-                    
-                    // Pattern 1: Same result twice in a row -> predict opposite
-                    if (recent[1] === recent[2]) {
-                        prediction = recent[2] === 'P' ? 'B' : 'P';
-                    }
-                    // Pattern 2: Alternating pattern -> continue pattern
-                    else if (recent[0] !== recent[1] && recent[1] !== recent[2]) {
-                        prediction = recent[2] === 'P' ? 'B' : 'P';
-                    }
-                    // Pattern 3: Trend continuation
-                    else {
-                        prediction = recent[2];
-                    }
-                }
-            }
-            
-            // Fallback to existing prediction
-            if (!prediction && window.state?.currentChotPredictionForLog) {
-                prediction = window.state.currentChotPredictionForLog.prediction;
-            }
-            
-            console.log(`${SYSTEM_NAME.toUpperCase()} dự đoán:`, prediction);
-            
-            window.parent.postMessage({
-                source: SYSTEM_NAME,
-                type: 'prediction_update',
-                prediction: prediction
-            }, '*');
-        } catch (error) {
-            console.error(`${SYSTEM_NAME.toUpperCase()} lỗi sendPrediction:`, error);
-            window.parent.postMessage({
-                source: SYSTEM_NAME,
-                type: 'prediction_update',
-                prediction: null
-            }, '*');
-        }
+        window.parent.postMessage({
+            source: 'ht1',
+            type: 'prediction_update',
+            prediction: state.currentChotPredictionForLog?.prediction
+        }, '*');
     }
 
     function createSession(sessionData) {
         if (!sessionData || !sessionData.name) return;
         
-        const newId = sessionData.id || `session-${Date.now()}`;
-        window.state.currentSessionId = newId;
-        window.state.sessions[newId] = {
+        const newId = `session-${Date.now()}`;
+        state.currentSessionId = newId;
+        state.sessions[newId] = {
             name: sessionData.name,
             history: [],
             predictions: [],
@@ -2169,18 +2056,13 @@ document.addEventListener('DOMContentLoaded', initializeApp)
             chotPredictions: [],
             lengthPerformance: {},
             optimalLength: null,
-            chotLengthPerformance: {},
-            chotOptimalLengths: {},
-            created: new Date().toISOString(),
-            system: SYSTEM_NAME
+            chotLengthPerformance: CHOT_SOURCES.reduce((acc, key) => { acc[key] = {}; return acc; }, {}),
+            chotOptimalLengths: CHOT_SOURCES.reduce((acc, key) => { acc[key] = null; return acc; }, {}),
         };
         
-        // Use HT1 specific storage
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(window.state.sessions));
-        localStorage.setItem(LAST_SESSION_KEY, newId);
-        
-        if (typeof updateSessionSelector === 'function') updateSessionSelector();
-        if (typeof updateAllUI === 'function') updateAllUI();
+        saveSessions();
+        updateSessionSelector();
+        updateAllUI();
         
         sendSessionInfo();
     }
@@ -2188,12 +2070,12 @@ document.addEventListener('DOMContentLoaded', initializeApp)
     function renameSession(sessionData) {
         if (!sessionData || !sessionData.id || !sessionData.name) return;
         
-        if (window.state.sessions[sessionData.id]) {
-            window.state.sessions[sessionData.id].name = sessionData.name;
-            if (window.state.currentSessionId === sessionData.id) {
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(window.state.sessions));
-                if (typeof updateSessionSelector === 'function') updateSessionSelector();
-                if (typeof updateAllUI === 'function') updateAllUI();
+        if (state.sessions[sessionData.id]) {
+            state.sessions[sessionData.id].name = sessionData.name;
+            if (state.currentSessionId === sessionData.id) {
+                saveSessions();
+                updateSessionSelector();
+                updateAllUI();
             }
         }
     }
@@ -2202,8 +2084,8 @@ document.addEventListener('DOMContentLoaded', initializeApp)
         if (!sessionData || !sessionData.id) return;
         
         // Create session if doesn't exist
-        if (!window.state.sessions[sessionData.id]) {
-            window.state.sessions[sessionData.id] = {
+        if (!state.sessions[sessionData.id]) {
+            state.sessions[sessionData.id] = {
                 name: sessionData.name || `Phiên ${sessionData.id}`,
                 history: sessionData.history || [],
                 predictions: [],
@@ -2211,186 +2093,135 @@ document.addEventListener('DOMContentLoaded', initializeApp)
                 chotPredictions: [],
                 lengthPerformance: {},
                 optimalLength: null,
-                chotLengthPerformance: {},
-                chotOptimalLengths: {},
-                created: new Date().toISOString(),
-                system: SYSTEM_NAME
+                chotLengthPerformance: CHOT_SOURCES.reduce((acc, key) => { acc[key] = {}; return acc; }, {}),
+                chotOptimalLengths: CHOT_SOURCES.reduce((acc, key) => { acc[key] = null; return acc; }, {}),
             };
         }
         
         // Load the session
-        window.state.currentSessionId = sessionData.id;
+        state.currentSessionId = sessionData.id;
         
         // If there's history, simulate it
         if (sessionData.history && sessionData.history.length > 0) {
-            const session = window.state.sessions[sessionData.id];
-            session.history = [];
-            session.predictions = [];
-            session.verdictPredictions = [];
-            session.chotPredictions = [];
+            // Clear existing data
+            state.sessions[sessionData.id].history = [];
+            state.sessions[sessionData.id].predictions = [];
+            state.sessions[sessionData.id].verdictPredictions = [];
+            state.sessions[sessionData.id].chotPredictions = [];
             
             // Simulate each result
             sessionData.history.forEach((result, index) => {
-                session.history.push(result);
+                state.sessions[sessionData.id].history.push(result);
                 
                 // Update analysis after each result
-                if (index >= 3) { // HT1 needs at least 3 for pattern matching
-                    if (typeof updateAnalysisUI === 'function') updateAnalysisUI();
-                    if (typeof updateChotAnalysisUI === 'function') updateChotAnalysisUI();
+                if (index >= 9) {
+                    updateAnalysisUI();
+                    updateChotAnalysisUI();
                 }
             });
             
             // Recalculate everything
-            if (typeof updateAllUI === 'function') updateAllUI();
+            updateAllUI();
         }
         
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(window.state.sessions));
-        localStorage.setItem(LAST_SESSION_KEY, window.state.currentSessionId);
-        if (typeof updateSessionSelector === 'function') updateSessionSelector();
-        if (typeof updateAllUI === 'function') updateAllUI();
-        
+        saveSessions();
+        updateSessionSelector();
+        updateAllUI();
         sendSessionInfo();
     }
 
     function addResult(result) {
-        if (!window.state.currentSessionId) return;
+        if (!state.currentSessionId) return;
         
-        const session = window.state.sessions[window.state.currentSessionId];
+        const session = state.sessions[state.currentSessionId];
         if (!session) return;
         
-        // HT1 SPECIFIC: Pattern analysis before adding result
-        const patternPrediction = analyzePattern(session.history);
+        const chotRec = state.currentChotPredictionForLog;
+        const tier1Prediction = state.originalSystemPrediction;
         
-        if (window.state.currentPrediction) {
+        if (state.currentPrediction) {
             session.predictions.push({ 
-                predicted: window.state.currentPrediction.prediction, 
+                predicted: state.currentPrediction.prediction, 
                 actual: result, 
-                confidence: window.state.currentPrediction.confidence,
-                system: SYSTEM_NAME
+                confidence: state.currentPrediction.confidence 
             });
         }
         
-        if (patternPrediction) {
+        if (state.currentFinalPrediction) {
+            session.verdictPredictions.push({
+                verdict: state.currentFinalPrediction.verdict,
+                predicted: state.currentFinalPrediction.prediction,
+                actual: result
+            });
+        }
+        
+        if (chotRec && chotRec.prediction) {
             session.chotPredictions.push({ 
-                predicted: patternPrediction, 
-                actual: result,
-                correct: patternPrediction === result,
-                timestamp: Date.now(),
-                system: SYSTEM_NAME
+                predicted: chotRec.prediction, 
+                actual: result, 
+                source: 'CHOT_VOTE' 
             });
         }
         
+        updateChotLengthPerformance(session, tier1Prediction, result);
         session.history.push(result);
+        session.optimalLength = updateLengthPerformanceAndFindOptimal(
+            [...session.history].slice(0, -1), 
+            Object.values(state.sessions), 
+            result
+        );
         
-        window.state.currentPrediction = null;
-        window.state.currentChotPredictionForLog = null;
+        state.currentPrediction = null;
+        state.originalSystemPrediction = null;
+        state.currentFinalPrediction = null;
+        state.currentChotPredictionForLog = null;
         
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(window.state.sessions));
-        if (typeof updateAllUI === 'function') updateAllUI();
+        saveSessions();
+        updateAllUI();
         
-        // Send updates
         sendAccuracyUpdate();
         sendChotHistory();
         sendPrediction();
     }
 
-    function analyzePattern(history) {
-        // HT1 SPECIFIC: Pattern matching algorithm
-        if (history.length < 3) return null;
-        
-        const recent = history.slice(-3);
-        
-        // Check for repeating patterns
-        if (recent[0] === recent[1] && recent[1] === recent[2]) {
-            return recent[2]; // Continue streak
-        }
-        
-        // Check for alternating pattern
-        if (recent[0] !== recent[1] && recent[1] !== recent[2] && recent[0] !== recent[2]) {
-            return recent[0]; // Complete the cycle
-        }
-        
-        // Check for double-single pattern
-        if (recent[0] === recent[1] && recent[1] !== recent[2]) {
-            return recent[2]; // Continue the change
-        }
-        
-        return Math.random() > 0.5 ? 'P' : 'B'; // Random if no clear pattern
-    }
-
-    function undoLast() {
-        if (typeof undoLastResult === 'function') {
-            undoLastResult();
-        } else {
-            const session = window.state.sessions[window.state.currentSessionId];
-            if (session && session.history.length > 0) {
-                session.history.pop();
-                if (session.predictions.length > 0) {
-                    session.predictions.pop();
-                }
-                if (session.verdictPredictions.length > 0) {
-                    session.verdictPredictions.pop();
-                }
-                if (session.chotPredictions.length > 0) {
-                    session.chotPredictions.pop();
-                }
-                
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(window.state.sessions));
-                if (typeof updateAllUI === 'function') updateAllUI();
-            }
-        }
-    }
-
-    function clearCurrentSessionHistory() {
-        const session = window.state.sessions[window.state.currentSessionId];
-        if (session) {
-            session.history = [];
-            session.predictions = [];
-            session.verdictPredictions = [];
-            session.chotPredictions = [];
-            
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(window.state.sessions));
-            if (typeof updateAllUI === 'function') updateAllUI();
-        }
-    }
-
     function importSimulatedData(data) {
         if (!data || !data.sessions) return;
         
-        window.state.sessions = {};
-        window.state.currentSessionId = null;
+        // Clear existing data
+        state.sessions = {};
+        state.currentSessionId = null;
         
         showLoadingModal('Đang nhập dữ liệu mô phỏng...');
         
         setTimeout(() => {
             try {
-                Object.keys(data.sessions).forEach(sessionId => {
-                    window.state.sessions[sessionId] = {
-                        name: data.sessions[sessionId].name,
-                        history: data.sessions[sessionId].history || [],
-                        predictions: [],
-                        verdictPredictions: [],
-                        chotPredictions: [],
-                        lengthPerformance: {},
-                        optimalLength: null,
-                        chotLengthPerformance: {},
-                        chotOptimalLengths: {},
-                        created: new Date().toISOString(),
-                        system: SYSTEM_NAME
-                    };
-                });
-                
-                // Select first session
-                const firstSessionId = Object.keys(data.sessions)[0];
-                if (firstSessionId) {
-                    window.state.currentSessionId = firstSessionId;
-                    localStorage.setItem(LAST_SESSION_KEY, firstSessionId);
+                // If it's master data, we need to process it differently
+                if (data.isMasterData) {
+                    console.log('[HT1] Importing MASTER data');
+                    // Master data may not have HT1-specific structures
+                    // We need to convert it to HT1 format
+                    const convertedSessions = {};
+                    
+                    Object.keys(data.sessions).forEach(sessionId => {
+                        const masterSession = data.sessions[sessionId];
+                        convertedSessions[sessionId] = {
+                            name: masterSession.name,
+                            history: masterSession.history || [],
+                            predictions: [],
+                            verdictPredictions: [],
+                            chotPredictions: [],
+                            lengthPerformance: {},
+                            optimalLength: null,
+                            chotLengthPerformance: CHOT_SOURCES.reduce((acc, key) => { acc[key] = {}; return acc; }, {}),
+                            chotOptimalLengths: CHOT_SOURCES.reduce((acc, key) => { acc[key] = null; return acc; }, {}),
+                        };
+                    });
+                    
+                    runSimulation(convertedSessions);
+                } else {
+                    // Regular HT1 data
+                    runSimulation(data.sessions);
                 }
-                
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(window.state.sessions));
-                
-                if (typeof updateSessionSelector === 'function') updateSessionSelector();
-                if (typeof updateAllUI === 'function') updateAllUI();
                 
                 hideLoadingModal();
                 
@@ -2399,78 +2230,52 @@ document.addEventListener('DOMContentLoaded', initializeApp)
                 sendSessionInfo();
                 
                 window.parent.postMessage({
-                    source: SYSTEM_NAME,
+                    source: 'ht1',
                     type: 'import_complete'
                 }, '*');
             } catch (error) {
                 hideLoadingModal();
-                console.error(`${SYSTEM_NAME.toUpperCase()} import error:`, error);
+                console.error('Import simulation error:', error);
+                showToast('Lỗi khi import dữ liệu', 'error');
             }
         }, 100);
     }
 
     function exportSessionData() {
         const sessionsToExport = {};
-        for (const sessionId in window.state.sessions) {
+        for (const sessionId in state.sessions) {
             sessionsToExport[sessionId] = {
-                name: window.state.sessions[sessionId].name,
-                history: window.state.sessions[sessionId].history || [],
-                system: SYSTEM_NAME
+                name: state.sessions[sessionId].name,
+                history: state.sessions[sessionId].history,
+                chotPredictions: state.sessions[sessionId].chotPredictions,
+                predictions: state.sessions[sessionId].predictions,
+                verdictPredictions: state.sessions[sessionId].verdictPredictions
             };
         }
         
         window.parent.postMessage({
-            source: SYSTEM_NAME,
+            source: 'ht1',
             type: 'export_data',
             sessions: sessionsToExport
         }, '*');
     }
 
     function resetSystem() {
-        window.state.sessions = {};
-        window.state.currentSessionId = null;
-        window.state.currentPrediction = null;
-        window.state.currentChotPredictionForLog = null;
+        state.sessions = {};
+        state.currentSessionId = null;
+        state.currentPrediction = null;
+        state.originalSystemPrediction = null;
+        state.currentFinalPrediction = null;
+        state.currentChotPredictionForLog = null;
         
-        localStorage.removeItem(STORAGE_KEY);
-        localStorage.removeItem(LAST_SESSION_KEY);
+        localStorage.removeItem('baccaratPatternSessions_v11_sim');
+        localStorage.removeItem('lastActiveSession_v11_sim');
         
-        if (typeof createNewSession === 'function') {
-            createNewSession();
-        } else {
-            // Create a default session
-            const newId = `session-${Date.now()}`;
-            window.state.currentSessionId = newId;
-            window.state.sessions[newId] = {
-                name: `Phiên ${SYSTEM_NAME.toUpperCase()} mới`,
-                history: [],
-                predictions: [],
-                verdictPredictions: [],
-                chotPredictions: [],
-                lengthPerformance: {},
-                optimalLength: null,
-                chotLengthPerformance: {},
-                chotOptimalLengths: {},
-                created: new Date().toISOString(),
-                system: SYSTEM_NAME
-            };
-            
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(window.state.sessions));
-            localStorage.setItem(LAST_SESSION_KEY, newId);
-        }
+        createNewSession();
+        updateAllUI();
         
-        if (typeof updateAllUI === 'function') updateAllUI();
+        sendSessionInfo();
     }
-    
-    // Initialize system-specific storage
-    if (!window.state) window.state = {};
-    if (!window.state.sessions) {
-        const saved = localStorage.getItem(STORAGE_KEY);
-        window.state.sessions = saved ? JSON.parse(saved) : {};
-        window.state.currentSessionId = localStorage.getItem(LAST_SESSION_KEY);
-    }
-    
-    console.log(`${SYSTEM_NAME.toUpperCase()} đã sẵn sàng với ${Object.keys(window.state.sessions).length} phiên`);
 })();
 </script>
 </body>
