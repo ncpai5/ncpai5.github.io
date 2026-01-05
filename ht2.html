@@ -1475,12 +1475,8 @@ function initializeApp() {
 }
 document.addEventListener('DOMContentLoaded', initializeApp);
 </script>
-  <script>
+<script>
 // =================== IFRAME COMMUNICATION FOR HT2 ===================
-// KHÓA RIÊNG CHO HT2
-const HT2_STORAGE_KEY = 'baccaratPatternSessions_HT2_v11_sim';
-const HT2_LAST_SESSION_KEY = 'lastActiveSession_HT2_v11_sim';
-
 (function() {
     // Notify parent that system is ready
     window.addEventListener('load', function() {
@@ -1489,7 +1485,7 @@ const HT2_LAST_SESSION_KEY = 'lastActiveSession_HT2_v11_sim';
                 source: 'ht2',
                 type: 'ready'
             }, '*');
-        }, 1200);
+        }, 1000);
     });
 
     // Listen for messages from parent
@@ -1500,8 +1496,6 @@ const HT2_LAST_SESSION_KEY = 'lastActiveSession_HT2_v11_sim';
     });
 
     function handleMasterCommand(data) {
-        console.log("HT2 received command:", data.command);
-        
         switch(data.command) {
             case 'get_accuracy':
                 sendAccuracyUpdate();
@@ -1571,14 +1565,6 @@ const HT2_LAST_SESSION_KEY = 'lastActiveSession_HT2_v11_sim';
                 correct: correct,
                 total: total
             }, '*');
-        } else {
-            window.parent.postMessage({
-                source: 'ht2',
-                type: 'accuracy_update',
-                accuracy: 0,
-                correct: 0,
-                total: 0
-            }, '*');
         }
     }
 
@@ -1589,12 +1575,6 @@ const HT2_LAST_SESSION_KEY = 'lastActiveSession_HT2_v11_sim';
                 source: 'ht2',
                 type: 'chot_history_update',
                 history: session.chotPredictions
-            }, '*');
-        } else {
-            window.parent.postMessage({
-                source: 'ht2',
-                type: 'chot_history_update',
-                history: []
             }, '*');
         }
     }
@@ -1612,12 +1592,6 @@ const HT2_LAST_SESSION_KEY = 'lastActiveSession_HT2_v11_sim';
                     current: true
                 }
             }, '*');
-        } else {
-            window.parent.postMessage({
-                source: 'ht2',
-                type: 'session_update',
-                session: null
-            }, '*');
         }
     }
 
@@ -1625,14 +1599,14 @@ const HT2_LAST_SESSION_KEY = 'lastActiveSession_HT2_v11_sim';
         window.parent.postMessage({
             source: 'ht2',
             type: 'prediction_update',
-            prediction: state.currentChotPredictionForLog?.prediction || state.currentFinalPrediction?.prediction || state.originalSystemPrediction
+            prediction: state.currentChotPredictionForLog?.prediction
         }, '*');
     }
 
     function createSession(sessionData) {
         if (!sessionData || !sessionData.name) return;
         
-        const newId = sessionData.id || `session-${Date.now()}`;
+        const newId = `session-${Date.now()}`;
         state.currentSessionId = newId;
         state.sessions[newId] = {
             name: sessionData.name,
@@ -1646,12 +1620,9 @@ const HT2_LAST_SESSION_KEY = 'lastActiveSession_HT2_v11_sim';
             chotOptimalLengths: CHOT_SOURCES.reduce((acc, key) => { acc[key] = null; return acc; }, {}),
         };
         
-        // Use HT2's own save function
-        localStorage.setItem(HT2_STORAGE_KEY, JSON.stringify(state.sessions));
-        localStorage.setItem(HT2_LAST_SESSION_KEY, state.currentSessionId);
-        
-        if (typeof updateSessionSelector === 'function') updateSessionSelector();
-        if (typeof updateAllUI === 'function') updateAllUI();
+        saveSessions();
+        updateSessionSelector();
+        updateAllUI();
         
         sendSessionInfo();
     }
@@ -1662,9 +1633,9 @@ const HT2_LAST_SESSION_KEY = 'lastActiveSession_HT2_v11_sim';
         if (state.sessions[sessionData.id]) {
             state.sessions[sessionData.id].name = sessionData.name;
             if (state.currentSessionId === sessionData.id) {
-                localStorage.setItem(HT2_STORAGE_KEY, JSON.stringify(state.sessions));
-                if (typeof updateSessionSelector === 'function') updateSessionSelector();
-                if (typeof updateAllUI === 'function') updateAllUI();
+                saveSessions();
+                updateSessionSelector();
+                updateAllUI();
             }
         }
     }
@@ -1704,27 +1675,25 @@ const HT2_LAST_SESSION_KEY = 'lastActiveSession_HT2_v11_sim';
                 
                 // Update analysis after each result
                 if (index >= 9) {
-                    if (typeof updateAnalysisUI === 'function') updateAnalysisUI();
-                    if (typeof updateChotAnalysisUI === 'function') updateChotAnalysisUI();
+                    updateAnalysisUI();
+                    updateChotAnalysisUI();
                 }
             });
             
             // Recalculate everything
-            if (typeof updateAllUI === 'function') updateAllUI();
+            updateAllUI();
         }
         
-        localStorage.setItem(HT2_STORAGE_KEY, JSON.stringify(state.sessions));
-        localStorage.setItem(HT2_LAST_SESSION_KEY, state.currentSessionId);
-        
-        if (typeof updateSessionSelector === 'function') updateSessionSelector();
-        if (typeof updateAllUI === 'function') updateAllUI();
-        
+        saveSessions();
+        updateSessionSelector();
+        updateAllUI();
         sendSessionInfo();
     }
 
     function addResult(result) {
         if (!state.currentSessionId) return;
         
+        // Use existing handleAddResultClick function logic
         const session = state.sessions[state.currentSessionId];
         if (!session) return;
         
@@ -1755,71 +1724,26 @@ const HT2_LAST_SESSION_KEY = 'lastActiveSession_HT2_v11_sim';
             });
         }
         
-        if (typeof updateChotLengthPerformance === 'function') {
-            updateChotLengthPerformance(session, tier1Prediction, result);
-        }
-        
+        updateChotLengthPerformance(session, tier1Prediction, result);
         session.history.push(result);
-        
-        if (typeof updateLengthPerformanceAndFindOptimal === 'function') {
-            session.optimalLength = updateLengthPerformanceAndFindOptimal(
-                [...session.history].slice(0, -1), 
-                Object.values(state.sessions), 
-                result
-            );
-        }
+        session.optimalLength = updateLengthPerformanceAndFindOptimal(
+            [...session.history].slice(0, -1), 
+            Object.values(state.sessions), 
+            result
+        );
         
         state.currentPrediction = null;
         state.originalSystemPrediction = null;
         state.currentFinalPrediction = null;
         state.currentChotPredictionForLog = null;
         
-        localStorage.setItem(HT2_STORAGE_KEY, JSON.stringify(state.sessions));
-        
-        if (typeof updateAllUI === 'function') updateAllUI();
+        saveSessions();
+        updateAllUI();
         
         // Send updates
         sendAccuracyUpdate();
         sendChotHistory();
         sendPrediction();
-    }
-
-    function undoLast() {
-        if (!state.currentSessionId) return;
-        
-        const session = state.sessions[state.currentSessionId];
-        if (!session || session.history.length === 0) return;
-        
-        session.history.pop();
-        if (session.predictions.length > 0) session.predictions.pop();
-        if (session.verdictPredictions.length > 0) session.verdictPredictions.pop();
-        if (session.chotPredictions.length > 0) session.chotPredictions.pop();
-        
-        localStorage.setItem(HT2_STORAGE_KEY, JSON.stringify(state.sessions));
-        
-        if (typeof updateAllUI === 'function') updateAllUI();
-        
-        sendAccuracyUpdate();
-        sendChotHistory();
-    }
-
-    function clearCurrentSessionHistory() {
-        if (!state.currentSessionId) return;
-        
-        const session = state.sessions[state.currentSessionId];
-        if (!session) return;
-        
-        session.history = [];
-        session.predictions = [];
-        session.verdictPredictions = [];
-        session.chotPredictions = [];
-        
-        localStorage.setItem(HT2_STORAGE_KEY, JSON.stringify(state.sessions));
-        
-        if (typeof updateAllUI === 'function') updateAllUI();
-        
-        sendAccuracyUpdate();
-        sendChotHistory();
     }
 
     function importSimulatedData(data) {
@@ -1829,52 +1753,42 @@ const HT2_LAST_SESSION_KEY = 'lastActiveSession_HT2_v11_sim';
         state.sessions = {};
         state.currentSessionId = null;
         
-        // Import sessions
-        Object.keys(data.sessions).forEach(sessionId => {
-            const importedSession = data.sessions[sessionId];
-            state.sessions[sessionId] = {
-                name: importedSession.name || `Phiên ${sessionId}`,
-                history: importedSession.history || [],
-                predictions: importedSession.predictions || [],
-                verdictPredictions: importedSession.verdictPredictions || [],
-                chotPredictions: importedSession.chotPredictions || [],
-                lengthPerformance: importedSession.lengthPerformance || {},
-                optimalLength: importedSession.optimalLength || null,
-                chotLengthPerformance: importedSession.chotLengthPerformance || CHOT_SOURCES.reduce((acc, key) => { acc[key] = {}; return acc; }, {}),
-                chotOptimalLengths: importedSession.chotOptimalLengths || CHOT_SOURCES.reduce((acc, key) => { acc[key] = null; return acc; }, {}),
-            };
-        });
+        showLoadingModal('Đang nhập dữ liệu mô phỏng...');
         
-        // Set first session as current if available
-        const sessionIds = Object.keys(state.sessions);
-        if (sessionIds.length > 0) {
-            state.currentSessionId = sessionIds[0];
-        }
-        
-        localStorage.setItem(HT2_STORAGE_KEY, JSON.stringify(state.sessions));
-        if (state.currentSessionId) {
-            localStorage.setItem(HT2_LAST_SESSION_KEY, state.currentSessionId);
-        }
-        
-        if (typeof updateSessionSelector === 'function') updateSessionSelector();
-        if (typeof updateAllUI === 'function') updateAllUI();
-        
-        // Send updates
-        sendAccuracyUpdate();
-        sendChotHistory();
-        sendSessionInfo();
-        
-        window.parent.postMessage({
-            source: 'ht2',
-            type: 'import_complete'
-        }, '*');
+        setTimeout(() => {
+            try {
+                runSimulation(data.sessions);
+                hideLoadingModal();
+                
+                // Send updates
+                sendAccuracyUpdate();
+                sendChotHistory();
+                sendSessionInfo();
+                
+                window.parent.postMessage({
+                    source: 'ht2',
+                    type: 'import_complete'
+                }, '*');
+            } catch (error) {
+                hideLoadingModal();
+                console.error('Import simulation error:', error);
+            }
+        }, 100);
     }
 
     function exportSessionData() {
+        const sessionsToExport = {};
+        for (const sessionId in state.sessions) {
+            sessionsToExport[sessionId] = {
+                name: state.sessions[sessionId].name,
+                history: state.sessions[sessionId].history
+            };
+        }
+        
         window.parent.postMessage({
             source: 'ht2',
-            type: 'export_response',
-            sessions: state.sessions
+            type: 'export_data',
+            sessions: sessionsToExport
         }, '*');
     }
 
@@ -1886,58 +1800,11 @@ const HT2_LAST_SESSION_KEY = 'lastActiveSession_HT2_v11_sim';
         state.currentFinalPrediction = null;
         state.currentChotPredictionForLog = null;
         
-        // Use HT2's own storage keys
-        localStorage.removeItem(HT2_STORAGE_KEY);
-        localStorage.removeItem(HT2_LAST_SESSION_KEY);
+        localStorage.removeItem('baccaratPatternSessions_v11_sim');
+        localStorage.removeItem('lastActiveSession_v11_sim');
         
-        // Create new session
-        const newId = `session-${Date.now()}`;
-        state.currentSessionId = newId;
-        state.sessions[newId] = {
-            name: `Phiên mới HT2 ${new Date().toLocaleString('vi-VN')}`,
-            history: [],
-            predictions: [],
-            verdictPredictions: [],
-            chotPredictions: [],
-            lengthPerformance: {},
-            optimalLength: null,
-            chotLengthPerformance: CHOT_SOURCES.reduce((acc, key) => { acc[key] = {}; return acc; }, {}),
-            chotOptimalLengths: CHOT_SOURCES.reduce((acc, key) => { acc[key] = null; return acc; }, {}),
-        };
-        
-        localStorage.setItem(HT2_STORAGE_KEY, JSON.stringify(state.sessions));
-        localStorage.setItem(HT2_LAST_SESSION_KEY, state.currentSessionId);
-        
-        if (typeof updateAllUI === 'function') updateAllUI();
-        
-        window.parent.postMessage({
-            source: 'ht2',
-            type: 'system_reset_complete'
-        }, '*');
-    }
-
-    // Override HT2's saveSessions and loadSessions functions
-    const originalSaveSessions = window.saveSessions;
-    if (originalSaveSessions) {
-        window.saveSessions = function() {
-            localStorage.setItem(HT2_STORAGE_KEY, JSON.stringify(state.sessions));
-            if (state.currentSessionId) {
-                localStorage.setItem(HT2_LAST_SESSION_KEY, state.currentSessionId);
-            }
-            originalSaveSessions();
-        };
-    }
-
-    const originalLoadSessions = window.loadSessions;
-    if (originalLoadSessions) {
-        window.loadSessions = function() {
-            const saved = localStorage.getItem(HT2_STORAGE_KEY);
-            if (saved) {
-                state.sessions = JSON.parse(saved);
-            }
-            state.currentSessionId = localStorage.getItem(HT2_LAST_SESSION_KEY);
-            originalLoadSessions();
-        };
+        createNewSession();
+        updateAllUI();
     }
 })();
 </script>
