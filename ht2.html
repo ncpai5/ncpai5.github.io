@@ -1475,7 +1475,8 @@ function initializeApp() {
 }
 document.addEventListener('DOMContentLoaded', initializeApp);
 </script>
-// =================== IFRAME COMMUNICATION FOR HT2 ===================
+<script>
+    // =================== IFRAME COMMUNICATION FOR HT2 ===================
 (function() {
     const SYSTEM_NAME = 'ht2';
     const STORAGE_KEY = 'ht2_fixed_optimized_sessions_v3';
@@ -1972,5 +1973,6 @@ document.addEventListener('DOMContentLoaded', initializeApp);
     
     console.log(`${SYSTEM_NAME.toUpperCase()} đã sẵn sàng với ${Object.keys(window.state.sessions).length} phiên`);
 })();
+</script>
 </body>
 </html>
