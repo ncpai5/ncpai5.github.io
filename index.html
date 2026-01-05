@@ -112,37 +112,6 @@
                 grid-template-columns: repeat(2, 1fr);
             }
         }
-        .prediction-card {
-            transition: all 0.3s ease;
-        }
-        .prediction-card.player {
-            background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(59, 130, 246, 0.05));
-            border: 1px solid rgba(59, 130, 246, 0.3);
-        }
-        .prediction-card.banker {
-            background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(239, 68, 68, 0.05));
-            border: 1px solid rgba(239, 68, 68, 0.3);
-        }
-        .prediction-card.waiting {
-            background: linear-gradient(135deg, rgba(156, 163, 175, 0.1), rgba(156, 163, 175, 0.05));
-            border: 1px solid rgba(156, 163, 175, 0.3);
-        }
-        .voting-result-player {
-            background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1));
-            border: 2px solid rgba(59, 130, 246, 0.5);
-        }
-        .voting-result-banker {
-            background: linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(239, 68, 68, 0.1));
-            border: 2px solid rgba(239, 68, 68, 0.5);
-        }
-        .voting-result-tie {
-            background: linear-gradient(135deg, rgba(250, 204, 21, 0.2), rgba(250, 204, 21, 0.1));
-            border: 2px solid rgba(250, 204, 21, 0.5);
-        }
-        .voting-result-waiting {
-            background: linear-gradient(135deg, rgba(75, 85, 99, 0.2), rgba(75, 85, 99, 0.1));
-            border: 2px solid rgba(75, 85, 99, 0.5);
-        }
     </style>
 </head>
 <body class="p-4 md:p-8">
@@ -180,6 +149,7 @@
                             <button onclick="syncAllSystems()" class="btn bg-green-600 hover:bg-green-500 text-white font-bold py-3 rounded-lg">🔄 Đồng Bộ Hóa</button>
                             <button onclick="resetAllSystems()" class="btn bg-red-600 hover:bg-red-500 text-white font-bold py-3 rounded-lg">🔄 Reset Tất Cả</button>
                         </div>
+                        <button onclick="debugSystemStatus()" class="btn bg-purple-600 hover:bg-purple-500 text-white font-bold py-3 rounded-lg w-full">🐛 Debug Hệ Thống</button>
                     </div>
                 </div>
 
@@ -232,6 +202,10 @@
                             <span class="font-medium text-gray-300">Phiên đang chọn</span>
                             <span id="currentSessionName" class="text-lg font-semibold text-cyan-400">Chưa chọn</span>
                         </div>
+                        <div class="flex justify-between items-center bg-gray-700 p-4 rounded-lg">
+                            <span class="font-medium text-gray-300">Trạng thái hệ thống</span>
+                            <span id="system-status-indicator" class="text-sm font-semibold text-green-400">🟢 Đang chờ</span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -254,7 +228,7 @@
                             </div>
                         </div>
                         <div id="ht1-content" class="h-[400px]">
-                            <iframe src="ht1.html" id="ht1-iframe" class="w-full h-full rounded-b-lg" frameborder="0"></iframe>
+                            <iframe src="ht1.html?v=1.0&system=ht1" id="ht1-iframe" class="w-full h-full rounded-b-lg" frameborder="0"></iframe>
                         </div>
                     </div>
 
@@ -273,7 +247,7 @@
                             </div>
                         </div>
                         <div id="ht2-content" class="h-[400px]">
-                            <iframe src="ht2.html" id="ht2-iframe" class="w-full h-full rounded-b-lg" frameborder="0"></iframe>
+                            <iframe src="ht2.html?v=1.0&system=ht2" id="ht2-iframe" class="w-full h-full rounded-b-lg" frameborder="0"></iframe>
                         </div>
                     </div>
 
@@ -292,7 +266,7 @@
                             </div>
                         </div>
                         <div id="ht3-content" class="h-[400px]">
-                            <iframe src="ht3.html" id="ht3-iframe" class="w-full h-full rounded-b-lg" frameborder="0"></iframe>
+                            <iframe src="ht3.html?v=1.0&system=ht3" id="ht3-iframe" class="w-full h-full rounded-b-lg" frameborder="0"></iframe>
                         </div>
                     </div>
 
@@ -311,7 +285,7 @@
                             </div>
                         </div>
                         <div id="ht4-content" class="h-[400px]">
-                            <iframe src="ht4.html" id="ht4-iframe" class="w-full h-full rounded-b-lg" frameborder="0"></iframe>
+                            <iframe src="ht4.html?v=1.0&system=ht4" id="ht4-iframe" class="w-full h-full rounded-b-lg" frameborder="0"></iframe>
                         </div>
                     </div>
                 </div>
@@ -323,68 +297,10 @@
             <div class="bg-gradient-to-r from-purple-900 to-pink-900 p-6 rounded-2xl shadow-lg card-glow-total">
                 <h2 class="text-2xl font-semibold mb-6 text-center text-yellow-300">🏆 PHÁN QUYẾT TỔNG HỢP - VẠN SỰ NHƯ Ý (4 HỆ THỐNG)</h2>
                 
-                <!-- CURRENT PREDICTIONS FROM 4 SYSTEMS -->
-                <div class="mb-6">
-                    <h3 class="text-lg font-semibold mb-3 text-center text-cyan-300">📊 ĐỀ XUẤT HIỆN TẠI CỦA 4 HỆ THỐNG</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-                        <!-- HT1 Prediction -->
-                        <div id="ht1-prediction-card" class="prediction-card waiting p-4 rounded-xl text-center">
-                            <div class="font-semibold text-blue-300 mb-2">🔷 HT1</div>
-                            <div id="ht1-current-prediction" class="text-2xl font-bold text-gray-400">⏳</div>
-                            <div id="ht1-accuracy-current" class="text-sm text-gray-500 mt-1">Đang tính...</div>
-                        </div>
-                        
-                        <!-- HT2 Prediction -->
-                        <div id="ht2-prediction-card" class="prediction-card waiting p-4 rounded-xl text-center">
-                            <div class="font-semibold text-green-300 mb-2">🔶 HT2</div>
-                            <div id="ht2-current-prediction" class="text-2xl font-bold text-gray-400">⏳</div>
-                            <div id="ht2-accuracy-current" class="text-sm text-gray-500 mt-1">Đang tính...</div>
-                        </div>
-                        
-                        <!-- HT3 Prediction -->
-                        <div id="ht3-prediction-card" class="prediction-card waiting p-4 rounded-xl text-center">
-                            <div class="font-semibold text-orange-300 mb-2">🔸 HT3</div>
-                            <div id="ht3-current-prediction" class="text-2xl font-bold text-gray-400">⏳</div>
-                            <div id="ht3-accuracy-current" class="text-sm text-gray-500 mt-1">Đang tính...</div>
-                        </div>
-                        
-                        <!-- HT4 Prediction -->
-                        <div id="ht4-prediction-card" class="prediction-card waiting p-4 rounded-xl text-center">
-                            <div class="font-semibold text-pink-300 mb-2">🔹 HT4</div>
-                            <div id="ht4-current-prediction" class="text-2xl font-bold text-gray-400">⏳</div>
-                            <div id="ht4-accuracy-current" class="text-sm text-gray-500 mt-1">Đang tính...</div>
-                        </div>
-                    </div>
-                    
-                    <!-- Voting Summary -->
-                    <div id="voting-summary" class="voting-result-waiting text-center p-4 rounded-lg">
-                        <div class="text-lg font-semibold text-yellow-300 mb-2">📈 TỔNG HỢP BỎ PHIẾU</div>
-                        <div class="flex justify-center items-center space-x-8">
-                            <div class="flex items-center">
-                                <div class="w-4 h-4 rounded-full bg-blue-500 mr-2"></div>
-                                <span class="text-blue-300 font-bold">PLAYER:</span>
-                                <span id="vote-player-count" class="ml-2 text-2xl font-bold text-blue-400">0</span>
-                            </div>
-                            <div class="flex items-center">
-                                <div class="w-4 h-4 rounded-full bg-red-500 mr-2"></div>
-                                <span class="text-red-300 font-bold">BANKER:</span>
-                                <span id="vote-banker-count" class="ml-2 text-2xl font-bold text-red-400">0</span>
-                            </div>
-                        </div>
-                        <div id="vote-result" class="mt-3 text-xl font-bold">
-                            <span class="text-gray-300">Kết quả: </span>
-                            <span id="vote-result-text" class="text-yellow-400">ĐANG TÍNH...</span>
-                        </div>
-                        <div id="vote-details" class="mt-2 text-sm text-gray-400">
-                            <span id="vote-prediction-details">Đang chờ dự đoán từ 4 hệ thống...</span>
-                        </div>
-                    </div>
-                </div>
-                
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
                     <!-- System Accuracies -->
                     <div class="bg-gray-900 bg-opacity-50 p-4 rounded-xl">
-                        <h3 class="text-lg font-semibold mb-3 text-center text-blue-300">🎯 Độ Chính Xác Hệ Thống</h3>
+                        <h3 class="text-lg font-semibold mb-3 text-center text-blue-300">Độ Chính Xác Hệ Thống</h3>
                         <div class="space-y-3">
                             <div class="flex justify-between items-center">
                                 <span class="text-gray-300">HT1 Pattern Matching:</span>
@@ -411,7 +327,7 @@
 
                     <!-- Final Decision -->
                     <div class="bg-gray-900 bg-opacity-50 p-4 rounded-xl md:col-span-2">
-                        <h3 class="text-lg font-semibold mb-3 text-center text-green-300">🎯 QUYẾT ĐỊNH CUỐI CÙNG</h3>
+                        <h3 class="text-lg font-semibold mb-3 text-center text-green-300">QUYẾT ĐỊNH CUỐI CÙNG</h3>
                         <div class="text-center">
                             <div id="finalDecisionContainer" class="py-6 rounded-lg border-2 border-purple-500 mb-4">
                                 <p class="text-sm text-gray-400 mb-2">Đề xuất từ hệ thống tổng hợp (4 hệ thống):</p>
@@ -434,7 +350,7 @@
 
                 <!-- Combined Charts -->
                 <div class="bg-gray-900 bg-opacity-50 p-4 rounded-xl">
-                    <h3 class="text-lg font-semibold mb-3 text-center text-cyan-300">📈 BIỂU ĐỒ KẾT HỢP</h3>
+                    <h3 class="text-lg font-semibold mb-3 text-center text-cyan-300">BIỂU ĐỒ KẾT HỢP</h3>
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                         <div>
                             <h4 class="font-medium text-gray-300 mb-2 text-center">HT1</h4>
@@ -491,7 +407,7 @@
 
         <!-- Footer -->
         <div class="mt-8 text-center text-gray-500 text-sm">
-            <p>Hệ thống "VẠN SỰ NHƯ Ý" - Tổng hợp từ 4 hệ thống (HT1, HT2, HT3, HT4) | Phiên bản 2.0</p>
+            <p>Hệ thống "VẠN SỰ NHƯ Ý" - Tổng hợp từ 4 hệ thống (HT1, HT2, HT3, HT4) | Phiên bản 3.0</p>
             <p class="mt-2">Lưu ý: Các hệ thống chạy độc lập nhưng đồng bộ về dữ liệu và phiên làm việc</p>
         </div>
     </div>
@@ -522,14 +438,38 @@
                 ht2: null,
                 ht3: null,
                 ht4: null
-            },
-            predictionTimes: {
-                ht1: null,
-                ht2: null,
-                ht3: null,
-                ht4: null
             }
         };
+
+        // =================== DEBUG FUNCTIONS ===================
+        function debugSystemStatus() {
+            console.clear();
+            console.log("=== DEBUG 4 HỆ THỐNG ===");
+            console.log("📊 Master state:", masterState);
+            
+            // Kiểm tra iframe
+            ['ht1', 'ht2', 'ht3', 'ht4'].forEach(system => {
+                const iframe = document.getElementById(`${system}-iframe`);
+                console.log(`${system.toUpperCase()} iframe:`, {
+                    exists: !!iframe,
+                    src: iframe?.src,
+                    loaded: iframe?.contentWindow ? '✅ Có contentWindow' : '❌ Không có contentWindow'
+                });
+            });
+            
+            // Kiểm tra logic khác nhau
+            console.log("\n🔍 Kiểm tra logic khác nhau:");
+            console.log("HT1 (Pattern Matching):", masterState.predictions.ht1);
+            console.log("HT2 (Fixed & Optimized):", masterState.predictions.ht2);
+            console.log("HT3 (Standard System):", masterState.predictions.ht3);
+            console.log("HT4 (Advanced System):", masterState.predictions.ht4);
+            
+            // Gửi ping để kiểm tra
+            console.log("\n📡 Gửi ping đến các hệ thống...");
+            broadcastToAll('ping', { timestamp: Date.now() });
+            
+            showToast('Đã debug hệ thống - Xem Console (F12)', 'info');
+        }
 
         // =================== IFRAME COMMUNICATION ===================
         function sendToIframe(iframeId, command, data = null) {
@@ -538,25 +478,34 @@
                 iframe.contentWindow.postMessage({
                     command: command,
                     data: data,
-                    source: 'master'
+                    source: 'master',
+                    timestamp: Date.now()
                 }, '*');
+                console.log(`📤 Gửi đến ${iframeId}: ${command}`, data);
                 return true;
+            } else {
+                console.warn(`⚠️ Không thể gửi đến ${iframeId}: iframe không tồn tại`);
+                return false;
             }
-            return false;
         }
 
         function broadcastToAll(command, data = null) {
-            sendToIframe('ht1-iframe', command, data);
-            sendToIframe('ht2-iframe', command, data);
-            sendToIframe('ht3-iframe', command, data);
-            sendToIframe('ht4-iframe', command, data);
+            const results = {
+                ht1: sendToIframe('ht1-iframe', command, data),
+                ht2: sendToIframe('ht2-iframe', command, data),
+                ht3: sendToIframe('ht3-iframe', command, data),
+                ht4: sendToIframe('ht4-iframe', command, data)
+            };
+            console.log(`📡 Broadcast ${command}:`, results);
+            return results;
         }
 
         // =================== MESSAGE LISTENER ===================
         window.addEventListener('message', function(event) {
-            // Only accept messages from our iframes
+            // Chỉ chấp nhận message từ các iframe hệ thống
             if (event.data.source === 'ht1' || event.data.source === 'ht2' || 
                 event.data.source === 'ht3' || event.data.source === 'ht4') {
+                console.log(`📥 Nhận từ ${event.data.source}:`, event.data.type, event.data);
                 handleSystemMessage(event.data);
             }
         });
@@ -568,7 +517,9 @@
                 case 'ready':
                     masterState.systemsReady[system] = true;
                     updateSystemStatus();
+                    console.log(`✅ ${system.toUpperCase()} đã sẵn sàng`);
                     if (allSystemsReady()) {
+                        console.log("🎉 Tất cả 4 hệ thống đã sẵn sàng!");
                         initializeSystems();
                     }
                     break;
@@ -587,142 +538,26 @@
                     
                 case 'prediction_update':
                     // Store prediction for final decision
-                    if (data.prediction !== undefined) {
+                    if (data.prediction) {
                         masterState.predictions[system] = data.prediction;
-                        masterState.predictionTimes[system] = new Date().toISOString();
-                        // Update current prediction display
-                        updateCurrentPredictionDisplay(system, data.prediction);
-                        // Update voting summary
-                        updateVotingSummary();
+                        console.log(`📊 ${system.toUpperCase()} prediction:`, data.prediction);
                         calculateFinalDecision();
                     }
                     break;
 
                 case 'import_complete':
+                    console.log(`✅ ${system.toUpperCase()} đã nhập dữ liệu xong`);
                     showToast(`${system.toUpperCase()} đã nhập dữ liệu xong`, 'success');
                     break;
 
-                case 'export_data':
-                    // Handle export data from system
-                    if (data.sessions) {
-                        masterState[`${system}Sessions`] = data.sessions;
-                    }
+                case 'pong':
+                    console.log(`🏓 ${system.toUpperCase()} ping trả lời:`, data.timestamp);
                     break;
-                    
+
                 case 'error':
-                    console.error(`Error from ${system}:`, data.message);
-                    showToast(`${system.toUpperCase()} lỗi: ${data.message}`, 'error');
+                    console.error(`❌ Lỗi từ ${system.toUpperCase()}:`, data.message);
+                    showToast(`Lỗi ${system.toUpperCase()}: ${data.message}`, 'error');
                     break;
-            }
-        }
-
-        // =================== FUNCTIONS FOR DISPLAYING CURRENT PREDICTIONS ===================
-        function updateCurrentPredictionDisplay(system, prediction) {
-            const element = document.getElementById(`${system}-current-prediction`);
-            const accuracyElement = document.getElementById(`${system}-accuracy-current`);
-            const cardElement = document.getElementById(`${system}-prediction-card`);
-            
-            if (!element) return;
-            
-            let displayText = '⏳';
-            let colorClass = 'text-gray-400';
-            let cardClass = 'waiting';
-            let accuracyColor = 'text-gray-500';
-            
-            const accuracy = masterState[`${system}Accuracy`] || 0;
-            
-            if (prediction === 'P') {
-                displayText = '👤 PLAYER';
-                colorClass = 'text-blue-400';
-                cardClass = 'player';
-                accuracyColor = accuracy >= 70 ? 'text-green-400' : accuracy >= 50 ? 'text-yellow-400' : 'text-blue-400';
-            } else if (prediction === 'B') {
-                displayText = '🏦 BANKER';
-                colorClass = 'text-red-400';
-                cardClass = 'banker';
-                accuracyColor = accuracy >= 70 ? 'text-green-400' : accuracy >= 50 ? 'text-yellow-400' : 'text-red-400';
-            } else if (prediction === null || prediction === undefined) {
-                displayText = '⏳';
-                colorClass = 'text-gray-400';
-                cardClass = 'waiting';
-                accuracyColor = 'text-gray-500';
-            } else {
-                displayText = prediction;
-                colorClass = 'text-yellow-400';
-                cardClass = 'waiting';
-                accuracyColor = 'text-yellow-400';
-            }
-            
-            element.textContent = displayText;
-            element.className = `text-2xl font-bold ${colorClass}`;
-            
-            // Update accuracy display
-            if (accuracyElement) {
-                accuracyElement.textContent = `${accuracy.toFixed(1)}%`;
-                accuracyElement.className = `text-sm ${accuracyColor} mt-1`;
-            }
-            
-            // Update card styling
-            if (cardElement) {
-                cardElement.className = `prediction-card ${cardClass} p-4 rounded-xl text-center`;
-            }
-        }
-
-        function updateVotingSummary() {
-            const predictions = masterState.predictions;
-            let playerVotes = 0;
-            let bankerVotes = 0;
-            let waitingVotes = 0;
-            let voteDetails = [];
-            
-            // Count votes from all systems
-            Object.entries(predictions).forEach(([system, prediction]) => {
-                if (prediction === 'P') {
-                    playerVotes++;
-                    voteDetails.push(`${system.toUpperCase()}: PLAYER`);
-                } else if (prediction === 'B') {
-                    bankerVotes++;
-                    voteDetails.push(`${system.toUpperCase()}: BANKER`);
-                } else {
-                    waitingVotes++;
-                    voteDetails.push(`${system.toUpperCase()}: ⏳`);
-                }
-            });
-            
-            // Update vote counts
-            document.getElementById('vote-player-count').textContent = playerVotes;
-            document.getElementById('vote-banker-count').textContent = bankerVotes;
-            
-            // Determine and display result
-            const voteResultElement = document.getElementById('vote-result-text');
-            const voteDetailsElement = document.getElementById('vote-prediction-details');
-            const votingSummary = document.getElementById('voting-summary');
-            
-            if (waitingVotes === 4) {
-                voteResultElement.textContent = 'CHƯA CÓ PHIẾU';
-                voteResultElement.className = 'text-gray-400';
-                votingSummary.className = 'voting-result-waiting text-center p-4 rounded-lg';
-                voteDetailsElement.textContent = 'Đang chờ dự đoán từ 4 hệ thống...';
-            } else if (playerVotes > bankerVotes) {
-                voteResultElement.textContent = `PLAYER THẮNG (${playerVotes}:${bankerVotes})`;
-                voteResultElement.className = 'text-blue-400';
-                votingSummary.className = 'voting-result-player text-center p-4 rounded-lg';
-                voteDetailsElement.textContent = `PLAYER dẫn trước ${playerVotes}-${bankerVotes} | ${voteDetails.join(' | ')}`;
-            } else if (bankerVotes > playerVotes) {
-                voteResultElement.textContent = `BANKER THẮNG (${bankerVotes}:${playerVotes})`;
-                voteResultElement.className = 'text-red-400';
-                votingSummary.className = 'voting-result-banker text-center p-4 rounded-lg';
-                voteDetailsElement.textContent = `BANKER dẫn trước ${bankerVotes}-${playerVotes} | ${voteDetails.join(' | ')}`;
-            } else if (playerVotes === bankerVotes && playerVotes > 0) {
-                voteResultElement.textContent = `HÒA PHIẾU (${playerVotes}:${bankerVotes})`;
-                voteResultElement.className = 'text-yellow-400';
-                votingSummary.className = 'voting-result-tie text-center p-4 rounded-lg';
-                voteDetailsElement.textContent = `Hòa phiếu ${playerVotes}-${bankerVotes} | ${voteDetails.join(' | ')}`;
-            } else {
-                voteResultElement.textContent = `ĐANG CHỜ (${4-waitingVotes}/4 hệ thống)`;
-                voteResultElement.className = 'text-gray-400';
-                votingSummary.className = 'voting-result-waiting text-center p-4 rounded-lg';
-                voteDetailsElement.textContent = `${voteDetails.join(' | ')}`;
             }
         }
 
@@ -753,6 +588,7 @@
                 icon.setAttribute('d', 'M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z');
                 frame.classList.remove('active');
             });
+            showToast('Đã hiển thị tất cả hệ thống', 'info');
         }
 
         function hideAllFrames() {
@@ -765,6 +601,7 @@
                 icon.setAttribute('d', 'M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z');
                 frame.classList.add('active');
             });
+            showToast('Đã ẩn tất cả hệ thống', 'info');
         }
 
         function allSystemsReady() {
@@ -786,6 +623,7 @@
             if (allSystemsReady()) {
                 document.getElementById('sync-status').textContent = '🟢 Đã đồng bộ';
                 document.getElementById('sync-status').className = 'text-green-400 font-semibold';
+                document.getElementById('system-status-indicator').textContent = '🟢 Tất cả hệ thống sẵn sàng';
             }
         }
 
@@ -796,6 +634,7 @@
             
             // Request initial data from systems
             setTimeout(() => {
+                console.log("🔄 Khởi tạo dữ liệu từ 4 hệ thống...");
                 broadcastToAll('get_accuracy');
                 broadcastToAll('get_session_info');
                 broadcastToAll('get_chot_history');
@@ -805,7 +644,7 @@
 
         function loadMasterSessions() {
             try {
-                const saved = localStorage.getItem('vanSuNhuY_sessions_v2');
+                const saved = localStorage.getItem('vanSuNhuY_master_sessions_v3');
                 if (saved) {
                     masterState.sessions = JSON.parse(saved);
                     updateMasterSessionSelector();
@@ -816,7 +655,7 @@
         }
 
         function saveMasterSessions() {
-            localStorage.setItem('vanSuNhuY_sessions_v2', JSON.stringify(masterState.sessions));
+            localStorage.setItem('vanSuNhuY_master_sessions_v3', JSON.stringify(masterState.sessions));
         }
 
         function updateMasterSessionSelector() {
@@ -840,7 +679,13 @@
                     id: sessionId,
                     name: sessionName,
                     created: new Date().toISOString(),
-                    history: []
+                    history: [],
+                    system_versions: {
+                        ht1: '1.0',
+                        ht2: '1.0',
+                        ht3: '1.0',
+                        ht4: '1.0'
+                    }
                 };
                 
                 masterState.currentSessionId = sessionId;
@@ -891,6 +736,8 @@
             const session = masterState.sessions[masterState.currentSessionId];
             if (session && session.history) {
                 document.getElementById('totalGamesMaster').textContent = session.history.length;
+            } else {
+                document.getElementById('totalGamesMaster').textContent = '0';
             }
         }
 
@@ -901,6 +748,8 @@
             
             const reader = new FileReader();
             reader.onload = function(e) {
+                showLoadingModal('Đang nhập dữ liệu...');
+                
                 try {
                     const data = JSON.parse(e.target.result);
                     
@@ -912,29 +761,23 @@
                             updateMasterSessionSelector();
                         }
                         
-                        // Send import command to all systems
-                        showLoadingModal('Đang nhập dữ liệu vào 4 hệ thống...');
-                        
+                        // Gửi dữ liệu riêng cho từng hệ thống
                         setTimeout(() => {
-                            // Import to HT1
                             sendToIframe('ht1-iframe', 'import_data', {
-                                sessions: data.system_sessions?.ht1 || [],
+                                sessions: data.system_sessions?.ht1 || data.sessions,
                                 simulate: true
                             });
                             
-                            // Import to HT2
                             sendToIframe('ht2-iframe', 'import_data', {
-                                sessions: data.system_sessions?.ht2 || [],
+                                sessions: data.system_sessions?.ht2 || data.sessions,
                                 simulate: true
                             });
                             
-                            // Import to HT3
                             sendToIframe('ht3-iframe', 'import_data', {
                                 sessions: data.system_sessions?.ht3 || data.sessions,
                                 simulate: true
                             });
                             
-                            // Import to HT4
                             sendToIframe('ht4-iframe', 'import_data', {
                                 sessions: data.system_sessions?.ht4 || data.sessions,
                                 simulate: true
@@ -951,9 +794,9 @@
                                     broadcastToAll('get_chot_history');
                                     broadcastToAll('get_prediction');
                                 }, 1000);
-                            }, 2000);
+                            }, 3000);
                             
-                        }, 500);
+                        }, 1000);
                         
                     } else {
                         // Legacy import - just send to all systems
@@ -961,6 +804,7 @@
                             sessions: data,
                             simulate: true
                         });
+                        hideLoadingModal();
                         showToast('Đã gửi dữ liệu đến tất cả hệ thống', 'info');
                     }
                 } catch (error) {
@@ -974,33 +818,31 @@
         }
 
         function exportMasterData() {
-            // Collect data from all systems
-            const exportData = {
-                type: 'vanSuNhuY_export',
-                version: '2.0',
-                timestamp: new Date().toISOString(),
-                sessions: masterState.sessions,
-                system_sessions: {
-                    ht1: masterState.ht1Sessions || [],
-                    ht2: masterState.ht2Sessions || [],
-                    ht3: masterState.ht3Sessions || [],
-                    ht4: masterState.ht4Sessions || []
-                }
-            };
-            
-            // Request session data from systems
+            // Request session data từ tất cả hệ thống trước
+            console.log("📤 Yêu cầu export dữ liệu từ 4 hệ thống...");
             broadcastToAll('export_data');
             
-            // Give systems time to respond
+            // Chờ 2 giây để các hệ thống phản hồi
             setTimeout(() => {
+                const exportData = {
+                    type: 'vanSuNhuY_export',
+                    version: '3.0',
+                    timestamp: new Date().toISOString(),
+                    sessions: masterState.sessions,
+                    system_versions: {
+                        ht1: '1.0',
+                        ht2: '1.0',
+                        ht3: '1.0',
+                        ht4: '1.0'
+                    }
+                };
+                
                 const dataStr = JSON.stringify(exportData, null, 2);
                 const dataBlob = new Blob([dataStr], {type: 'application/json'});
                 const url = URL.createObjectURL(dataBlob);
                 const link = document.createElement('a');
                 link.href = url;
-                const now = new Date();
-                const dateStr = `${now.getDate().toString().padStart(2, '0')}-${(now.getMonth()+1).toString().padStart(2, '0')}-${now.getFullYear()}`;
-                link.download = `VanSuNhuY_4Systems_${dateStr}.json`;
+                link.download = `VanSuNhuY_4Systems_${new Date().toISOString().slice(0,10)}_${Date.now()}.json`;
                 link.click();
                 URL.revokeObjectURL(url);
                 
@@ -1017,6 +859,15 @@
             
             // Update master history
             const session = masterState.sessions[masterState.currentSessionId];
+            if (!session) {
+                masterState.sessions[masterState.currentSessionId] = {
+                    id: masterState.currentSessionId,
+                    name: masterState.currentSessionName,
+                    history: [],
+                    created: new Date().toISOString()
+                };
+            }
+            
             if (!session.history) session.history = [];
             session.history.push(result);
             
@@ -1031,7 +882,7 @@
                 broadcastToAll('get_accuracy');
                 broadcastToAll('get_chot_history');
                 broadcastToAll('get_prediction');
-            }, 800);
+            }, 1000);
             
             showToast(`Đã thêm kết quả: ${result === 'P' ? 'PLAYER' : 'BANKER'} đến 4 hệ thống`, 'success');
         }
@@ -1043,7 +894,7 @@
             }
             
             const session = masterState.sessions[masterState.currentSessionId];
-            if (session.history.length === 0) {
+            if (!session || !session.history || session.history.length === 0) {
                 showToast('Không có kết quả để hoàn tác!', 'warning');
                 return;
             }
@@ -1059,7 +910,8 @@
             setTimeout(() => {
                 broadcastToAll('get_accuracy');
                 broadcastToAll('get_chot_history');
-            }, 800);
+                broadcastToAll('get_prediction');
+            }, 1000);
             
             showToast('Đã hoàn tác kết quả cuối cùng từ 4 hệ thống', 'info');
         }
@@ -1071,7 +923,11 @@
             }
             
             if (confirm('Bạn có chắc muốn xóa toàn bộ lịch sử của phiên này?')) {
-                masterState.sessions[masterState.currentSessionId].history = [];
+                const session = masterState.sessions[masterState.currentSessionId];
+                if (session) {
+                    session.history = [];
+                }
+                
                 saveMasterSessions();
                 updateCurrentSessionInfo();
                 
@@ -1090,15 +946,15 @@
             
             const session = masterState.sessions[masterState.currentSessionId];
             
+            document.getElementById('sync-status').textContent = '🔄 Đang đồng bộ...';
+            document.getElementById('sync-status').className = 'text-yellow-400 font-semibold';
+            
             // Send session data to all systems
             broadcastToAll('load_session', {
                 id: masterState.currentSessionId,
                 name: session.name,
-                history: session.history
+                history: session.history || []
             });
-            
-            document.getElementById('sync-status').textContent = '🔄 Đang đồng bộ...';
-            document.getElementById('sync-status').className = 'text-yellow-400 font-semibold';
             
             setTimeout(() => {
                 document.getElementById('sync-status').textContent = '🟢 Đã đồng bộ';
@@ -1111,11 +967,11 @@
                     broadcastToAll('get_chot_history');
                     broadcastToAll('get_prediction');
                 }, 1000);
-            }, 1500);
+            }, 2000);
         }
 
         function resetAllSystems() {
-            if (confirm('Bạn có chắc muốn reset tất cả 4 hệ thống về trạng thái ban đầu?')) {
+            if (confirm('Bạn có chắc muốn reset tất cả 4 hệ thống về trạng thái ban đầu?\nToàn bộ dữ liệu sẽ bị xóa!')) {
                 // Clear master state
                 masterState.sessions = {};
                 masterState.currentSessionId = null;
@@ -1124,26 +980,22 @@
                 masterState.ht2Accuracy = 0;
                 masterState.ht3Accuracy = 0;
                 masterState.ht4Accuracy = 0;
-                masterState.predictions = {
-                    ht1: null,
-                    ht2: null,
-                    ht3: null,
-                    ht4: null
-                };
                 
-                // Reset display
-                ['ht1', 'ht2', 'ht3', 'ht4'].forEach(system => {
-                    updateCurrentPredictionDisplay(system, null);
-                });
-                updateVotingSummary();
-                updateFinalDecisionDisplay(null, 'Hệ thống đã được reset', 'RESET');
-                
-                localStorage.removeItem('vanSuNhuY_sessions_v2');
+                localStorage.removeItem('vanSuNhuY_master_sessions_v3');
                 updateMasterSessionSelector();
                 updateCurrentSessionInfo();
                 
                 // Send reset command to all systems
                 broadcastToAll('reset_system');
+                
+                // Reset UI
+                ['ht1', 'ht2', 'ht3', 'ht4'].forEach(system => {
+                    document.getElementById(`${system}-accuracy`).textContent = '0.0%';
+                    document.getElementById(`${system}-accuracy`).className = 'accuracy-badge accuracy-low';
+                    document.getElementById(`accuracy-${system}-display`).textContent = '0.0%';
+                    document.getElementById(`${system}-status`).textContent = '🟡 Đang khởi động';
+                    document.getElementById(`${system}-status`).className = 'text-yellow-400 font-semibold';
+                });
                 
                 showToast('Đã reset tất cả 4 hệ thống', 'info');
             }
@@ -1151,48 +1003,52 @@
 
         // =================== ACCURACY & DECISION CALCULATION ===================
         function updateSystemAccuracy(system, accuracy) {
-            masterState[`${system}Accuracy`] = accuracy;
+            const accValue = parseFloat(accuracy) || 0;
+            masterState[`${system}Accuracy`] = accValue;
             
             // Update display
             const element = document.getElementById(`${system}-accuracy`);
             const display = document.getElementById(`accuracy-${system}-display`);
             
+            if (element) element.textContent = `${accValue.toFixed(1)}%`;
+            if (display) display.textContent = `${accValue.toFixed(1)}%`;
+            
+            // Update badge color
             if (element) {
-                element.textContent = `${accuracy.toFixed(1)}%`;
                 element.className = 'accuracy-badge ';
-                if (accuracy >= 70) {
+                if (accValue >= 70) {
                     element.className += 'accuracy-high';
-                } else if (accuracy >= 50) {
+                } else if (accValue >= 50) {
                     element.className += 'accuracy-medium';
                 } else {
                     element.className += 'accuracy-low';
                 }
             }
             
-            if (display) display.textContent = `${accuracy.toFixed(1)}%`;
-            
-            // Also update the current prediction accuracy display
-            updateCurrentPredictionDisplay(system, masterState.predictions[system]);
-            
             calculateFinalDecision();
         }
 
         function updateChotHistory(system, history) {
-            masterState[`${system}ChotHistory`] = history;
-            renderCombinedChart(system);
+            if (Array.isArray(history)) {
+                masterState[`${system}ChotHistory`] = history;
+                renderCombinedChart(system);
+            }
         }
 
         function updateSessionInfo(system, sessionInfo) {
-            // Update master state with session info from system
             if (sessionInfo && sessionInfo.id) {
+                // Store in master sessions
                 if (!masterState.sessions[sessionInfo.id]) {
                     masterState.sessions[sessionInfo.id] = {
                         id: sessionInfo.id,
-                        name: sessionInfo.name || `Phiên ${sessionInfo.id}`,
+                        name: sessionInfo.name || `Phiên từ ${system}`,
                         history: sessionInfo.history || [],
-                        systemData: {
-                            ...(masterState.sessions[sessionInfo.id]?.systemData || {}),
-                            [system]: sessionInfo
+                        system_data: {
+                            ...(masterState.sessions[sessionInfo.id]?.system_data || {}),
+                            [system]: {
+                                last_update: new Date().toISOString(),
+                                history_length: sessionInfo.history?.length || 0
+                            }
                         }
                     };
                 }
@@ -1218,93 +1074,56 @@
             
             const predictions = masterState.predictions;
             
-            // Count votes
-            let playerVotes = 0;
-            let bankerVotes = 0;
-            let validSystems = 0;
-            Object.values(predictions).forEach(prediction => {
-                if (prediction === 'P') {
-                    playerVotes++;
-                    validSystems++;
-                } else if (prediction === 'B') {
-                    bankerVotes++;
-                    validSystems++;
-                }
-            });
-            
-            // If no votes yet
-            if (validSystems === 0) {
-                updateFinalDecisionDisplay(null, 'Chưa có đủ dự đoán từ các hệ thống', 'ĐANG CHỜ');
-                return;
-            }
-            
-            // Priority 1: Systems with accuracy >= 70%
-            const highAccuracySystems = [];
-            Object.entries(accuracies).forEach(([system, acc]) => {
-                if (acc >= 70 && predictions[system]) {
-                    highAccuracySystems.push({
-                        name: system.toUpperCase(),
-                        acc: acc,
-                        prediction: predictions[system]
-                    });
-                }
-            });
+            console.log("🎯 Tính toán quyết định cuối cùng:", { accuracies, predictions });
             
             let decision = null;
             let reason = '';
             let prioritySystem = '';
             
-            if (highAccuracySystems.length === 1) {
-                // Only one system with high accuracy
-                prioritySystem = highAccuracySystems[0].name;
-                decision = highAccuracySystems[0].prediction;
-                reason = `Ưu tiên ${prioritySystem} (độ chính xác: ${highAccuracySystems[0].acc.toFixed(1)}% ≥ 70%)`;
-            } 
-            else if (highAccuracySystems.length > 1) {
-                // Multiple systems with high accuracy - choose the highest
-                highAccuracySystems.sort((a, b) => b.acc - a.acc);
-                prioritySystem = highAccuracySystems[0].name;
-                decision = highAccuracySystems[0].prediction;
-                reason = `${prioritySystem} có độ chính xác cao nhất (${highAccuracySystems[0].acc.toFixed(1)}%) trong các hệ thống ≥ 70%`;
-            }
-            else {
-                // No system with high accuracy, use majority vote
-                prioritySystem = 'ĐA SỐ BỎ PHIẾU';
+            // Kiểm tra các hệ thống có dự đoán không
+            const validPredictions = Object.entries(predictions).filter(([_, pred]) => 
+                pred === 'P' || pred === 'B'
+            );
+            
+            if (validPredictions.length === 0) {
+                decision = null;
+                reason = 'Chưa có dự đoán từ hệ thống nào';
+                prioritySystem = 'ĐANG CHỜ';
+            } else {
+                // Strategy 1: Ưu tiên hệ thống có độ chính xác cao nhất (≥ 50%)
+                const systemsWithGoodAccuracy = Object.entries(accuracies)
+                    .filter(([_, acc]) => acc >= 50)
+                    .sort((a, b) => b[1] - a[1]);
                 
-                if (playerVotes > bankerVotes) {
-                    decision = 'P';
-                    reason = `Đa số hệ thống đề xuất PLAYER (${playerVotes}/${validSystems} phiếu)`;
-                } else if (bankerVotes > playerVotes) {
-                    decision = 'B';
-                    reason = `Đa số hệ thống đề xuất BANKER (${bankerVotes}/${validSystems} phiếu)`;
-                } else if (playerVotes === bankerVotes && playerVotes > 0) {
-                    // Tie vote
-                    prioritySystem = 'HÒA PHIẾU';
-                    
-                    // In case of tie, use system with highest accuracy among those that voted
-                    const votingSystems = [];
-                    Object.entries(predictions).forEach(([system, prediction]) => {
-                        if (prediction === 'P' || prediction === 'B') {
-                            votingSystems.push({
-                                system: system,
-                                prediction: prediction,
-                                accuracy: accuracies[system] || 0
-                            });
-                        }
+                if (systemsWithGoodAccuracy.length > 0) {
+                    const bestSystem = systemsWithGoodAccuracy[0][0];
+                    decision = predictions[bestSystem];
+                    prioritySystem = bestSystem.toUpperCase();
+                    reason = `Hệ thống ${prioritySystem} có độ chính xác cao nhất (${accuracies[bestSystem].toFixed(1)}%)`;
+                } else {
+                    // Strategy 2: Bỏ phiếu đa số
+                    const voteCount = { P: 0, B: 0 };
+                    validPredictions.forEach(([_, pred]) => {
+                        voteCount[pred]++;
                     });
                     
-                    if (votingSystems.length > 0) {
-                        votingSystems.sort((a, b) => b.accuracy - a.accuracy);
-                        prioritySystem = `${votingSystems[0].system.toUpperCase()} (CAO NHẤT)`;
-                        decision = votingSystems[0].prediction;
-                        reason = `Hòa phiếu (${playerVotes}:${bankerVotes}), ưu tiên hệ thống có độ chính xác cao nhất (${votingSystems[0].accuracy.toFixed(1)}%)`;
+                    if (voteCount.P > voteCount.B) {
+                        decision = 'P';
+                        prioritySystem = 'ĐA SỐ';
+                        reason = `Đa số hệ thống đề xuất PLAYER (${voteCount.P}/${validPredictions.length} phiếu)`;
+                    } else if (voteCount.B > voteCount.P) {
+                        decision = 'B';
+                        prioritySystem = 'ĐA SỐ';
+                        reason = `Đa số hệ thống đề xuất BANKER (${voteCount.B}/${validPredictions.length} phiếu)`;
+                    } else if (voteCount.P === voteCount.B && voteCount.P > 0) {
+                        decision = null;
+                        prioritySystem = 'PHÂN VÂN';
+                        reason = `Các hệ thống phân vân (P:${voteCount.P} - B:${voteCount.B})`;
                     } else {
                         decision = null;
-                        reason = `Hòa phiếu (${playerVotes}:${bankerVotes}), chưa có hệ thống ưu tiên`;
+                        prioritySystem = 'KHÔNG RÕ';
+                        reason = 'Không đủ dữ liệu để quyết định';
                     }
-                } else {
-                    decision = null;
-                    reason = 'Chưa có đủ dự đoán từ các hệ thống';
                 }
             }
             
@@ -1317,23 +1136,23 @@
             const reasonEl = document.getElementById('decisionReason');
             const priorityEl = document.getElementById('priority-system');
             
-            priorityEl.textContent = prioritySystem || 'Đang tính...';
+            priorityEl.textContent = prioritySystem || 'ĐANG TÍNH...';
             
             if (decision === 'P') {
                 text.textContent = '👤 CHỐT PLAYER';
-                text.className = 'text-3xl md:text-4xl font-extrabold text-blue-400';
-                container.className = 'py-6 rounded-lg border-2 border-blue-500 mb-4';
-                priorityEl.className = 'text-lg font-bold text-blue-400';
+                text.className = 'text-3xl md:text-4xl font-extrabold text-blue-400 animate-pulse';
+                container.className = 'py-6 rounded-lg border-2 border-blue-500 mb-4 bg-blue-900 bg-opacity-20';
+                container.style.boxShadow = '0 0 20px rgba(59, 130, 246, 0.5)';
             } else if (decision === 'B') {
                 text.textContent = '🏦 CHỐT BANKER';
-                text.className = 'text-3xl md:text-4xl font-extrabold text-red-400';
-                container.className = 'py-6 rounded-lg border-2 border-red-500 mb-4';
-                priorityEl.className = 'text-lg font-bold text-red-400';
+                text.className = 'text-3xl md:text-4xl font-extrabold text-red-400 animate-pulse';
+                container.className = 'py-6 rounded-lg border-2 border-red-500 mb-4 bg-red-900 bg-opacity-20';
+                container.style.boxShadow = '0 0 20px rgba(239, 68, 68, 0.5)';
             } else {
                 text.textContent = '⏳ CHỜ TÍN HIỆU';
                 text.className = 'text-3xl md:text-4xl font-extrabold text-gray-300';
                 container.className = 'py-6 rounded-lg border-2 border-purple-500 mb-4';
-                priorityEl.className = 'text-lg font-bold text-yellow-400';
+                container.style.boxShadow = 'none';
             }
             
             reasonEl.textContent = reason;
@@ -1366,17 +1185,15 @@
             const recentHistory = history.slice(-30);
             let chartHTML = '';
             
-            recentHistory.forEach(prediction => {
-                if (prediction && prediction.predicted !== undefined && prediction.actual !== undefined) {
-                    const isCorrect = prediction.predicted === prediction.actual;
+            recentHistory.forEach((prediction, index) => {
+                if (prediction && typeof prediction === 'object') {
+                    const isCorrect = prediction.correct || 
+                                     (prediction.predicted === prediction.actual) ||
+                                     (prediction.prediction === prediction.actual);
+                    
                     const barClass = isCorrect ? 'history-bar-correct' : 'history-bar-incorrect';
-                    const title = `Đề xuất: ${prediction.predicted}, Ra: ${prediction.actual}`;
+                    const title = `#${index}: Dự đoán: ${prediction.predicted || prediction.prediction}, Thực tế: ${prediction.actual}`;
                     chartHTML += `<div class="history-bar ${barClass}" title="${title}"></div>`;
-                } else if (prediction && prediction.prediction) {
-                    // Handle different data format
-                    const isCorrect = prediction.correct;
-                    const barClass = isCorrect ? 'history-bar-correct' : 'history-bar-incorrect';
-                    chartHTML += `<div class="history-bar ${barClass}" title="Prediction"></div>`;
                 }
             });
             
@@ -1387,15 +1204,18 @@
         function showToast(message, type = 'info') {
             const container = document.getElementById('toast-container');
             const colors = {
-                success: 'border-green-500',
-                info: 'border-blue-500',
-                warning: 'border-yellow-500',
-                error: 'border-red-500'
+                success: 'border-green-500 bg-green-900 bg-opacity-30',
+                info: 'border-blue-500 bg-blue-900 bg-opacity-30',
+                warning: 'border-yellow-500 bg-yellow-900 bg-opacity-30',
+                error: 'border-red-500 bg-red-900 bg-opacity-30'
             };
             
             const toast = document.createElement('div');
             toast.className = `toast-notification ${colors[type]}`;
-            toast.textContent = message;
+            toast.innerHTML = `<div class="flex items-center">
+                <span class="mr-2">${type === 'success' ? '✅' : type === 'error' ? '❌' : type === 'warning' ? '⚠️' : 'ℹ️'}</span>
+                <span>${message}</span>
+            </div>`;
             container.appendChild(toast);
             
             setTimeout(() => {
@@ -1409,9 +1229,9 @@
             container.innerHTML = `
                 <div id="loading-modal" class="modal-backdrop">
                     <div class="modal-content text-center">
-                        <p class="text-lg text-gray-200">${message}</p>
+                        <p class="text-lg text-gray-200 mb-4">${message}</p>
                         <div class="mt-4">
-                            <svg class="animate-spin h-8 w-8 text-white mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <svg class="animate-spin h-8 w-8 text-purple-500 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                             </svg>
@@ -1434,15 +1254,11 @@
 
         // =================== INITIALIZATION ===================
         document.addEventListener('DOMContentLoaded', function() {
+            console.log("🚀 Khởi động hệ thống VẠN SỰ NHƯ Ý 4.0...");
+            
             // Initialize UI
             updateCurrentSessionInfo();
             updateSystemStatus();
-            
-            // Initialize prediction displays
-            ['ht1', 'ht2', 'ht3', 'ht4'].forEach(system => {
-                updateCurrentPredictionDisplay(system, null);
-            });
-            updateVotingSummary();
             
             // Set up session selector change handler
             document.getElementById('masterSessionSelector').addEventListener('change', function(e) {
@@ -1464,15 +1280,26 @@
             // Set up periodic updates
             setInterval(() => {
                 if (allSystemsReady()) {
-                    // Only request predictions if we have a session
-                    if (masterState.currentSessionId) {
-                        broadcastToAll('get_prediction');
-                    }
-                    // Update accuracy and charts less frequently
-                    if (Math.random() < 0.3) { // 30% chance each interval
-                        broadcastToAll('get_accuracy');
-                        broadcastToAll('get_chot_history');
-                    }
+                    broadcastToAll('get_accuracy');
+                    broadcastToAll('get_chot_history');
+                    broadcastToAll('get_prediction');
+                }
+            }, 10000);
+            
+            // Auto-check system status
+            setTimeout(() => {
+                if (!allSystemsReady()) {
+                    console.warn("Một số hệ thống chưa sẵn sàng, thử reload iframe...");
+                    showToast('Đang khởi động lại hệ thống...', 'warning');
+                    
+                    // Try to reload iframes
+                    ['ht1', 'ht2', 'ht3', 'ht4'].forEach(system => {
+                        const iframe = document.getElementById(`${system}-iframe`);
+                        if (iframe && !masterState.systemsReady[system]) {
+                            console.log(`Reloading ${system} iframe...`);
+                            iframe.src = iframe.src.split('?')[0] + '?v=' + Date.now();
+                        }
+                    });
                 }
             }, 5000);
             
