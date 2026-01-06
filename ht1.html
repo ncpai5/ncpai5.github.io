@@ -1915,25 +1915,25 @@ function initializeApp() {
 // --- INITIALIZATION ---
 document.addEventListener('DOMContentLoaded', initializeApp)
 </script>
-<!-- Thêm đoạn script này vào cuối file ht4.html -->
+<!-- Thêm đoạn script này vào cuối file ht1.html -->
 <script>
-// =================== IFRAME COMMUNICATION FOR HT4 - COMPLETE & UPDATED ===================
+// =================== IFRAME COMMUNICATION FOR HT1 - COMPLETE & UPDATED ===================
 (function() {
     // Notify parent that system is ready
     window.addEventListener('load', function() {
         setTimeout(() => {
             window.parent.postMessage({
-                source: 'ht4',
+                source: 'ht1',
                 type: 'ready'
             }, '*');
             
             // Initialize after a short delay
-            setTimeout(initializeHT4Communication, 500);
+            setTimeout(initializeHT1Communication, 500);
         }, 1000);
     });
 
-    // Communication state for HT4
-    const ht4CommState = {
+    // Communication state for HT1
+    const ht1CommState = {
         initialized: false,
         lastAccuracy: 0,
         lastChotHistory: [],
@@ -1941,11 +1941,11 @@ document.addEventListener('DOMContentLoaded', initializeApp)
         lastSystemDetails: null
     };
 
-    function initializeHT4Communication() {
-        if (ht4CommState.initialized) return;
+    function initializeHT1Communication() {
+        if (ht1CommState.initialized) return;
         
-        console.log('[HT4] Initializing communication system');
-        ht4CommState.initialized = true;
+        console.log('[HT1] Initializing communication system');
+        ht1CommState.initialized = true;
         
         // Set up periodic updates
         setInterval(() => {
@@ -1963,7 +1963,7 @@ document.addEventListener('DOMContentLoaded', initializeApp)
     });
 
     function handleMasterCommand(data) {
-        console.log("[HT4] Received master command:", data.command);
+        console.log("[HT1] Received master command:", data.command);
         
         switch(data.command) {
             case 'get_accuracy':
@@ -2024,8 +2024,8 @@ document.addEventListener('DOMContentLoaded', initializeApp)
         }
     }
 
-    // =================== HT4 SPECIFIC DATA EXTRACTION ===================
-    function getHT4CurrentPrediction() {
+    // =================== HT1 SPECIFIC DATA EXTRACTION ===================
+    function getHT1CurrentPrediction() {
         // Try multiple sources for prediction
         if (window.state && window.state.currentChotPredictionForLog) {
             return window.state.currentChotPredictionForLog.prediction || 
@@ -2044,19 +2044,18 @@ document.addEventListener('DOMContentLoaded', initializeApp)
             return window.state.originalSystemPrediction;
         }
         
-        // Check UI elements (HT4 specific)
-        const advancedPredictionElement = document.getElementById('advancedPrediction') || 
-                                         document.getElementById('finalChotResultText');
-        if (advancedPredictionElement && !advancedPredictionElement.textContent.includes('Chờ tín hiệu')) {
-            const text = advancedPredictionElement.textContent;
-            if (text.includes('PLAYER') || text.includes('P')) return 'P';
-            if (text.includes('BANKER') || text.includes('B')) return 'B';
+        // Check UI elements
+        const finalChotResultText = document.getElementById('finalChotResultText');
+        if (finalChotResultText && !finalChotResultText.textContent.includes('Chờ tín hiệu')) {
+            const text = finalChotResultText.textContent;
+            if (text.includes('PLAYER')) return 'P';
+            if (text.includes('BANKER')) return 'B';
         }
         
         return null;
     }
 
-    function getHT4ChotHistory() {
+    function getHT1ChotHistory() {
         if (!window.state || !window.state.currentSessionId) return [];
         
         const session = window.state.sessions?.[window.state.currentSessionId];
@@ -2065,20 +2064,20 @@ document.addEventListener('DOMContentLoaded', initializeApp)
         return session.chotPredictions.map(pred => ({
             predicted: pred.predicted || pred.prediction,
             actual: pred.actual,
-            source: pred.source || 'HT4',
+            source: pred.source || 'HT1',
             timestamp: pred.timestamp || new Date().toISOString()
         })).filter(p => p.predicted && p.actual);
     }
 
-    function getHT4Accuracy() {
-        const history = getHT4ChotHistory();
+    function getHT1Accuracy() {
+        const history = getHT1ChotHistory();
         if (history.length === 0) return 0;
         
         const correct = history.filter(p => p.predicted === p.actual).length;
         return (correct / history.length) * 100;
     }
 
-    function getHT4SystemDetails() {
+    function getHT1SystemDetails() {
         const details = {
             verdict: null,
             chot: null,
@@ -2088,7 +2087,7 @@ document.addEventListener('DOMContentLoaded', initializeApp)
         };
         
         // Get verdict (Phán Quyết)
-        details.verdict = getHT4CurrentPrediction();
+        details.verdict = getHT1CurrentPrediction();
         
         // Get chot (Chốt Phán Quyết)
         if (window.state && window.state.currentChotPredictionForLog) {
@@ -2096,86 +2095,41 @@ document.addEventListener('DOMContentLoaded', initializeApp)
                           window.state.currentChotPredictionForLog;
         }
         
-        // Get confidence range and accuracy from HT4's advanced analysis
+        // Get confidence range and accuracy
         if (window.state && window.state.currentSessionId) {
             const session = window.state.sessions?.[window.state.currentSessionId];
             const currentConfidence = window.state.currentPrediction?.confidence;
             
             if (session && session.predictions && currentConfidence !== undefined) {
-                // HT4 might have advanced confidence calculations
-                const advancedRanges = extractHT4AdvancedRanges(session.predictions);
+                // Calculate confidence ranges
+                const ranges = calculateConfidenceRangeStats(session.predictions);
+                const foundRange = ranges.find(r => 
+                    currentConfidence >= r.min && currentConfidence < r.max
+                );
                 
-                if (advancedRanges.length > 0) {
-                    const foundRange = advancedRanges.find(r => 
-                        currentConfidence >= r.min && currentConfidence < r.max
-                    );
+                if (foundRange) {
+                    details.range = `${foundRange.min}-${foundRange.max}%`;
+                    details.rangeAccuracy = foundRange.rate > -1 ? 
+                        parseFloat(foundRange.rate.toFixed(1)) : 0;
                     
-                    if (foundRange) {
-                        details.range = `${foundRange.min}-${foundRange.max}%`;
-                        details.rangeAccuracy = foundRange.rate;
-                        
-                        // Get interval history
-                        details.intervalHistory = session.predictions
-                            .filter(p => 
-                                p.confidence >= foundRange.min && 
-                                p.confidence < foundRange.max
-                            )
-                            .map((p, idx) => ({
-                                game: idx + 1,
-                                predicted: p.predicted,
-                                actual: p.actual,
-                                confidence: p.confidence,
-                                isCorrect: p.predicted === p.actual
-                            }));
-                    }
-                } else {
-                    // Fallback to standard calculation
-                    const ranges = calculateConfidenceRangeStats(session.predictions);
-                    const foundRange = ranges.find(r => 
-                        currentConfidence >= r.min && currentConfidence < r.max
-                    );
-                    
-                    if (foundRange) {
-                        details.range = `${foundRange.min}-${foundRange.max}%`;
-                        details.rangeAccuracy = foundRange.rate > -1 ? 
-                            parseFloat(foundRange.rate.toFixed(1)) : 0;
-                    }
+                    // Get interval history
+                    details.intervalHistory = session.predictions
+                        .filter(p => 
+                            p.confidence >= foundRange.min && 
+                            p.confidence < foundRange.max
+                        )
+                        .map((p, idx) => ({
+                            game: idx + 1,
+                            predicted: p.predicted,
+                            actual: p.actual,
+                            confidence: p.confidence,
+                            isCorrect: p.predicted === p.actual
+                        }));
                 }
             }
         }
         
         return details;
-    }
-
-    function extractHT4AdvancedRanges(predictions) {
-        const ranges = [];
-        
-        // HT4 might use different range boundaries
-        const advancedBoundaries = [
-            {min: 85, max: 100.1},
-            {min: 75, max: 85},
-            {min: 65, max: 75},
-            {min: 55, max: 65},
-            {min: 45, max: 55}
-        ];
-        
-        advancedBoundaries.forEach(boundary => {
-            const predictionsInRange = predictions.filter(p => 
-                p.confidence >= boundary.min && p.confidence < boundary.max
-            );
-            
-            const total = predictionsInRange.length;
-            const wins = predictionsInRange.filter(p => p.predicted === p.actual).length;
-            const rate = total > 0 ? ((wins / total) * 100) : -1;
-            
-            ranges.push({
-                min: boundary.min,
-                max: boundary.max === 100.1 ? 100 : boundary.max,
-                rate: rate > -1 ? parseFloat(rate.toFixed(1)) : 0
-            });
-        });
-        
-        return ranges;
     }
 
     function calculateConfidenceRangeStats(predictions) {
@@ -2201,12 +2155,13 @@ document.addEventListener('DOMContentLoaded', initializeApp)
 
     // =================== COMMUNICATION FUNCTIONS ===================
     function sendAccuracyUpdate() {
-        const accuracy = getHT4Accuracy();
+        const accuracy = getHT1Accuracy();
         
-        if (Math.abs(accuracy - ht4CommState.lastAccuracy) > 0.1) {
-            ht4CommState.lastAccuracy = accuracy;
+        // Only send if changed significantly
+        if (Math.abs(accuracy - ht1CommState.lastAccuracy) > 0.1) {
+            ht1CommState.lastAccuracy = accuracy;
             window.parent.postMessage({
-                source: 'ht4',
+                source: 'ht1',
                 type: 'accuracy_update',
                 accuracy: accuracy
             }, '*');
@@ -2214,15 +2169,16 @@ document.addEventListener('DOMContentLoaded', initializeApp)
     }
 
     function sendChotHistory() {
-        const history = getHT4ChotHistory();
+        const history = getHT1ChotHistory();
         
+        // Only send if changed
         const historyStr = JSON.stringify(history);
-        const lastHistoryStr = JSON.stringify(ht4CommState.lastChotHistory);
+        const lastHistoryStr = JSON.stringify(ht1CommState.lastChotHistory);
         
         if (historyStr !== lastHistoryStr) {
-            ht4CommState.lastChotHistory = history;
+            ht1CommState.lastChotHistory = history;
             window.parent.postMessage({
-                source: 'ht4',
+                source: 'ht1',
                 type: 'chot_history_update',
                 history: history
             }, '*');
@@ -2243,12 +2199,12 @@ document.addEventListener('DOMContentLoaded', initializeApp)
         };
         
         const sessionStr = JSON.stringify(sessionInfo);
-        const lastSessionStr = JSON.stringify(ht4CommState.lastSessionInfo);
+        const lastSessionStr = JSON.stringify(ht1CommState.lastSessionInfo);
         
         if (sessionStr !== lastSessionStr) {
-            ht4CommState.lastSessionInfo = sessionInfo;
+            ht1CommState.lastSessionInfo = sessionInfo;
             window.parent.postMessage({
-                source: 'ht4',
+                source: 'ht1',
                 type: 'session_update',
                 session: sessionInfo
             }, '*');
@@ -2256,25 +2212,25 @@ document.addEventListener('DOMContentLoaded', initializeApp)
     }
 
     function sendPrediction() {
-        const prediction = getHT4CurrentPrediction();
+        const prediction = getHT1CurrentPrediction();
         
         window.parent.postMessage({
-            source: 'ht4',
+            source: 'ht1',
             type: 'prediction_update',
             prediction: prediction
         }, '*');
     }
 
     function sendSystemDetails() {
-        const details = getHT4SystemDetails();
+        const details = getHT1SystemDetails();
         
         const detailsStr = JSON.stringify(details);
-        const lastDetailsStr = JSON.stringify(ht4CommState.lastSystemDetails);
+        const lastDetailsStr = JSON.stringify(ht1CommState.lastSystemDetails);
         
         if (detailsStr !== lastDetailsStr) {
-            ht4CommState.lastSystemDetails = details;
+            ht1CommState.lastSystemDetails = details;
             window.parent.postMessage({
-                source: 'ht4',
+                source: 'ht1',
                 type: 'system_details_update',
                 details: details
             }, '*');
@@ -2285,7 +2241,7 @@ document.addEventListener('DOMContentLoaded', initializeApp)
     function createSession(sessionData) {
         if (!sessionData || !sessionData.name) return;
         
-        // Call HT4's create session function
+        // Call HT1's create session function
         if (typeof window.createNewSession === 'function') {
             window.createNewSession(sessionData.name);
         } else if (window.state) {
@@ -2298,7 +2254,9 @@ document.addEventListener('DOMContentLoaded', initializeApp)
                 verdictPredictions: [],
                 chotPredictions: [],
                 lengthPerformance: {},
-                optimalLength: null
+                optimalLength: null,
+                chotLengthPerformance: {},
+                chotOptimalLengths: {}
             };
             
             if (typeof window.saveSessions === 'function') {
@@ -2344,7 +2302,9 @@ document.addEventListener('DOMContentLoaded', initializeApp)
                 verdictPredictions: [],
                 chotPredictions: [],
                 lengthPerformance: {},
-                optimalLength: null
+                optimalLength: null,
+                chotLengthPerformance: {},
+                chotOptimalLengths: {}
             };
         }
         
@@ -2502,7 +2462,7 @@ document.addEventListener('DOMContentLoaded', initializeApp)
     function importSimulatedData(data) {
         if (!data || !data.sessions) return;
         
-        console.log('[HT4] Importing simulated data');
+        console.log('[HT1] Importing simulated data');
         
         // Show loading
         if (typeof window.showLoadingModal === 'function') {
@@ -2515,7 +2475,7 @@ document.addEventListener('DOMContentLoaded', initializeApp)
                 window.state.sessions = {};
                 window.state.currentSessionId = null;
                 
-                // Convert to HT4 format
+                // Convert to HT1 format
                 const convertedSessions = {};
                 
                 Object.keys(data.sessions).forEach(sessionId => {
@@ -2527,7 +2487,9 @@ document.addEventListener('DOMContentLoaded', initializeApp)
                         verdictPredictions: [],
                         chotPredictions: [],
                         lengthPerformance: {},
-                        optimalLength: null
+                        optimalLength: null,
+                        chotLengthPerformance: {},
+                        chotOptimalLengths: {}
                     };
                     
                     // If there are predictions in the data, use them
@@ -2558,7 +2520,7 @@ document.addEventListener('DOMContentLoaded', initializeApp)
                 
                 // Notify parent
                 window.parent.postMessage({
-                    source: 'ht4',
+                    source: 'ht1',
                     type: 'import_complete'
                 }, '*');
                 
@@ -2571,7 +2533,7 @@ document.addEventListener('DOMContentLoaded', initializeApp)
                 }, 500);
                 
             } catch (error) {
-                console.error('[HT4] Import error:', error);
+                console.error('[HT1] Import error:', error);
                 
                 if (typeof window.hideLoadingModal === 'function') {
                     window.hideLoadingModal();
@@ -2601,7 +2563,7 @@ document.addEventListener('DOMContentLoaded', initializeApp)
         });
         
         window.parent.postMessage({
-            source: 'ht4',
+            source: 'ht1',
             type: 'export_data',
             sessions: sessionsToExport
         }, '*');
@@ -2636,7 +2598,7 @@ document.addEventListener('DOMContentLoaded', initializeApp)
     }
 
     // Initialize
-    console.log('[HT4] Communication script loaded');
+    console.log('[HT1] Communication script loaded');
 })();
 </script>
 </body>
