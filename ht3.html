@@ -1719,8 +1719,7 @@ document.getElementById('toggleSessionIcon').style.transform = 'rotate(-180deg)'
 // --- INITIALIZATION ---
 document.addEventListener('DOMContentLoaded', initializeApp)
 </script>
-<script>
-// =================== IFRAME COMMUNICATION FOR HT3 - UPDATED ===================
+// =================== IFRAME COMMUNICATION FOR HT3 - COMPLETE ===================
 (function() {
     // Notify parent that system is ready
     window.addEventListener('load', function() {
@@ -1740,8 +1739,6 @@ document.addEventListener('DOMContentLoaded', initializeApp)
     });
 
     function handleMasterCommand(data) {
-        console.log("[HT3] Received command:", data.command);
-        
         switch(data.command) {
             case 'get_accuracy':
                 sendAccuracyUpdate();
@@ -1757,6 +1754,10 @@ document.addEventListener('DOMContentLoaded', initializeApp)
                 
             case 'get_prediction':
                 sendPrediction();
+                break;
+                
+            case 'get_system_details':
+                sendSystemDetails();
                 break;
                 
             case 'create_session':
@@ -1811,14 +1812,6 @@ document.addEventListener('DOMContentLoaded', initializeApp)
                 correct: correct,
                 total: total
             }, '*');
-        } else {
-            window.parent.postMessage({
-                source: 'ht3',
-                type: 'accuracy_update',
-                accuracy: 0,
-                correct: 0,
-                total: 0
-            }, '*');
         }
     }
 
@@ -1829,12 +1822,6 @@ document.addEventListener('DOMContentLoaded', initializeApp)
                 source: 'ht3',
                 type: 'chot_history_update',
                 history: session.chotPredictions
-            }, '*');
-        } else {
-            window.parent.postMessage({
-                source: 'ht3',
-                type: 'chot_history_update',
-                history: []
             }, '*');
         }
     }
@@ -1852,12 +1839,6 @@ document.addEventListener('DOMContentLoaded', initializeApp)
                     current: true
                 }
             }, '*');
-        } else {
-            window.parent.postMessage({
-                source: 'ht3',
-                type: 'session_update',
-                session: null
-            }, '*');
         }
     }
 
@@ -1872,6 +1853,138 @@ document.addEventListener('DOMContentLoaded', initializeApp)
             type: 'prediction_update',
             prediction: prediction
         }, '*');
+    }
+
+    function sendSystemDetails() {
+        try {
+            const details = {
+                verdict: null,
+                chot: null,
+                range: null,
+                rangeAccuracy: null,
+                intervalHistory: []
+            };
+            
+            // 1. Lấy 🧠 Phán Quyết
+            if (state.currentFinalPrediction) {
+                details.verdict = state.currentFinalPrediction.prediction;
+            } else if (state.currentPrediction) {
+                details.verdict = state.currentPrediction.prediction;
+            } else if (state.originalSystemPrediction) {
+                details.verdict = state.originalSystemPrediction;
+            }
+            
+            // 2. Lấy 🔐 Chốt Phán Quyết
+            if (state.currentChotPredictionForLog && state.currentChotPredictionForLog.prediction) {
+                details.chot = state.currentChotPredictionForLog.prediction;
+            } else {
+                const finalChotResultText = document.getElementById('finalChotResultText');
+                if (finalChotResultText && !finalChotResultText.textContent.includes('Chờ tín hiệu')) {
+                    const text = finalChotResultText.textContent;
+                    if (text.includes('PLAYER')) {
+                        details.chot = 'P';
+                    } else if (text.includes('BANKER')) {
+                        details.chot = 'B';
+                    }
+                }
+            }
+            
+            // 3. Xác định khoảng tỷ lệ và tỉ lệ phần trăm
+            const currentConfidence = state.currentPrediction?.confidence;
+            const session = state.sessions[state.currentSessionId];
+            
+            if (currentConfidence !== undefined && session && session.predictions) {
+                let foundRange = null;
+                let rangeDisplay = '';
+                
+                if (currentConfidence >= 90 && currentConfidence <= 100) {
+                    foundRange = state.sessionConfidenceRanges?.find(r => r.min === 90 && (r.max === 100 || r.max === 100.1));
+                    rangeDisplay = '90-100%';
+                } else if (currentConfidence >= 80 && currentConfidence < 90) {
+                    foundRange = state.sessionConfidenceRanges?.find(r => r.min === 80 && r.max === 90);
+                    rangeDisplay = '80-90%';
+                } else if (currentConfidence >= 70 && currentConfidence < 80) {
+                    foundRange = state.sessionConfidenceRanges?.find(r => r.min === 70 && r.max === 80);
+                    rangeDisplay = '70-80%';
+                } else if (currentConfidence >= 60 && currentConfidence < 70) {
+                    foundRange = state.sessionConfidenceRanges?.find(r => r.min === 60 && r.max === 70);
+                    rangeDisplay = '60-70%';
+                } else if (currentConfidence >= 50 && currentConfidence < 60) {
+                    foundRange = state.sessionConfidenceRanges?.find(r => r.min === 50 && r.max === 60);
+                    rangeDisplay = '50-60%';
+                }
+                
+                if (foundRange && rangeDisplay) {
+                    details.range = rangeDisplay;
+                    
+                    if (foundRange.rate > -1) {
+                        details.rangeAccuracy = parseFloat(foundRange.rate.toFixed(1));
+                    } else {
+                        details.rangeAccuracy = 0;
+                    }
+                    
+                    const allPredictions = session.predictions || [];
+                    const predictionsInRange = allPredictions.filter(p => {
+                        const conf = p.confidence || 0;
+                        if (rangeDisplay === '90-100%') return conf >= 90 && conf <= 100;
+                        if (rangeDisplay === '80-90%') return conf >= 80 && conf < 90;
+                        if (rangeDisplay === '70-80%') return conf >= 70 && conf < 80;
+                        if (rangeDisplay === '60-70%') return conf >= 60 && conf < 70;
+                        if (rangeDisplay === '50-60%') return conf >= 50 && conf < 60;
+                        return false;
+                    });
+                    
+                    details.intervalHistory = predictionsInRange.map((pred, index) => ({
+                        game: index + 1,
+                        predicted: pred.predicted,
+                        actual: pred.actual,
+                        confidence: pred.confidence,
+                        isCorrect: pred.predicted === pred.actual
+                    }));
+                    
+                } else {
+                    if (state.goldenRange) {
+                        const maxDisplay = state.goldenRange.max === 100.1 ? 100 : state.goldenRange.max;
+                        details.range = `${state.goldenRange.min}-${maxDisplay}%`;
+                        details.rangeAccuracy = state.goldenRange.rate > -1 ? 
+                            parseFloat(state.goldenRange.rate.toFixed(1)) : 0;
+                    } else if (state.deathRange) {
+                        const maxDisplay = state.deathRange.max === 100.1 ? 100 : state.deathRange.max;
+                        details.range = `${state.deathRange.min}-${maxDisplay}%`;
+                        details.rangeAccuracy = state.deathRange.rate > -1 ? 
+                            parseFloat(state.deathRange.rate.toFixed(1)) : 0;
+                    } else {
+                        details.range = "Chưa xác định";
+                        details.rangeAccuracy = 0;
+                    }
+                }
+            } else {
+                details.range = "Chưa có dự đoán";
+                details.rangeAccuracy = 0;
+            }
+            
+            window.parent.postMessage({
+                source: 'ht3',
+                type: 'system_details_update',
+                details: details
+            }, '*');
+            
+        } catch (error) {
+            console.error('[HT3] Error sending system details:', error);
+            window.parent.postMessage({
+                source: 'ht3',
+                type: 'system_details_update',
+                details: {
+                    verdict: state.currentFinalPrediction?.prediction || 
+                            state.currentPrediction?.prediction || 
+                            state.originalSystemPrediction,
+                    chot: state.currentChotPredictionForLog?.prediction || state.currentChotPredictionForLog,
+                    range: "Lỗi tính toán",
+                    rangeAccuracy: 0,
+                    intervalHistory: []
+                }
+            }, '*');
+        }
     }
 
     function createSession(sessionData) {
@@ -1894,6 +2007,7 @@ document.addEventListener('DOMContentLoaded', initializeApp)
         updateAllUI();
         
         sendSessionInfo();
+        sendSystemDetails();
     }
 
     function renameSession(sessionData) {
@@ -1905,6 +2019,7 @@ document.addEventListener('DOMContentLoaded', initializeApp)
                 saveSessions();
                 updateSessionSelector();
                 updateAllUI();
+                sendSessionInfo();
             }
         }
     }
@@ -1912,7 +2027,6 @@ document.addEventListener('DOMContentLoaded', initializeApp)
     function loadSession(sessionData) {
         if (!sessionData || !sessionData.id) return;
         
-        // Create session if doesn't exist
         if (!state.sessions[sessionData.id]) {
             state.sessions[sessionData.id] = {
                 name: sessionData.name || `Phiên ${sessionData.id}`,
@@ -1925,29 +2039,23 @@ document.addEventListener('DOMContentLoaded', initializeApp)
             };
         }
         
-        // Load the session
         state.currentSessionId = sessionData.id;
         
-        // If there's history, simulate it
         if (sessionData.history && sessionData.history.length > 0) {
-            // Clear existing data
             state.sessions[sessionData.id].history = [];
             state.sessions[sessionData.id].predictions = [];
             state.sessions[sessionData.id].verdictPredictions = [];
             state.sessions[sessionData.id].chotPredictions = [];
             
-            // Simulate each result
             sessionData.history.forEach((result, index) => {
                 state.sessions[sessionData.id].history.push(result);
                 
-                // Update analysis after each result
                 if (index >= 9) {
                     if (typeof updateAnalysisUI === 'function') updateAnalysisUI();
                     if (typeof updateChotAnalysisUI === 'function') updateChotAnalysisUI();
                 }
             });
             
-            // Recalculate everything
             updateAllUI();
         }
         
@@ -1955,6 +2063,7 @@ document.addEventListener('DOMContentLoaded', initializeApp)
         updateSessionSelector();
         updateAllUI();
         sendSessionInfo();
+        sendSystemDetails();
     }
 
     function addResult(result) {
@@ -2002,12 +2111,61 @@ document.addEventListener('DOMContentLoaded', initializeApp)
         sendAccuracyUpdate();
         sendChotHistory();
         sendPrediction();
+        sendSystemDetails();
+    }
+
+    function undoLast() {
+        if (!state.currentSessionId) return;
+        
+        const session = state.sessions[state.currentSessionId];
+        if (!session || session.history.length === 0) return;
+        
+        const lastResult = session.history[session.history.length - 1];
+        
+        session.history.pop();
+        
+        if (session.predictions.length > 0) {
+            session.predictions.pop();
+        }
+        
+        if (session.verdictPredictions && session.verdictPredictions.length > 0) {
+            session.verdictPredictions.pop();
+        }
+        
+        if (session.chotPredictions && session.chotPredictions.length > 0) {
+            session.chotPredictions.pop();
+        }
+        
+        saveSessions();
+        updateAllUI();
+        
+        sendAccuracyUpdate();
+        sendChotHistory();
+        sendPrediction();
+        sendSystemDetails();
+    }
+
+    function clearCurrentSessionHistory() {
+        if (!state.currentSessionId) return;
+        const session = state.sessions[state.currentSessionId];
+        session.history = [];
+        session.predictions = [];
+        session.verdictPredictions = [];
+        session.chotPredictions = [];
+        session.lengthPerformance = {};
+        session.optimalLength = null;
+        
+        saveSessions();
+        updateAllUI();
+        
+        sendAccuracyUpdate();
+        sendChotHistory();
+        sendSystemDetails();
     }
 
     function importSimulatedData(data) {
         if (!data || !data.sessions) return;
         
-        // Clear existing data
         state.sessions = {};
         state.currentSessionId = null;
         
@@ -2015,11 +2173,8 @@ document.addEventListener('DOMContentLoaded', initializeApp)
         
         setTimeout(() => {
             try {
-                // If it's master data, we need to process it differently
                 if (data.isMasterData) {
                     console.log('[HT3] Importing MASTER data');
-                    // Master data may not have HT3-specific structures
-                    // We need to convert it to HT3 format
                     const convertedSessions = {};
                     
                     Object.keys(data.sessions).forEach(sessionId => {
@@ -2038,7 +2193,6 @@ document.addEventListener('DOMContentLoaded', initializeApp)
                     if (typeof runSimulation === 'function') {
                         runSimulation(convertedSessions);
                     } else {
-                        // If runSimulation doesn't exist, load sessions directly
                         state.sessions = convertedSessions;
                         if (Object.keys(convertedSessions).length > 0) {
                             state.currentSessionId = Object.keys(convertedSessions)[0];
@@ -2046,7 +2200,6 @@ document.addEventListener('DOMContentLoaded', initializeApp)
                         updateAllUI();
                     }
                 } else {
-                    // Regular HT3 data
                     if (typeof runSimulation === 'function') {
                         runSimulation(data.sessions);
                     } else {
@@ -2063,6 +2216,7 @@ document.addEventListener('DOMContentLoaded', initializeApp)
                 sendAccuracyUpdate();
                 sendChotHistory();
                 sendSessionInfo();
+                sendSystemDetails();
                 
                 window.parent.postMessage({
                     source: 'ht3',
@@ -2103,16 +2257,46 @@ document.addEventListener('DOMContentLoaded', initializeApp)
         state.currentFinalPrediction = null;
         state.currentChotPredictionForLog = null;
         
-        localStorage.removeItem('baccaratPatternSessions_v11_sim');
-        localStorage.removeItem('lastActiveSession_v11_sim');
+        // SỬ DỤNG KEY RIÊNG CHO HT3
+        localStorage.removeItem('baccaratPatternSessions_v11_sim_ht3');
+        localStorage.removeItem('lastActiveSession_v11_sim_ht3');
         
         createNewSession();
         updateAllUI();
         
         sendSessionInfo();
+        sendSystemDetails();
+    }
+
+    // =================== HÀM LƯU VÀ ĐỌC SESSIONS RIÊNG CHO HT3 ===================
+    function saveSessions() {
+        localStorage.setItem('baccaratPatternSessions_v11_sim_ht3', JSON.stringify(state.sessions));
+        if (state.currentSessionId) {
+            localStorage.setItem('lastActiveSession_v11_sim_ht3', state.currentSessionId);
+        }
+    }
+
+    function loadSessions() {
+        try {
+            const savedSessions = localStorage.getItem('baccaratPatternSessions_v11_sim_ht3');
+            const lastSession = localStorage.getItem('lastActiveSession_v11_sim_ht3');
+            
+            if (savedSessions) {
+                state.sessions = JSON.parse(savedSessions);
+                if (lastSession && state.sessions[lastSession]) {
+                    state.currentSessionId = lastSession;
+                }
+            }
+        } catch (e) {
+            console.error('[HT3] Error loading sessions:', e);
+        }
     }
 })();
-</script>
+
+// Gọi hàm loadSessions khi khởi động
+if (typeof loadSessions === 'function') {
+    loadSessions();
+}
 </body>
 </html>
 
