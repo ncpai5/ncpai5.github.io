@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>VẠN SỰ NHƯ Ý - Hệ Thống Tổng Hợp 4 Hệ Thống</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         body {
@@ -112,6 +113,25 @@
                 grid-template-columns: repeat(2, 1fr);
             }
         }
+        .game-bar-chart {
+            height: 300px;
+            margin-top: 1rem;
+        }
+        .confidence-interval-chart {
+            height: 200px;
+            margin-top: 1rem;
+        }
+        .game-result-chip {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: bold;
+            margin: 1px;
+        }
+        .game-correct { background-color: #10b981; color: white; }
+        .game-incorrect { background-color: #ef4444; color: white; }
+        .game-neutral { background-color: #6b7280; color: white; }
     </style>
 </head>
 <body class="p-4 md:p-8">
@@ -287,6 +307,125 @@
             </div>
         </div>
 
+        <!-- Độ Chính Xác Hệ Thống Đề Xuất Hiện Tại -->
+        <div class="mt-8 bg-gradient-to-r from-purple-900 to-blue-900 p-6 rounded-2xl shadow-lg">
+            <h2 class="text-2xl font-semibold mb-6 text-center text-yellow-300">📊 ĐỘ CHÍNH XÁC HỆ THỐNG ĐỀ XUẤT HIỆN TẠI (4 HỆ THỐNG)</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <!-- HT1 System Details -->
+                <div class="bg-gray-800 bg-opacity-70 p-4 rounded-xl">
+                    <h3 class="text-lg font-semibold mb-3 text-center text-blue-300">🔷 HT1 - Pattern Matching</h3>
+                    <div class="space-y-3">
+                        <div class="flex justify-between items-center bg-gray-700 p-3 rounded-lg">
+                            <span class="text-gray-300">🧠 Phán Quyết:</span>
+                            <span id="ht1-verdict-prediction" class="font-bold text-xl text-blue-400">-</span>
+                        </div>
+                        <div class="flex justify-between items-center bg-gray-700 p-3 rounded-lg">
+                            <span class="text-gray-300">🔐 Chốt Phán Quyết:</span>
+                            <span id="ht1-chot-prediction" class="font-bold text-xl text-purple-400">-</span>
+                        </div>
+                        <div class="flex justify-between items-center bg-gray-700 p-3 rounded-lg">
+                            <span class="text-gray-300">Khoảng tỷ lệ:</span>
+                            <span id="ht1-confidence-range" class="font-bold text-cyan-400">-</span>
+                        </div>
+                        <div class="flex justify-between items-center bg-gray-700 p-3 rounded-lg">
+                            <span class="text-gray-300">Tỉ lệ khoảng:</span>
+                            <span id="ht1-range-accuracy" class="font-bold text-green-400">-</span>
+                        </div>
+                        <div class="bg-gray-900 p-3 rounded-lg mt-4">
+                            <h4 class="text-center text-sm text-gray-400 mb-2">Biểu đồ khoảng tỷ lệ</h4>
+                            <div id="ht1-interval-chart" class="history-chart" style="height: 60px;"></div>
+                            <div id="ht1-range-games" class="mt-2 text-xs text-gray-400 text-center"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- HT2 System Details -->
+                <div class="bg-gray-800 bg-opacity-70 p-4 rounded-xl">
+                    <h3 class="text-lg font-semibold mb-3 text-center text-green-300">🔶 HT2 - Fixed & Optimized</h3>
+                    <div class="space-y-3">
+                        <div class="flex justify-between items-center bg-gray-700 p-3 rounded-lg">
+                            <span class="text-gray-300">🧠 Phán Quyết:</span>
+                            <span id="ht2-verdict-prediction" class="font-bold text-xl text-blue-400">-</span>
+                        </div>
+                        <div class="flex justify-between items-center bg-gray-700 p-3 rounded-lg">
+                            <span class="text-gray-300">🔐 Chốt Phán Quyết:</span>
+                            <span id="ht2-chot-prediction" class="font-bold text-xl text-purple-400">-</span>
+                        </div>
+                        <div class="flex justify-between items-center bg-gray-700 p-3 rounded-lg">
+                            <span class="text-gray-300">Khoảng tỷ lệ:</span>
+                            <span id="ht2-confidence-range" class="font-bold text-cyan-400">-</span>
+                        </div>
+                        <div class="flex justify-between items-center bg-gray-700 p-3 rounded-lg">
+                            <span class="text-gray-300">Tỉ lệ khoảng:</span>
+                            <span id="ht2-range-accuracy" class="font-bold text-green-400">-</span>
+                        </div>
+                        <div class="bg-gray-900 p-3 rounded-lg mt-4">
+                            <h4 class="text-center text-sm text-gray-400 mb-2">Biểu đồ khoảng tỷ lệ</h4>
+                            <div id="ht2-interval-chart" class="history-chart" style="height: 60px;"></div>
+                            <div id="ht2-range-games" class="mt-2 text-xs text-gray-400 text-center"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- HT3 System Details -->
+                <div class="bg-gray-800 bg-opacity-70 p-4 rounded-xl">
+                    <h3 class="text-lg font-semibold mb-3 text-center text-orange-300">🔸 HT3 - Standard System</h3>
+                    <div class="space-y-3">
+                        <div class="flex justify-between items-center bg-gray-700 p-3 rounded-lg">
+                            <span class="text-gray-300">🧠 Phán Quyết:</span>
+                            <span id="ht3-verdict-prediction" class="font-bold text-xl text-blue-400">-</span>
+                        </div>
+                        <div class="flex justify-between items-center bg-gray-700 p-3 rounded-lg">
+                            <span class="text-gray-300">🔐 Chốt Phán Quyết:</span>
+                            <span id="ht3-chot-prediction" class="font-bold text-xl text-purple-400">-</span>
+                        </div>
+                        <div class="flex justify-between items-center bg-gray-700 p-3 rounded-lg">
+                            <span class="text-gray-300">Khoảng tỷ lệ:</span>
+                            <span id="ht3-confidence-range" class="font-bold text-cyan-400">-</span>
+                        </div>
+                        <div class="flex justify-between items-center bg-gray-700 p-3 rounded-lg">
+                            <span class="text-gray-300">Tỉ lệ khoảng:</span>
+                            <span id="ht3-range-accuracy" class="font-bold text-green-400">-</span>
+                        </div>
+                        <div class="bg-gray-900 p-3 rounded-lg mt-4">
+                            <h4 class="text-center text-sm text-gray-400 mb-2">Biểu đồ khoảng tỷ lệ</h4>
+                            <div id="ht3-interval-chart" class="history-chart" style="height: 60px;"></div>
+                            <div id="ht3-range-games" class="mt-2 text-xs text-gray-400 text-center"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- HT4 System Details -->
+                <div class="bg-gray-800 bg-opacity-70 p-4 rounded-xl">
+                    <h3 class="text-lg font-semibold mb-3 text-center text-pink-300">🔹 HT4 - Advanced System</h3>
+                    <div class="space-y-3">
+                        <div class="flex justify-between items-center bg-gray-700 p-3 rounded-lg">
+                            <span class="text-gray-300">🧠 Phán Quyết:</span>
+                            <span id="ht4-verdict-prediction" class="font-bold text-xl text-blue-400">-</span>
+                        </div>
+                        <div class="flex justify-between items-center bg-gray-700 p-3 rounded-lg">
+                            <span class="text-gray-300">🔐 Chốt Phán Quyết:</span>
+                            <span id="ht4-chot-prediction" class="font-bold text-xl text-purple-400">-</span>
+                        </div>
+                        <div class="flex justify-between items-center bg-gray-700 p-3 rounded-lg">
+                            <span class="text-gray-300">Khoảng tỷ lệ:</span>
+                            <span id="ht4-confidence-range" class="font-bold text-cyan-400">-</span>
+                        </div>
+                        <div class="flex justify-between items-center bg-gray-700 p-3 rounded-lg">
+                            <span class="text-gray-300">Tỉ lệ khoảng:</span>
+                            <span id="ht4-range-accuracy" class="font-bold text-green-400">-</span>
+                        </div>
+                        <div class="bg-gray-900 p-3 rounded-lg mt-4">
+                            <h4 class="text-center text-sm text-gray-400 mb-2">Biểu đồ khoảng tỷ lệ</h4>
+                            <div id="ht4-interval-chart" class="history-chart" style="height: 60px;"></div>
+                            <div id="ht4-range-games" class="mt-2 text-xs text-gray-400 text-center"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Final Decision Panel -->
         <div class="mt-8">
             <div class="bg-gradient-to-r from-purple-900 to-pink-900 p-6 rounded-2xl shadow-lg card-glow-total">
@@ -343,8 +482,39 @@
                     </div>
                 </div>
 
+                <!-- Biểu đồ cột thống kê đúng sai từng ván -->
+                <div class="mt-6 bg-gray-900 bg-opacity-50 p-4 rounded-xl">
+                    <h3 class="text-lg font-semibold mb-4 text-center text-cyan-300">📈 BIỂU ĐỒ CỘT THỐNG KÊ ĐÚNG SAI TỪNG VÁN</h3>
+                    
+                    <!-- Tabs for each system -->
+                    <div class="flex flex-wrap gap-2 mb-4">
+                        <button onclick="showGameChart('ht1')" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded-lg text-white font-medium system-chart-btn active" data-system="ht1">HT1</button>
+                        <button onclick="showGameChart('ht2')" class="px-4 py-2 bg-green-600 hover:bg-green-500 rounded-lg text-white font-medium system-chart-btn" data-system="ht2">HT2</button>
+                        <button onclick="showGameChart('ht3')" class="px-4 py-2 bg-orange-600 hover:bg-orange-500 rounded-lg text-white font-medium system-chart-btn" data-system="ht3">HT3</button>
+                        <button onclick="showGameChart('ht4')" class="px-4 py-2 bg-pink-600 hover:bg-pink-500 rounded-lg text-white font-medium system-chart-btn" data-system="ht4">HT4</button>
+                        <button onclick="showAllGameCharts()" class="px-4 py-2 bg-purple-600 hover:bg-purple-500 rounded-lg text-white font-medium">Tất Cả</button>
+                    </div>
+                    
+                    <!-- Chart Container -->
+                    <div class="game-bar-chart">
+                        <canvas id="gameAccuracyChart"></canvas>
+                    </div>
+                    
+                    <!-- Game Results Table -->
+                    <div class="mt-4 bg-gray-800 p-4 rounded-lg">
+                        <h4 class="text-lg font-semibold mb-3 text-center text-gray-300">KẾT QUẢ CHI TIẾT TỪNG VÁN - <span id="current-system-label">HT1</span></h4>
+                        <div id="game-results-container" class="max-h-48 overflow-y-auto p-2 bg-gray-900 rounded">
+                            <p class="text-gray-500 text-center">Chưa có dữ liệu ván chơi...</p>
+                        </div>
+                        <div class="mt-3 flex justify-between items-center text-sm text-gray-400">
+                            <div id="game-stats-summary">Tổng: 0 ván | Đúng: 0 | Sai: 0</div>
+                            <div id="game-accuracy-summary">Tỷ lệ đúng: 0%</div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Combined Charts -->
-                <div class="bg-gray-900 bg-opacity-50 p-4 rounded-xl">
+                <div class="mt-6 bg-gray-900 bg-opacity-50 p-4 rounded-xl">
                     <h3 class="text-lg font-semibold mb-3 text-center text-cyan-300">BIỂU ĐỒ KẾT HỢP</h3>
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                         <div>
@@ -433,8 +603,18 @@
                 ht2: null,
                 ht3: null,
                 ht4: null
+            },
+            systemDetails: {
+                ht1: { verdict: null, chot: null, range: null, rangeAccuracy: null, intervalHistory: [] },
+                ht2: { verdict: null, chot: null, range: null, rangeAccuracy: null, intervalHistory: [] },
+                ht3: { verdict: null, chot: null, range: null, rangeAccuracy: null, intervalHistory: [] },
+                ht4: { verdict: null, chot: null, range: null, rangeAccuracy: null, intervalHistory: [] }
             }
         };
+
+        // Chart instances
+        let gameAccuracyChart = null;
+        let currentChartSystem = 'ht1';
 
         // =================== IFRAME COMMUNICATION ===================
         function sendToIframe(iframeId, command, data = null) {
@@ -496,6 +676,11 @@
                         masterState.predictions[system] = data.prediction;
                         calculateFinalDecision();
                     }
+                    break;
+
+                case 'system_details_update':
+                    // Update system details for display
+                    updateSystemDetails(system, data.details);
                     break;
 
                 case 'import_complete':
@@ -584,12 +769,13 @@
                 broadcastToAll('get_session_info');
                 broadcastToAll('get_chot_history');
                 broadcastToAll('get_prediction');
+                broadcastToAll('get_system_details');
             }, 1500);
         }
 
         function loadMasterSessions() {
             try {
-                const saved = localStorage.getItem('vanSuNhuY_sessions_v2');
+                const saved = localStorage.getItem('vanSuNhuY_sessions_v2_MASTER');
                 if (saved) {
                     masterState.sessions = JSON.parse(saved);
                     updateMasterSessionSelector();
@@ -600,7 +786,7 @@
         }
 
         function saveMasterSessions() {
-            localStorage.setItem('vanSuNhuY_sessions_v2', JSON.stringify(masterState.sessions));
+            localStorage.setItem('vanSuNhuY_sessions_v2_MASTER', JSON.stringify(masterState.sessions));
         }
 
         function updateMasterSessionSelector() {
@@ -802,6 +988,7 @@
                                     broadcastToAll('get_accuracy');
                                     broadcastToAll('get_session_info');
                                     broadcastToAll('get_chot_history');
+                                    broadcastToAll('get_system_details');
                                 }, 1000);
                             }, 2000);
                             
@@ -849,6 +1036,7 @@
                 broadcastToAll('get_accuracy');
                 broadcastToAll('get_chot_history');
                 broadcastToAll('get_prediction');
+                broadcastToAll('get_system_details');
             }, 800);
             
             showToast(`Đã thêm kết quả: ${result === 'P' ? 'PLAYER' : 'BANKER'} đến 4 hệ thống`, 'success');
@@ -877,6 +1065,7 @@
             setTimeout(() => {
                 broadcastToAll('get_accuracy');
                 broadcastToAll('get_chot_history');
+                broadcastToAll('get_system_details');
             }, 800);
             
             showToast('Đã hoàn tác kết quả cuối cùng từ 4 hệ thống', 'info');
@@ -928,6 +1117,7 @@
                     broadcastToAll('get_accuracy');
                     broadcastToAll('get_chot_history');
                     broadcastToAll('get_prediction');
+                    broadcastToAll('get_system_details');
                 }, 1000);
             }, 1500);
         }
@@ -942,13 +1132,22 @@
                 masterState.ht2Accuracy = 0;
                 masterState.ht3Accuracy = 0;
                 masterState.ht4Accuracy = 0;
+                masterState.systemDetails = {
+                    ht1: { verdict: null, chot: null, range: null, rangeAccuracy: null, intervalHistory: [] },
+                    ht2: { verdict: null, chot: null, range: null, rangeAccuracy: null, intervalHistory: [] },
+                    ht3: { verdict: null, chot: null, range: null, rangeAccuracy: null, intervalHistory: [] },
+                    ht4: { verdict: null, chot: null, range: null, rangeAccuracy: null, intervalHistory: [] }
+                };
                 
-                localStorage.removeItem('vanSuNhuY_sessions_v2');
+                localStorage.removeItem('vanSuNhuY_sessions_v2_MASTER');
                 updateMasterSessionSelector();
                 updateCurrentSessionInfo();
                 
                 // Send reset command to all systems
                 broadcastToAll('reset_system');
+                
+                // Reset charts
+                resetCharts();
                 
                 showToast('Đã reset tất cả 4 hệ thống', 'info');
             }
@@ -983,6 +1182,12 @@
         function updateChotHistory(system, history) {
             masterState[`${system}ChotHistory`] = history;
             renderCombinedChart(system);
+            
+            // Update game chart if it's the current system
+            if (system === currentChartSystem) {
+                updateGameChart(system);
+                updateGameResultsTable(system);
+            }
         }
 
         function updateSessionInfo(system, sessionInfo) {
@@ -1008,6 +1213,86 @@
                 }
                 
                 saveMasterSessions();
+            }
+        }
+
+        function updateSystemDetails(system, details) {
+            if (!details) return;
+            
+            // Update master state
+            masterState.systemDetails[system] = {
+                verdict: details.verdict || null,
+                chot: details.chot || null,
+                range: details.range || null,
+                rangeAccuracy: details.rangeAccuracy || null,
+                intervalHistory: details.intervalHistory || []
+            };
+            
+            // Update UI
+            updateSystemDetailsUI(system);
+        }
+
+        function updateSystemDetailsUI(system) {
+            const details = masterState.systemDetails[system];
+            if (!details) return;
+            
+            // Update prediction displays
+            const verdictElement = document.getElementById(`${system}-verdict-prediction`);
+            const chotElement = document.getElementById(`${system}-chot-prediction`);
+            const rangeElement = document.getElementById(`${system}-confidence-range`);
+            const rangeAccuracyElement = document.getElementById(`${system}-range-accuracy`);
+            
+            if (verdictElement) {
+                verdictElement.textContent = details.verdict || '-';
+                verdictElement.className = `font-bold text-xl ${details.verdict === 'P' ? 'text-blue-400' : details.verdict === 'B' ? 'text-red-400' : 'text-gray-400'}`;
+            }
+            
+            if (chotElement) {
+                chotElement.textContent = details.chot || '-';
+                chotElement.className = `font-bold text-xl ${details.chot === 'P' ? 'text-blue-400' : details.chot === 'B' ? 'text-red-400' : 'text-gray-400'}`;
+            }
+            
+            if (rangeElement) {
+                rangeElement.textContent = details.range || '-';
+            }
+            
+            if (rangeAccuracyElement) {
+                rangeAccuracyElement.textContent = details.rangeAccuracy ? `${details.rangeAccuracy}%` : '-';
+            }
+            
+            // Update interval chart
+            updateIntervalChart(system, details.intervalHistory);
+        }
+
+        function updateIntervalChart(system, history) {
+            const chartEl = document.getElementById(`${system}-interval-chart`);
+            const rangeGamesEl = document.getElementById(`${system}-range-games`);
+            
+            if (!chartEl) return;
+            
+            if (!history || history.length === 0) {
+                chartEl.innerHTML = '<p class="text-gray-600 text-xs text-center w-full">Chưa có dữ liệu...</p>';
+                if (rangeGamesEl) rangeGamesEl.textContent = '0 ván';
+                return;
+            }
+            
+            let chartHTML = '';
+            let correctCount = 0;
+            let totalCount = history.length;
+            
+            history.forEach(prediction => {
+                const isCorrect = prediction.predicted === prediction.actual;
+                if (isCorrect) correctCount++;
+                const barClass = isCorrect ? 'history-bar-correct' : 'history-bar-incorrect';
+                const title = `Ván: ${prediction.game || 'N/A'} | Đề xuất: ${prediction.predicted} | Thực tế: ${prediction.actual}`;
+                chartHTML += `<div class="history-bar ${barClass}" title="${title}"></div>`;
+            });
+            
+            chartEl.innerHTML = chartHTML;
+            
+            if (rangeGamesEl) {
+                const accuracy = totalCount > 0 ? ((correctCount / totalCount) * 100).toFixed(1) : 0;
+                rangeGamesEl.textContent = `${totalCount} ván (${correctCount} đúng - ${accuracy}%)`;
             }
         }
 
@@ -1147,6 +1432,488 @@
             chartEl.innerHTML = chartHTML;
         }
 
+        // =================== GAME ACCURACY CHART ===================
+        function showGameChart(system) {
+            currentChartSystem = system;
+            
+            // Update active button
+            document.querySelectorAll('.system-chart-btn').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.getAttribute('data-system') === system) {
+                    btn.classList.add('active');
+                }
+            });
+            
+            // Update system label
+            document.getElementById('current-system-label').textContent = system.toUpperCase();
+            
+            // Update chart
+            updateGameChart(system);
+            updateGameResultsTable(system);
+        }
+
+        function showAllGameCharts() {
+            // Create combined chart for all systems
+            updateCombinedGameChart();
+            updateCombinedGameResultsTable();
+            document.getElementById('current-system-label').textContent = 'TẤT CẢ HỆ THỐNG';
+            
+            // Update active buttons
+            document.querySelectorAll('.system-chart-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+        }
+
+        function updateGameChart(system) {
+            const history = masterState[`${system}ChotHistory`];
+            if (!history || history.length === 0) {
+                renderEmptyChart();
+                return;
+            }
+            
+            const ctx = document.getElementById('gameAccuracyChart').getContext('2d');
+            
+            // Prepare data
+            const labels = [];
+            const correctData = [];
+            const incorrectData = [];
+            const gameNumbers = [];
+            
+            history.forEach((prediction, index) => {
+                const gameNumber = index + 1;
+                gameNumbers.push(gameNumber);
+                labels.push(`Ván ${gameNumber}`);
+                
+                if (prediction && prediction.predicted !== undefined && prediction.actual !== undefined) {
+                    const isCorrect = prediction.predicted === prediction.actual;
+                    correctData.push(isCorrect ? 1 : 0);
+                    incorrectData.push(isCorrect ? 0 : 1);
+                } else {
+                    correctData.push(0);
+                    incorrectData.push(0);
+                }
+            });
+            
+            // Destroy previous chart if exists
+            if (gameAccuracyChart) {
+                gameAccuracyChart.destroy();
+            }
+            
+            // Create new chart
+            gameAccuracyChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Đúng',
+                            data: correctData,
+                            backgroundColor: 'rgba(34, 197, 94, 0.7)',
+                            borderColor: 'rgba(34, 197, 94, 1)',
+                            borderWidth: 1
+                        },
+                        {
+                            label: 'Sai',
+                            data: incorrectData,
+                            backgroundColor: 'rgba(239, 68, 68, 0.7)',
+                            borderColor: 'rgba(239, 68, 68, 1)',
+                            borderWidth: 1
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            stacked: true,
+                            ticks: {
+                                maxTicksLimit: 15,
+                                color: '#9ca3af'
+                            },
+                            grid: {
+                                color: 'rgba(75, 85, 99, 0.3)'
+                            }
+                        },
+                        y: {
+                            stacked: true,
+                            ticks: {
+                                color: '#9ca3af'
+                            },
+                            grid: {
+                                color: 'rgba(75, 85, 99, 0.3)'
+                            },
+                            max: 1
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: '#d1d5db'
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const datasetLabel = context.dataset.label || '';
+                                    const value = context.raw;
+                                    const gameIndex = context.dataIndex;
+                                    const prediction = history[gameIndex];
+                                    
+                                    if (prediction) {
+                                        return `${datasetLabel}: Đề xuất ${prediction.predicted}, Thực tế ${prediction.actual}`;
+                                    }
+                                    return `${datasetLabel}: ${value}`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateCombinedGameChart() {
+            const systems = ['ht1', 'ht2', 'ht3', 'ht4'];
+            const allHistories = [];
+            
+            systems.forEach(system => {
+                const history = masterState[`${system}ChotHistory`];
+                if (history && history.length > 0) {
+                    allHistories.push(...history.map(pred => ({...pred, system})));
+                }
+            });
+            
+            if (allHistories.length === 0) {
+                renderEmptyChart();
+                return;
+            }
+            
+            // Sort by game number if available, otherwise by index
+            allHistories.sort((a, b) => {
+                if (a.gameNumber && b.gameNumber) {
+                    return a.gameNumber - b.gameNumber;
+                }
+                return 0;
+            });
+            
+            const ctx = document.getElementById('gameAccuracyChart').getContext('2d');
+            const labels = [];
+            const ht1Data = { correct: [], incorrect: [] };
+            const ht2Data = { correct: [], incorrect: [] };
+            const ht3Data = { correct: [], incorrect: [] };
+            const ht4Data = { correct: [], incorrect: [] };
+            
+            // Group by system and calculate
+            allHistories.forEach((prediction, index) => {
+                labels.push(`Ván ${index + 1}`);
+                const isCorrect = prediction.predicted === prediction.actual;
+                
+                // Initialize all systems with 0
+                ht1Data.correct.push(0);
+                ht1Data.incorrect.push(0);
+                ht2Data.correct.push(0);
+                ht2Data.incorrect.push(0);
+                ht3Data.correct.push(0);
+                ht3Data.incorrect.push(0);
+                ht4Data.correct.push(0);
+                ht4Data.incorrect.push(0);
+                
+                // Set value for the specific system
+                switch(prediction.system) {
+                    case 'ht1':
+                        ht1Data.correct[index] = isCorrect ? 1 : 0;
+                        ht1Data.incorrect[index] = isCorrect ? 0 : 1;
+                        break;
+                    case 'ht2':
+                        ht2Data.correct[index] = isCorrect ? 1 : 0;
+                        ht2Data.incorrect[index] = isCorrect ? 0 : 1;
+                        break;
+                    case 'ht3':
+                        ht3Data.correct[index] = isCorrect ? 1 : 0;
+                        ht3Data.incorrect[index] = isCorrect ? 0 : 1;
+                        break;
+                    case 'ht4':
+                        ht4Data.correct[index] = isCorrect ? 1 : 0;
+                        ht4Data.incorrect[index] = isCorrect ? 0 : 1;
+                        break;
+                }
+            });
+            
+            // Destroy previous chart if exists
+            if (gameAccuracyChart) {
+                gameAccuracyChart.destroy();
+            }
+            
+            // Create new chart
+            gameAccuracyChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'HT1 Đúng',
+                            data: ht1Data.correct,
+                            backgroundColor: 'rgba(59, 130, 246, 0.7)',
+                            stack: 'ht1'
+                        },
+                        {
+                            label: 'HT1 Sai',
+                            data: ht1Data.incorrect,
+                            backgroundColor: 'rgba(239, 68, 68, 0.7)',
+                            stack: 'ht1'
+                        },
+                        {
+                            label: 'HT2 Đúng',
+                            data: ht2Data.correct,
+                            backgroundColor: 'rgba(34, 197, 94, 0.7)',
+                            stack: 'ht2'
+                        },
+                        {
+                            label: 'HT2 Sai',
+                            data: ht2Data.incorrect,
+                            backgroundColor: 'rgba(239, 68, 68, 0.7)',
+                            stack: 'ht2'
+                        },
+                        {
+                            label: 'HT3 Đúng',
+                            data: ht3Data.correct,
+                            backgroundColor: 'rgba(249, 115, 22, 0.7)',
+                            stack: 'ht3'
+                        },
+                        {
+                            label: 'HT3 Sai',
+                            data: ht3Data.incorrect,
+                            backgroundColor: 'rgba(239, 68, 68, 0.7)',
+                            stack: 'ht3'
+                        },
+                        {
+                            label: 'HT4 Đúng',
+                            data: ht4Data.correct,
+                            backgroundColor: 'rgba(236, 72, 153, 0.7)',
+                            stack: 'ht4'
+                        },
+                        {
+                            label: 'HT4 Sai',
+                            data: ht4Data.incorrect,
+                            backgroundColor: 'rgba(239, 68, 68, 0.7)',
+                            stack: 'ht4'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            stacked: true,
+                            ticks: {
+                                maxTicksLimit: 15,
+                                color: '#9ca3af'
+                            },
+                            grid: {
+                                color: 'rgba(75, 85, 99, 0.3)'
+                            }
+                        },
+                        y: {
+                            stacked: true,
+                            ticks: {
+                                color: '#9ca3af'
+                            },
+                            grid: {
+                                color: 'rgba(75, 85, 99, 0.3)'
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: '#d1d5db'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderEmptyChart() {
+            const ctx = document.getElementById('gameAccuracyChart').getContext('2d');
+            
+            if (gameAccuracyChart) {
+                gameAccuracyChart.destroy();
+            }
+            
+            gameAccuracyChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['Chưa có dữ liệu'],
+                    datasets: [{
+                        label: 'Dữ liệu',
+                        data: [0],
+                        backgroundColor: 'rgba(107, 114, 128, 0.7)'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            ticks: {
+                                color: '#9ca3af'
+                            }
+                        },
+                        y: {
+                            ticks: {
+                                color: '#9ca3af'
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateGameResultsTable(system) {
+            const history = masterState[`${system}ChotHistory`];
+            const container = document.getElementById('game-results-container');
+            const statsSummary = document.getElementById('game-stats-summary');
+            const accuracySummary = document.getElementById('game-accuracy-summary');
+            
+            if (!history || history.length === 0) {
+                container.innerHTML = '<p class="text-gray-500 text-center">Chưa có dữ liệu ván chơi...</p>';
+                statsSummary.textContent = 'Tổng: 0 ván | Đúng: 0 | Sai: 0';
+                accuracySummary.textContent = 'Tỷ lệ đúng: 0%';
+                return;
+            }
+            
+            let correctCount = 0;
+            let html = '<div class="flex flex-wrap gap-1 justify-center">';
+            
+            history.forEach((prediction, index) => {
+                const gameNumber = index + 1;
+                let chipClass = 'game-neutral';
+                let chipText = '?';
+                let title = `Ván ${gameNumber}: Không có dữ liệu`;
+                
+                if (prediction && prediction.predicted !== undefined && prediction.actual !== undefined) {
+                    const isCorrect = prediction.predicted === prediction.actual;
+                    if (isCorrect) correctCount++;
+                    
+                    chipClass = isCorrect ? 'game-correct' : 'game-incorrect';
+                    chipText = isCorrect ? '✓' : '✗';
+                    title = `Ván ${gameNumber}: Đề xuất ${prediction.predicted}, Thực tế ${prediction.actual}`;
+                }
+                
+                html += `<div class="game-result-chip ${chipClass}" title="${title}">${chipText}</div>`;
+            });
+            
+            html += '</div>';
+            container.innerHTML = html;
+            
+            const total = history.length;
+            const accuracy = total > 0 ? ((correctCount / total) * 100).toFixed(1) : 0;
+            const incorrectCount = total - correctCount;
+            
+            statsSummary.textContent = `Tổng: ${total} ván | Đúng: ${correctCount} | Sai: ${incorrectCount}`;
+            accuracySummary.textContent = `Tỷ lệ đúng: ${accuracy}%`;
+        }
+
+        function updateCombinedGameResultsTable() {
+            const systems = ['ht1', 'ht2', 'ht3', 'ht4'];
+            const container = document.getElementById('game-results-container');
+            const statsSummary = document.getElementById('game-stats-summary');
+            const accuracySummary = document.getElementById('game-accuracy-summary');
+            
+            let allPredictions = [];
+            systems.forEach(system => {
+                const history = masterState[`${system}ChotHistory`];
+                if (history && history.length > 0) {
+                    allPredictions.push(...history.map(pred => ({...pred, system})));
+                }
+            });
+            
+            if (allPredictions.length === 0) {
+                container.innerHTML = '<p class="text-gray-500 text-center">Chưa có dữ liệu ván chơi...</p>';
+                statsSummary.textContent = 'Tổng: 0 ván | Đúng: 0 | Sai: 0';
+                accuracySummary.textContent = 'Tỷ lệ đúng: 0%';
+                return;
+            }
+            
+            // Group by system
+            const systemStats = {
+                ht1: { correct: 0, total: 0 },
+                ht2: { correct: 0, total: 0 },
+                ht3: { correct: 0, total: 0 },
+                ht4: { correct: 0, total: 0 }
+            };
+            
+            allPredictions.forEach(prediction => {
+                if (prediction.predicted !== undefined && prediction.actual !== undefined) {
+                    const isCorrect = prediction.predicted === prediction.actual;
+                    if (systemStats[prediction.system]) {
+                        systemStats[prediction.system].total++;
+                        if (isCorrect) systemStats[prediction.system].correct++;
+                    }
+                }
+            });
+            
+            let html = '<div class="space-y-3">';
+            
+            Object.entries(systemStats).forEach(([system, stats]) => {
+                if (stats.total > 0) {
+                    const accuracy = ((stats.correct / stats.total) * 100).toFixed(1);
+                    const systemName = system.toUpperCase();
+                    const colorClass = system === 'ht1' ? 'text-blue-400' : 
+                                      system === 'ht2' ? 'text-green-400' : 
+                                      system === 'ht3' ? 'text-orange-400' : 'text-pink-400';
+                    
+                    html += `
+                        <div class="mb-2">
+                            <div class="flex justify-between text-sm mb-1">
+                                <span class="${colorClass} font-medium">${systemName}</span>
+                                <span class="text-gray-300">${stats.correct}/${stats.total} (${accuracy}%)</span>
+                            </div>
+                            <div class="w-full bg-gray-700 rounded-full h-2">
+                                <div class="bg-green-500 h-2 rounded-full" style="width: ${accuracy}%"></div>
+                            </div>
+                        </div>
+                    `;
+                }
+            });
+            
+            html += '</div>';
+            container.innerHTML = html;
+            
+            // Calculate totals
+            let totalCorrect = 0;
+            let totalGames = 0;
+            
+            Object.values(systemStats).forEach(stats => {
+                totalCorrect += stats.correct;
+                totalGames += stats.total;
+            });
+            
+            const totalAccuracy = totalGames > 0 ? ((totalCorrect / totalGames) * 100).toFixed(1) : 0;
+            const totalIncorrect = totalGames - totalCorrect;
+            
+            statsSummary.textContent = `Tổng: ${totalGames} ván | Đúng: ${totalCorrect} | Sai: ${totalIncorrect}`;
+            accuracySummary.textContent = `Tỷ lệ đúng tổng: ${totalAccuracy}%`;
+        }
+
+        function resetCharts() {
+            if (gameAccuracyChart) {
+                gameAccuracyChart.destroy();
+                gameAccuracyChart = null;
+            }
+            renderEmptyChart();
+            document.getElementById('game-results-container').innerHTML = '<p class="text-gray-500 text-center">Chưa có dữ liệu ván chơi...</p>';
+            document.getElementById('game-stats-summary').textContent = 'Tổng: 0 ván | Đúng: 0 | Sai: 0';
+            document.getElementById('game-accuracy-summary').textContent = 'Tỷ lệ đúng: 0%';
+        }
+
         // =================== UI UTILITIES ===================
         function showToast(message, type = 'info') {
             const container = document.getElementById('toast-container');
@@ -1202,6 +1969,9 @@
             updateCurrentSessionInfo();
             updateSystemStatus();
             
+            // Initialize charts
+            renderEmptyChart();
+            
             // Set up session selector change handler
             document.getElementById('masterSessionSelector').addEventListener('change', function(e) {
                 if (e.target.value) {
@@ -1224,6 +1994,7 @@
                 if (allSystemsReady()) {
                     broadcastToAll('get_accuracy');
                     broadcastToAll('get_chot_history');
+                    broadcastToAll('get_system_details');
                 }
             }, 8000);
             
