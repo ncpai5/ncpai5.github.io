@@ -1607,15 +1607,20 @@ document.addEventListener('DOMContentLoaded', initializeApp);
         }, '*');
     }
 
-    // =================== SYSTEM DETAILS FUNCTION - ĐÃ SỬA VỚI PHÁN QUYẾT ĐẦY ĐỦ ===================
+    // =================== SYSTEM DETAILS FUNCTION - ĐÃ THÊM MÀU SẮC ===================
     function sendSystemDetails() {
         try {
             const details = {
-                verdict: null,      // 🧠 Phán Quyết (Phân Tích Tổng Hợp) - ĐẦY ĐỦ: "B THEO" hoặc "B NGƯỢC"
-                chot: null,         // 🔐 Chốt Phán Quyết
-                range: null,        // Khoảng tỷ lệ
-                rangeAccuracy: null, // Tỉ lệ phần trăm của khoảng
-                intervalHistory: [] // Dữ liệu biểu đồ
+                verdict: '-',           // 🧠 Phán Quyết (đầy đủ: "P THEO", "B NGƯỢC")
+                verdictSimple: '-',     // 🧠 Phán Quyết đơn giản (P/B)
+                verdictColor: 'text-gray-400', // Màu sắc cho Phán Quyết (tương tự HT1)
+                chot: '-',              // 🔐 Chốt Phán Quyết
+                chotColor: 'text-gray-400', // Màu sắc cho Chốt Phán Quyết
+                range: 'Chưa xác định', // Khoảng tỷ lệ
+                rangeAccuracy: 0,       // Tỉ lệ phần trăm của khoảng
+                rangeTotal: 0,          // Tổng số ván trong khoảng
+                rangeWins: 0,           // Số ván thắng trong khoảng
+                intervalHistory: []     // Dữ liệu biểu đồ
             };
             
             // 1. Lấy 🧠 Phán Quyết ĐẦY ĐỦ (theo định dạng mẫu)
@@ -1626,24 +1631,31 @@ document.addEventListener('DOMContentLoaded', initializeApp);
                 const finalPrediction = state.currentFinalPrediction.prediction; // P hoặc B
                 
                 // Tạo phán quyết đầy đủ theo định dạng yêu cầu
+                let fullVerdict = originalPrediction || '-';
                 if (finalVerdict === 'follow') {
                     // Nên theo hệ thống
-                    details.verdict = originalPrediction + ' THEO';
+                    fullVerdict = originalPrediction + ' THEO';
                 } else if (finalVerdict === 'against') {
                     // Nên đi ngược hệ thống
-                    details.verdict = originalPrediction + ' NGƯỢC';
-                } else {
-                    // Không có tín hiệu rõ ràng
-                    details.verdict = originalPrediction || '-';
+                    fullVerdict = originalPrediction + ' NGƯỢC';
                 }
+                
+                details.verdict = fullVerdict;
+                details.verdictSimple = originalPrediction;
+                // Thiết lập màu sắc tương tự HT1
+                details.verdictColor = originalPrediction === 'P' ? 'text-blue-400' : 'text-red-400';
             } else if (state.currentPrediction) {
                 // Chỉ có dự đoán ban đầu
                 details.verdict = state.currentPrediction.prediction || '-';
+                details.verdictSimple = state.currentPrediction.prediction || '-';
+                details.verdictColor = state.currentPrediction.prediction === 'P' ? 'text-blue-400' : 
+                                       state.currentPrediction.prediction === 'B' ? 'text-red-400' : 'text-gray-400';
             }
             
             // 2. Lấy 🔐 Chốt Phán Quyết - từ bảng "🔐 Chốt Phán Quyết"
             if (state.currentChotPredictionForLog && state.currentChotPredictionForLog.prediction) {
                 details.chot = state.currentChotPredictionForLog.prediction;
+                details.chotColor = state.currentChotPredictionForLog.prediction === 'P' ? 'text-blue-400' : 'text-red-400';
             } else {
                 // Fallback: Check from UI
                 const finalChotResultText = document.getElementById('finalChotResultText');
@@ -1651,8 +1663,10 @@ document.addEventListener('DOMContentLoaded', initializeApp);
                     const text = finalChotResultText.textContent;
                     if (text.includes('PLAYER')) {
                         details.chot = 'P';
+                        details.chotColor = 'text-blue-400';
                     } else if (text.includes('BANKER')) {
                         details.chot = 'B';
+                        details.chotColor = 'text-red-400';
                     }
                 }
             }
@@ -1696,6 +1710,8 @@ document.addEventListener('DOMContentLoaded', initializeApp);
                     } else {
                         details.rangeAccuracy = 0;
                     }
+                    details.rangeTotal = foundRange.total;
+                    details.rangeWins = foundRange.wins;
                     
                     // Get predictions in this range for chart
                     const allPredictions = session.predictions || [];
@@ -1728,6 +1744,8 @@ document.addEventListener('DOMContentLoaded', initializeApp);
                         details.range = `${bestRange.min}-${maxDisplay}%`;
                         details.rangeAccuracy = bestRange.rate > -1 ? 
                             parseFloat(bestRange.rate.toFixed(1)) : 0;
+                        details.rangeTotal = bestRange.total;
+                        details.rangeWins = bestRange.wins;
                     } else {
                         details.range = "Chưa đủ dữ liệu";
                         details.rangeAccuracy = 0;
@@ -1739,7 +1757,7 @@ document.addEventListener('DOMContentLoaded', initializeApp);
                 details.rangeAccuracy = 0;
             }
             
-            // Gửi chi tiết hệ thống
+            // Gửi chi tiết hệ thống với màu sắc
             window.parent.postMessage({
                 source: 'ht2',
                 type: 'system_details_update',
@@ -1753,8 +1771,11 @@ document.addEventListener('DOMContentLoaded', initializeApp);
                 source: 'ht2',
                 type: 'system_details_update',
                 details: {
-                    verdict: state.currentFinalPrediction?.prediction || state.currentPrediction?.prediction,
-                    chot: state.currentChotPredictionForLog?.prediction,
+                    verdict: '-',
+                    verdictSimple: '-',
+                    verdictColor: 'text-gray-400',
+                    chot: '-',
+                    chotColor: 'text-gray-400',
                     range: "Lỗi tính toán",
                     rangeAccuracy: 0,
                     intervalHistory: []
