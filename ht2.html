@@ -1475,7 +1475,6 @@ function initializeApp() {
 }
 document.addEventListener('DOMContentLoaded', initializeApp);
 </script>
-<!-- Thêm đoạn script này vào cuối file ht2.html -->
 <script>
 // =================== IFRAME COMMUNICATION FOR HT2 - COMPLETE & SYNCHRONIZED ===================
 (function() {
@@ -1608,45 +1607,38 @@ document.addEventListener('DOMContentLoaded', initializeApp);
         }, '*');
     }
 
-    // =================== SYSTEM DETAILS FUNCTION - COMPLETE & SYNCED ===================
+    // =================== SYSTEM DETAILS FUNCTION - ĐÃ SỬA VỚI PHÁN QUYẾT ĐẦY ĐỦ ===================
     function sendSystemDetails() {
         try {
-            // Lấy thông tin chi tiết từ UI hiện tại
-            const analysisResultDiv = document.getElementById('analysisResult');
-            const analysisText = analysisResultDiv ? analysisResultDiv.innerText || analysisResultDiv.textContent : '';
-            
             const details = {
-                verdict: null,      // 🧠 Phán Quyết (Phân Tích Tổng Hợp)
+                verdict: null,      // 🧠 Phán Quyết (Phân Tích Tổng Hợp) - ĐẦY ĐỦ: "B THEO" hoặc "B NGƯỢC"
                 chot: null,         // 🔐 Chốt Phán Quyết
                 range: null,        // Khoảng tỷ lệ
                 rangeAccuracy: null, // Tỉ lệ phần trăm của khoảng
                 intervalHistory: [] // Dữ liệu biểu đồ
             };
             
-            // 1. Lấy 🧠 Phán Quyết (Phân Tích Tổng Hợp) - Dựa vào format mới
-            if (analysisText && analysisText.includes('🧠 Phán Quyết:')) {
-                // Tìm dòng chứa "🧠 Phán Quyết:"
-                const lines = analysisText.split('\n');
-                for (const line of lines) {
-                    if (line.includes('🧠 Phán Quyết:')) {
-                        // Extract P hoặc B từ line
-                        if (line.includes('P THEO') || line.includes('P NGƯỢC')) {
-                            details.verdict = 'P';
-                        } else if (line.includes('B THEO') || line.includes('B NGƯỢC')) {
-                            details.verdict = 'B';
-                        }
-                        break;
-                    }
+            // 1. Lấy 🧠 Phán Quyết ĐẦY ĐỦ (theo định dạng mẫu)
+            // Kiểm tra state hiện tại để tạo phán quyết đầy đủ
+            if (state.currentFinalPrediction && state.currentPrediction) {
+                const originalPrediction = state.currentPrediction.prediction; // P hoặc B
+                const finalVerdict = state.currentFinalPrediction.verdict; // follow, against, neutral
+                const finalPrediction = state.currentFinalPrediction.prediction; // P hoặc B
+                
+                // Tạo phán quyết đầy đủ theo định dạng yêu cầu
+                if (finalVerdict === 'follow') {
+                    // Nên theo hệ thống
+                    details.verdict = originalPrediction + ' THEO';
+                } else if (finalVerdict === 'against') {
+                    // Nên đi ngược hệ thống
+                    details.verdict = originalPrediction + ' NGƯỢC';
+                } else {
+                    // Không có tín hiệu rõ ràng
+                    details.verdict = originalPrediction || '-';
                 }
-            }
-            
-            // Fallback: Dùng state nếu không tìm thấy trong text
-            if (!details.verdict) {
-                if (state.currentFinalPrediction) {
-                    details.verdict = state.currentFinalPrediction.prediction;
-                } else if (state.currentPrediction) {
-                    details.verdict = state.currentPrediction.prediction;
-                }
+            } else if (state.currentPrediction) {
+                // Chỉ có dự đoán ban đầu
+                details.verdict = state.currentPrediction.prediction || '-';
             }
             
             // 2. Lấy 🔐 Chốt Phán Quyết - từ bảng "🔐 Chốt Phán Quyết"
