@@ -1719,6 +1719,7 @@ document.getElementById('toggleSessionIcon').style.transform = 'rotate(-180deg)'
 // --- INITIALIZATION ---
 document.addEventListener('DOMContentLoaded', initializeApp)
 </script>
+<script>
 // =================== IFRAME COMMUNICATION FOR HT3 - COMPLETE ===================
 (function() {
     // Notify parent that system is ready
@@ -2296,7 +2297,8 @@ document.addEventListener('DOMContentLoaded', initializeApp)
 // Gọi hàm loadSessions khi khởi động
 if (typeof loadSessions === 'function') {
     loadSessions();
-}
+}    
+</script>
 </body>
 </html>
 
