@@ -1475,7 +1475,8 @@ function initializeApp() {
 }
 document.addEventListener('DOMContentLoaded', initializeApp);
 </script>
-// =================== IFRAME COMMUNICATION FOR HT2 - COMPLETE ===================
+    <script>
+   // =================== IFRAME COMMUNICATION FOR HT2 - COMPLETE ===================
 (function() {
     // Notify parent that system is ready
     window.addEventListener('load', function() {
@@ -2061,6 +2062,7 @@ document.addEventListener('DOMContentLoaded', initializeApp);
 // Gọi hàm loadSessions khi khởi động
 if (typeof loadSessions === 'function') {
     loadSessions();
-}
+} 
+</script>
 </body>
 </html>
