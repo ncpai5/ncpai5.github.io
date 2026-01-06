@@ -2024,20 +2024,23 @@ document.addEventListener('DOMContentLoaded', initializeApp)
             // Lấy thông tin phán quyết chi tiết từ phân tích hệ thống
             const session = state.sessions[state.currentSessionId];
             const analysisDetails = {
-                verdict: null,      // 🧠 Phán Quyết (Phân Tích Tổng Hợp)
-                chot: null,         // 🔐 Chốt Phán Quyết
+                verdict: null,      // 🧠 Phán Quyết (Phân Tích Tổng Hợp) - P/B gốc
+                chot: null,         // 🔐 Chốt Phán Quyết - P/B chốt
                 range: null,        // Khoảng tỷ lệ
                 rangeAccuracy: null, // Tỉ lệ khoảng
                 verdictText: "",    // Văn bản phán quyết đầy đủ
-                systemVerdict: "",  // Phán quyết hệ thống
-                finalVerdict: ""    // Phán quyết cuối cùng
+                systemVerdict: "",  // Phán quyết hệ thống (THEO/NGƯỢC)
+                finalVerdict: "",   // Phán quyết cuối cùng (P/B + THEO/NGƯỢC)
+                verdictDisplay: "", // Phán quyết hiển thị (THEO/NGƯỢC)
+                verdictPrediction: "", // Dự đoán cuối cùng (P/B)
+                verdictType: ""     // Loại phán quyết (THEO hoặc NGƯỢC)
             };
             
             // 1. Lấy thông tin từ phân tích hiện tại
-            if (state.currentFinalPrediction) {
-                analysisDetails.verdict = state.currentFinalPrediction.prediction;
-            } else if (state.currentPrediction) {
-                analysisDetails.verdict = state.currentPrediction.prediction;
+            let originalPrediction = null;
+            if (state.currentPrediction) {
+                originalPrediction = state.currentPrediction.prediction;
+                analysisDetails.verdict = originalPrediction;
             }
             
             // 2. Lấy thông tin chốt
@@ -2085,20 +2088,27 @@ document.addEventListener('DOMContentLoaded', initializeApp)
                 const recommendation = getCurrentRecommendation();
                 const predictionText = state.currentPrediction.prediction === 'P' ? 'PLAYER' : 'BANKER';
                 
-                // Xác định phán quyết hệ thống
+                // Xác định phán quyết hệ thống (THEO hay NGƯỢC)
                 let systemVerdictText = "";
+                let verdictType = "";
                 if (state.currentFinalPrediction.verdict === 'follow') {
                     systemVerdictText = "Nên theo";
-                    analysisDetails.systemVerdict = "Nên theo";
+                    verdictType = "THEO";
                 } else if (state.currentFinalPrediction.verdict === 'against') {
                     systemVerdictText = "Nên đi ngược lại";
-                    analysisDetails.systemVerdict = "Nên đi ngược lại";
+                    verdictType = "NGƯỢC";
                 }
+                
+                analysisDetails.systemVerdict = systemVerdictText;
+                analysisDetails.verdictType = verdictType;
                 
                 // Xác định phán quyết cuối cùng
                 const finalPrediction = state.currentFinalPrediction.prediction;
                 const finalVerdictText = finalPrediction === 'P' ? 'P' : 'B';
-                const followType = state.currentFinalPrediction.verdict === 'follow' ? 'THEO' : 'NGƯỢC';
+                
+                analysisDetails.verdictPrediction = finalPrediction;
+                analysisDetails.finalVerdict = `${finalVerdictText} ${verdictType}`;
+                analysisDetails.verdictDisplay = verdictType;
                 
                 // Tạo văn bản phán quyết đầy đủ
                 analysisDetails.verdictText = `🧠 Phán Quyết (Phân Tích Tổng Hợp)\n` +
@@ -2107,9 +2117,7 @@ document.addEventListener('DOMContentLoaded', initializeApp)
                     `${predictionText === 'PLAYER' ? '👤' : '🏦'} ${predictionText}\n` +
                     `Phán Quyết Hệ Thống: ${systemVerdictText}\n` +
                     `THÌ\n` +
-                    `🧠 Phán Quyết: ${finalVerdictText} ${followType}`;
-                
-                analysisDetails.finalVerdict = `${finalVerdictText} ${followType}`;
+                    `🧠 Phán Quyết: ${analysisDetails.finalVerdict}`;
             }
             
             window.parent.postMessage({
@@ -2130,7 +2138,10 @@ document.addEventListener('DOMContentLoaded', initializeApp)
                     rangeAccuracy: null,
                     verdictText: "",
                     systemVerdict: "",
-                    finalVerdict: ""
+                    finalVerdict: "",
+                    verdictDisplay: "",
+                    verdictPrediction: "",
+                    verdictType: ""
                 }
             }, '*');
         }
