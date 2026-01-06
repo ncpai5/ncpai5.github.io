@@ -2006,18 +2006,10 @@ document.addEventListener('DOMContentLoaded', initializeApp)
     }
 
     function sendPrediction() {
-        // Ưu tiên: Chốt Prediction > Final Prediction > Original System Prediction > Current Prediction
-        let prediction = null;
-        
-        if (state.currentChotPredictionForLog) {
-            prediction = state.currentChotPredictionForLog;
-        } else if (state.currentFinalPrediction && state.currentFinalPrediction.prediction) {
-            prediction = state.currentFinalPrediction.prediction;
-        } else if (state.originalSystemPrediction) {
-            prediction = state.originalSystemPrediction;
-        } else if (state.currentPrediction && state.currentPrediction.prediction) {
-            prediction = state.currentPrediction.prediction;
-        }
+        const prediction = state.currentChotPredictionForLog?.prediction || 
+                          state.currentFinalPrediction?.prediction || 
+                          state.originalSystemPrediction ||
+                          state.currentPrediction?.prediction;
         
         window.parent.postMessage({
             source: 'ht4',
@@ -2029,187 +2021,163 @@ document.addEventListener('DOMContentLoaded', initializeApp)
     // =================== UPDATED FUNCTION: SYSTEM DETAILS FOR HT4 ===================
     function sendSystemDetails() {
         try {
-            const details = {
+            // Lấy thông tin phán quyết chi tiết từ phân tích hệ thống
+            const session = state.sessions[state.currentSessionId];
+            const analysisDetails = {
                 verdict: null,      // 🧠 Phán Quyết (Phân Tích Tổng Hợp)
-                chot: null,         // 🔐 Chốt Phán Quyết (từ phần Đề xuất "CHỐT" ván tiếp theo)
-                range: null,        // Khoảng tỷ lệ (từ bảng 📊 Thống Kê Độ Tin Cậy)
-                rangeAccuracy: null, // Tỉ lệ khoảng (phần trăm đã làm tròn)
-                rangeTotal: 0,      // Tổng số ván trong khoảng
-                rangeWins: 0,       // Số ván thắng trong khoảng
-                intervalHistory: [] // Dữ liệu biểu đồ
+                chot: null,         // 🔐 Chốt Phán Quyết
+                range: null,        // Khoảng tỷ lệ
+                rangeAccuracy: null, // Tỉ lệ khoảng
+                verdictText: "",    // Văn bản phán quyết đầy đủ
+                systemVerdict: "",  // Phán quyết hệ thống
+                finalVerdict: ""    // Phán quyết cuối cùng
             };
             
-            // 1. Lấy 🧠 Phán Quyết (Phân Tích Tổng Hợp) - từ hệ thống chính
-            if (state.currentFinalPrediction && state.currentFinalPrediction.prediction) {
-                details.verdict = state.currentFinalPrediction.prediction;
-            } else if (state.currentPrediction && state.currentPrediction.prediction) {
-                details.verdict = state.currentPrediction.prediction;
-            } else if (state.originalSystemPrediction) {
-                details.verdict = state.originalSystemPrediction;
+            // 1. Lấy thông tin từ phân tích hiện tại
+            if (state.currentFinalPrediction) {
+                analysisDetails.verdict = state.currentFinalPrediction.prediction;
+            } else if (state.currentPrediction) {
+                analysisDetails.verdict = state.currentPrediction.prediction;
             }
             
-            // 2. Lấy 🔐 Chốt Phán Quyết - từ bảng "🔐 Chốt Phán Quyết" phần Đề xuất "CHỐT" ván tiếp theo
+            // 2. Lấy thông tin chốt
             if (state.currentChotPredictionForLog) {
-                details.chot = state.currentChotPredictionForLog;
-            } else {
-                // Fallback: Kiểm tra từ UI nếu chưa có trong state
-                const finalChotResult = document.getElementById('finalChotResult');
-                if (finalChotResult) {
-                    const chotText = finalChotResult.querySelector('p.text-2xl');
-                    if (chotText && chotText.textContent) {
-                        const text = chotText.textContent.trim();
-                        if (text.includes('PLAYER')) {
-                            details.chot = 'P';
-                        } else if (text.includes('BANKER')) {
-                            details.chot = 'B';
-                        }
-                    }
-                }
+                analysisDetails.chot = state.currentChotPredictionForLog.prediction || state.currentChotPredictionForLog;
             }
             
-            // 3. Xác định khoảng tỷ lệ và tỉ lệ phần trăm từ bảng 📊 Thống Kê Độ Tin Cậy
+            // 3. Xác định khoảng tỷ lệ
             const currentConfidence = state.currentPrediction?.confidence;
-            const session = state.sessions[state.currentSessionId];
-            
-            if (currentConfidence !== undefined && session && session.predictions) {
-                // Tính toán confidence ranges cho session hiện tại
-                const confidenceRanges = calculateConfidenceRangeStats(session.predictions);
-                
-                // Xác định khoảng confidence hiện tại thuộc khoảng nào
-                let foundRange = null;
-                let rangeKey = '';
-                let rangeDisplay = '';
-                
-                // Ánh xạ confidence vào các khoảng dựa trên bảng "Thống Kê Độ Tin Cậy"
+            if (currentConfidence !== undefined) {
                 if (currentConfidence >= 90 && currentConfidence <= 100) {
-                    foundRange = confidenceRanges.find(r => r.min === 90 && r.max === 100);
-                    rangeKey = '90-100%';
-                    rangeDisplay = '90-100%';
+                    analysisDetails.range = "90-100%";
                 } else if (currentConfidence >= 80 && currentConfidence < 90) {
-                    foundRange = confidenceRanges.find(r => r.min === 80 && r.max === 90);
-                    rangeKey = '80-90%';
-                    rangeDisplay = '80-90%';
+                    analysisDetails.range = "80-90%";
                 } else if (currentConfidence >= 70 && currentConfidence < 80) {
-                    foundRange = confidenceRanges.find(r => r.min === 70 && r.max === 80);
-                    rangeKey = '70-80%';
-                    rangeDisplay = '70-80%';
+                    analysisDetails.range = "70-80%";
                 } else if (currentConfidence >= 60 && currentConfidence < 70) {
-                    foundRange = confidenceRanges.find(r => r.min === 60 && r.max === 70);
-                    rangeKey = '60-70%';
-                    rangeDisplay = '60-70%';
+                    analysisDetails.range = "60-70%";
                 } else if (currentConfidence >= 50 && currentConfidence < 60) {
-                    foundRange = confidenceRanges.find(r => r.min === 50 && r.max === 60);
-                    rangeKey = '50-60%';
-                    rangeDisplay = '50-60%';
+                    analysisDetails.range = "50-60%";
                 }
                 
-                if (foundRange && rangeKey) {
-                    details.range = rangeDisplay;
-                    
-                    // Làm tròn tỉ lệ đến 1 chữ số thập phân
-                    if (foundRange.rate > -1) {
-                        details.rangeAccuracy = parseFloat(foundRange.rate.toFixed(1));
-                    } else {
-                        details.rangeAccuracy = 0;
-                    }
-                    
-                    details.rangeTotal = foundRange.total || 0;
-                    details.rangeWins = foundRange.wins || 0;
-                    
-                    // Lấy tất cả predictions trong khoảng confidence này cho biểu đồ
-                    const allPredictions = session.predictions || [];
-                    const predictionsInRange = allPredictions.filter(p => {
+                // Tính độ chính xác trong khoảng
+                if (session && session.predictions) {
+                    const predictionsInRange = session.predictions.filter(p => {
                         const conf = p.confidence || 0;
-                        if (rangeKey === '90-100%') return conf >= 90 && conf <= 100;
-                        if (rangeKey === '80-90%') return conf >= 80 && conf < 90;
-                        if (rangeKey === '70-80%') return conf >= 70 && conf < 80;
-                        if (rangeKey === '60-70%') return conf >= 60 && conf < 70;
-                        if (rangeKey === '50-60%') return conf >= 50 && conf < 60;
+                        if (analysisDetails.range === "90-100%") return conf >= 90 && conf <= 100;
+                        if (analysisDetails.range === "80-90%") return conf >= 80 && conf < 90;
+                        if (analysisDetails.range === "70-80%") return conf >= 70 && conf < 80;
+                        if (analysisDetails.range === "60-70%") return conf >= 60 && conf < 70;
+                        if (analysisDetails.range === "50-60%") return conf >= 50 && conf < 60;
                         return false;
                     });
                     
-                    // Chuẩn bị dữ liệu lịch sử cho biểu đồ
-                    details.intervalHistory = predictionsInRange.map((pred, index) => ({
-                        game: index + 1,
-                        predicted: pred.predicted,
-                        actual: pred.actual,
-                        confidence: pred.confidence,
-                        isCorrect: pred.predicted === pred.actual
-                    }));
-                    
-                } else {
-                    // Fallback: Sử dụng Khoảng Vàng hoặc Khoảng Tử Thần nếu không tìm thấy khoảng cụ thể
-                    if (state.goldenRange) {
-                        const maxDisplay = state.goldenRange.max === 100.1 ? 100 : state.goldenRange.max;
-                        details.range = `${state.goldenRange.min}-${maxDisplay}%`;
-                        details.rangeAccuracy = state.goldenRange.rate > -1 ? 
-                            parseFloat(state.goldenRange.rate.toFixed(1)) : 0;
-                        details.rangeTotal = state.goldenRange.total || 0;
-                        details.rangeWins = state.goldenRange.wins || 0;
-                    } else if (state.deathRange) {
-                        const maxDisplay = state.deathRange.max === 100.1 ? 100 : state.deathRange.max;
-                        details.range = `${state.deathRange.min}-${maxDisplay}%`;
-                        details.rangeAccuracy = state.deathRange.rate > -1 ? 
-                            parseFloat(state.deathRange.rate.toFixed(1)) : 0;
-                        details.rangeTotal = state.deathRange.total || 0;
-                        details.rangeWins = state.deathRange.wins || 0;
-                    } else {
-                        details.range = "Chưa xác định";
-                        details.rangeAccuracy = 0;
+                    if (predictionsInRange.length > 0) {
+                        const correctCount = predictionsInRange.filter(p => p.predicted === p.actual).length;
+                        analysisDetails.rangeAccuracy = ((correctCount / predictionsInRange.length) * 100).toFixed(1);
                     }
                 }
-            } else {
-                // Không có confidence hiện tại
-                details.range = "Chưa có dự đoán";
-                details.rangeAccuracy = 0;
+            }
+            
+            // 4. Tạo văn bản phán quyết đầy đủ theo định dạng yêu cầu
+            if (state.currentPrediction && state.currentFinalPrediction) {
+                // Lấy thông tin đề xuất hệ thống
+                const recommendation = getCurrentRecommendation();
+                const predictionText = state.currentPrediction.prediction === 'P' ? 'PLAYER' : 'BANKER';
+                
+                // Xác định phán quyết hệ thống
+                let systemVerdictText = "";
+                if (state.currentFinalPrediction.verdict === 'follow') {
+                    systemVerdictText = "Nên theo";
+                    analysisDetails.systemVerdict = "Nên theo";
+                } else if (state.currentFinalPrediction.verdict === 'against') {
+                    systemVerdictText = "Nên đi ngược lại";
+                    analysisDetails.systemVerdict = "Nên đi ngược lại";
+                }
+                
+                // Xác định phán quyết cuối cùng
+                const finalPrediction = state.currentFinalPrediction.prediction;
+                const finalVerdictText = finalPrediction === 'P' ? 'P' : 'B';
+                const followType = state.currentFinalPrediction.verdict === 'follow' ? 'THEO' : 'NGƯỢC';
+                
+                // Tạo văn bản phán quyết đầy đủ
+                analysisDetails.verdictText = `🧠 Phán Quyết (Phân Tích Tổng Hợp)\n` +
+                    `Đề xuất theo hệ thống:\n` +
+                    `${recommendation}\n` +
+                    `${predictionText === 'PLAYER' ? '👤' : '🏦'} ${predictionText}\n` +
+                    `Phán Quyết Hệ Thống: ${systemVerdictText}\n` +
+                    `THÌ\n` +
+                    `🧠 Phán Quyết: ${finalVerdictText} ${followType}`;
+                
+                analysisDetails.finalVerdict = `${finalVerdictText} ${followType}`;
             }
             
             window.parent.postMessage({
                 source: 'ht4',
                 type: 'system_details_update',
-                details: details
+                details: analysisDetails
             }, '*');
             
         } catch (error) {
             console.error('[HT4] Error sending system details:', error);
-            // Gửi thông tin cơ bản ngay cả khi có lỗi
             window.parent.postMessage({
                 source: 'ht4',
                 type: 'system_details_update',
                 details: {
-                    verdict: state.currentFinalPrediction?.prediction || 
-                            state.currentPrediction?.prediction || 
-                            state.originalSystemPrediction,
-                    chot: state.currentChotPredictionForLog,
-                    range: "Lỗi tính toán",
-                    rangeAccuracy: 0,
-                    intervalHistory: []
+                    verdict: null,
+                    chot: null,
+                    range: null,
+                    rangeAccuracy: null,
+                    verdictText: "",
+                    systemVerdict: "",
+                    finalVerdict: ""
                 }
             }, '*');
         }
     }
-
-    // Hàm tính toán confidence range stats (giống HT1)
-    function calculateConfidenceRangeStats(predictions) {
-        const ranges = [
-            {min:50, max:60, total:0, wins:0, rate: -1},
-            {min:60, max:70, total:0, wins:0, rate: -1},
-            {min:70, max:80, total:0, wins:0, rate: -1},
-            {min:80, max:90, total:0, wins:0, rate: -1},
-            {min:90, max:100, total:0, wins:0, rate: -1}
-        ];
+    
+    // Hàm hỗ trợ: Lấy đề xuất hiện tại từ hệ thống
+    function getCurrentRecommendation() {
+        const session = state.sessions[state.currentSessionId];
+        if (!session || !session.history || session.history.length === 0) {
+            return "ĐANG TÍNH TOÁN";
+        }
         
-        ranges.forEach(range => {
-            const predictionsForRange = predictions.filter(p => 
-                p.confidence >= range.min && 
-                (p.confidence < range.max || (range.max === 100 && p.confidence >= 100))
-            );
-            range.total = predictionsForRange.length;
-            range.wins = predictionsForRange.filter(p => p.predicted === p.actual).length;
-            range.rate = range.total > 0 ? ((range.wins / range.total) * 100) : -1;
-        });
+        const history = session.history;
+        const lastResult = history[history.length - 1];
         
-        return ranges;
+        // Phân tích streak hiện tại
+        let streakCount = 1;
+        for (let i = history.length - 2; i >= 0; i--) {
+            if (history[i] === lastResult) {
+                streakCount++;
+            } else {
+                break;
+            }
+        }
+        
+        // Phân tích pattern 1-1
+        let pattern11Count = 0;
+        if (history.length >= 2) {
+            let currentPattern = history[history.length - 1] !== history[history.length - 2];
+            for (let i = history.length - 1; i >= 1; i--) {
+                if ((history[i] !== history[i-1]) === currentPattern) {
+                    pattern11Count++;
+                } else {
+                    break;
+                }
+            }
+        }
+        
+        // Xác định loại cầu
+        if (streakCount >= 2) {
+            const side = lastResult === 'P' ? 'PLAYER' : 'BANKER';
+            return `THEO BỆT (${side}x${streakCount})`;
+        } else if (pattern11Count >= 2) {
+            return `THEO CẦU 1-1 (Dài ${pattern11Count})`;
+        } else {
+            return "THEO PHÂN TÍCH LỊCH SỬ";
+        }
     }
 
     function createSession(sessionData) {
@@ -2325,7 +2293,7 @@ document.addEventListener('DOMContentLoaded', initializeApp)
         
         if (chotRec) {
             session.chotPredictions.push({ 
-                predicted: chotRec, 
+                predicted: chotRec.prediction || chotRec, 
                 actual: result
             });
         }
