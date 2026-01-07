@@ -1476,7 +1476,7 @@ function initializeApp() {
 document.addEventListener('DOMContentLoaded', initializeApp);
 </script>
 <script>
-// =================== IFRAME COMMUNICATION FOR HT2 - COMPLETE & SYNCHRONIZED ===================
+// =================== IFRAME COMMUNICATION FOR HT2 - COMPLETE & OPTIMIZED ===================
 (function() {
     // Notify parent that system is ready
     window.addEventListener('load', function() {
@@ -1552,115 +1552,151 @@ document.addEventListener('DOMContentLoaded', initializeApp);
             case 'reset_system':
                 resetSystem();
                 break;
+                
+            default:
+                console.log('[HT2] Unknown command:', data.command);
         }
     }
 
+    // =================== COMMUNICATION FUNCTIONS ===================
+
     function sendAccuracyUpdate() {
-        const session = state.sessions[state.currentSessionId];
-        if (session && session.chotPredictions) {
-            const total = session.chotPredictions.length;
-            const correct = session.chotPredictions.filter(p => p.predicted === p.actual).length;
-            const accuracy = total > 0 ? (correct / total) * 100 : 0;
-            
-            window.parent.postMessage({
-                source: 'ht2',
-                type: 'accuracy_update',
-                accuracy: accuracy,
-                correct: correct,
-                total: total
-            }, '*');
+        try {
+            const session = state.sessions[state.currentSessionId];
+            if (session && session.chotPredictions) {
+                const total = session.chotPredictions.length;
+                const correct = session.chotPredictions.filter(p => p.predicted === p.actual).length;
+                const accuracy = total > 0 ? (correct / total) * 100 : 0;
+                
+                window.parent.postMessage({
+                    source: 'ht2',
+                    type: 'accuracy_update',
+                    accuracy: accuracy,
+                    correct: correct,
+                    total: total
+                }, '*');
+            } else {
+                window.parent.postMessage({
+                    source: 'ht2',
+                    type: 'accuracy_update',
+                    accuracy: 0,
+                    correct: 0,
+                    total: 0
+                }, '*');
+            }
+        } catch (error) {
+            console.error('[HT2] Error sending accuracy update:', error);
         }
     }
 
     function sendChotHistory() {
-        const session = state.sessions[state.currentSessionId];
-        if (session && session.chotPredictions) {
-            window.parent.postMessage({
-                source: 'ht2',
-                type: 'chot_history_update',
-                history: session.chotPredictions
-            }, '*');
+        try {
+            const session = state.sessions[state.currentSessionId];
+            if (session && session.chotPredictions) {
+                window.parent.postMessage({
+                    source: 'ht2',
+                    type: 'chot_history_update',
+                    history: session.chotPredictions
+                }, '*');
+            } else {
+                window.parent.postMessage({
+                    source: 'ht2',
+                    type: 'chot_history_update',
+                    history: []
+                }, '*');
+            }
+        } catch (error) {
+            console.error('[HT2] Error sending chot history:', error);
         }
     }
 
     function sendSessionInfo() {
-        const session = state.sessions[state.currentSessionId];
-        if (session) {
-            window.parent.postMessage({
-                source: 'ht2',
-                type: 'session_update',
-                session: {
-                    id: state.currentSessionId,
-                    name: session.name,
-                    history: session.history,
-                    current: true
-                }
-            }, '*');
+        try {
+            const session = state.sessions[state.currentSessionId];
+            if (session) {
+                window.parent.postMessage({
+                    source: 'ht2',
+                    type: 'session_update',
+                    session: {
+                        id: state.currentSessionId,
+                        name: session.name,
+                        history: session.history || [],
+                        current: true
+                    }
+                }, '*');
+            } else {
+                window.parent.postMessage({
+                    source: 'ht2',
+                    type: 'session_update',
+                    session: null
+                }, '*');
+            }
+        } catch (error) {
+            console.error('[HT2] Error sending session info:', error);
         }
     }
 
     function sendPrediction() {
-        window.parent.postMessage({
-            source: 'ht2',
-            type: 'prediction_update',
-            prediction: state.currentChotPredictionForLog?.prediction || state.currentFinalPrediction?.prediction
-        }, '*');
+        try {
+            // Priority: Chốt > Phán Quyết > Hệ thống
+            const prediction = state.currentChotPredictionForLog?.prediction || 
+                              state.currentFinalPrediction?.prediction || 
+                              state.originalSystemPrediction ||
+                              state.currentPrediction?.prediction ||
+                              null;
+            
+            window.parent.postMessage({
+                source: 'ht2',
+                type: 'prediction_update',
+                prediction: prediction
+            }, '*');
+        } catch (error) {
+            console.error('[HT2] Error sending prediction:', error);
+        }
     }
 
-    // =================== SYSTEM DETAILS FUNCTION - ĐÃ THÊM MÀU SẮC ===================
     function sendSystemDetails() {
         try {
             const details = {
-                verdict: '-',           // 🧠 Phán Quyết (đầy đủ: "P THEO", "B NGƯỢC")
-                verdictSimple: '-',     // 🧠 Phán Quyết đơn giản (P/B)
-                verdictColor: 'text-gray-400', // Màu sắc cho Phán Quyết (tương tự HT1)
-                chot: '-',              // 🔐 Chốt Phán Quyết
-                chotColor: 'text-gray-400', // Màu sắc cho Chốt Phán Quyết
-                range: 'Chưa xác định', // Khoảng tỷ lệ
-                rangeAccuracy: 0,       // Tỉ lệ phần trăm của khoảng
-                rangeTotal: 0,          // Tổng số ván trong khoảng
-                rangeWins: 0,           // Số ván thắng trong khoảng
-                intervalHistory: []     // Dữ liệu biểu đồ
+                verdict: null,           // 🧠 Phán Quyết
+                verdictSimple: null,     // 🧠 Phán Quyết đơn giản (P/B)
+                verdictColor: 'text-gray-400',
+                chot: null,              // 🔐 Chốt Phán Quyết
+                chotColor: 'text-gray-400',
+                range: null,             // Khoảng tỷ lệ
+                rangeAccuracy: null,     // Tỉ lệ phần trăm của khoảng
+                rangeTotal: 0,           // Tổng số ván trong khoảng
+                rangeWins: 0,            // Số ván thắng trong khoảng
+                intervalHistory: []      // Dữ liệu biểu đồ
             };
             
-            // 1. Lấy 🧠 Phán Quyết ĐẦY ĐỦ (theo định dạng mẫu)
-            // Kiểm tra state hiện tại để tạo phán quyết đầy đủ
-            if (state.currentFinalPrediction && state.currentPrediction) {
-                const originalPrediction = state.currentPrediction.prediction; // P hoặc B
-                const finalVerdict = state.currentFinalPrediction.verdict; // follow, against, neutral
-                const finalPrediction = state.currentFinalPrediction.prediction; // P hoặc B
+            // 1. Lấy 🧠 Phán Quyết (Phân Tích Tổng Hợp)
+            if (state.currentFinalPrediction && state.currentFinalPrediction.prediction) {
+                const verdictType = state.currentFinalPrediction.verdict === 'follow' ? 'THEO' : 
+                                  state.currentFinalPrediction.verdict === 'against' ? 'NGƯỢC' : '';
                 
-                // Tạo phán quyết đầy đủ theo định dạng yêu cầu
-                let fullVerdict = originalPrediction || '-';
-                if (finalVerdict === 'follow') {
-                    // Nên theo hệ thống
-                    fullVerdict = originalPrediction + ' THEO';
-                } else if (finalVerdict === 'against') {
-                    // Nên đi ngược hệ thống
-                    fullVerdict = originalPrediction + ' NGƯỢC';
-                }
-                
-                details.verdict = fullVerdict;
-                details.verdictSimple = originalPrediction;
-                // Thiết lập màu sắc tương tự HT1
-                details.verdictColor = originalPrediction === 'P' ? 'text-blue-400' : 'text-red-400';
-            } else if (state.currentPrediction) {
-                // Chỉ có dự đoán ban đầu
-                details.verdict = state.currentPrediction.prediction || '-';
-                details.verdictSimple = state.currentPrediction.prediction || '-';
-                details.verdictColor = state.currentPrediction.prediction === 'P' ? 'text-blue-400' : 
-                                       state.currentPrediction.prediction === 'B' ? 'text-red-400' : 'text-gray-400';
+                details.verdict = `${state.currentFinalPrediction.prediction} ${verdictType}`.trim();
+                details.verdictSimple = state.currentFinalPrediction.prediction;
+                details.verdictColor = state.currentFinalPrediction.prediction === 'P' ? 'text-blue-400' : 'text-red-400';
+            } else if (state.currentPrediction && state.currentPrediction.prediction) {
+                details.verdict = state.currentPrediction.prediction;
+                details.verdictSimple = state.currentPrediction.prediction;
+                details.verdictColor = state.currentPrediction.prediction === 'P' ? 'text-blue-400' : 'text-red-400';
+            } else if (state.originalSystemPrediction) {
+                details.verdict = state.originalSystemPrediction;
+                details.verdictSimple = state.originalSystemPrediction;
+                details.verdictColor = state.originalSystemPrediction === 'P' ? 'text-blue-400' : 'text-red-400';
             }
             
-            // 2. Lấy 🔐 Chốt Phán Quyết - từ bảng "🔐 Chốt Phán Quyết"
+            // 2. Lấy 🔐 Chốt Phán Quyết
             if (state.currentChotPredictionForLog && state.currentChotPredictionForLog.prediction) {
                 details.chot = state.currentChotPredictionForLog.prediction;
                 details.chotColor = state.currentChotPredictionForLog.prediction === 'P' ? 'text-blue-400' : 'text-red-400';
             } else {
-                // Fallback: Check from UI
+                // Fallback: Kiểm tra từ UI
                 const finalChotResultText = document.getElementById('finalChotResultText');
-                if (finalChotResultText && !finalChotResultText.textContent.includes('Chờ tín hiệu')) {
-                    const text = finalChotResultText.textContent;
+                if (finalChotResultText) {
+                    const text = finalChotResultText.textContent || '';
                     if (text.includes('PLAYER')) {
                         details.chot = 'P';
                         details.chotColor = 'text-blue-400';
@@ -1671,61 +1707,47 @@ document.addEventListener('DOMContentLoaded', initializeApp);
                 }
             }
             
-            // 3. Lấy Khoảng tỷ lệ và Tỉ lệ khoảng từ bảng "📊 Thống Kê Độ Tin Cậy"
-            const session = state.sessions[state.currentSessionId];
+            // 3. Xác định khoảng tỷ lệ và tỉ lệ phần trăm
             const currentConfidence = state.currentPrediction?.confidence;
+            const session = state.sessions[state.currentSessionId];
             
             if (currentConfidence !== undefined && session && session.predictions) {
-                // Get all confidence ranges from UI or calculate
-                const confidenceStats = calculateConfidenceRangeStats(session.predictions || []);
+                // Tìm khoảng confidence hiện tại
+                const confidenceRanges = [
+                    { key: '50-60', min: 50, max: 60 },
+                    { key: '60-70', min: 60, max: 70 },
+                    { key: '70-80', min: 70, max: 80 },
+                    { key: '80-90', min: 80, max: 90 },
+                    { key: '90-100', min: 90, max: 100.1 }
+                ];
                 
-                // Find which range the current confidence falls into
                 let foundRange = null;
                 let rangeDisplay = '';
                 
-                // Map to the ranges displayed in "Thống Kê Độ Tin Cậy"
-                if (currentConfidence >= 90 && currentConfidence <= 100) {
-                    foundRange = confidenceStats.find(r => r.key === '90-100');
-                    rangeDisplay = '90-100%';
-                } else if (currentConfidence >= 80 && currentConfidence < 90) {
-                    foundRange = confidenceStats.find(r => r.key === '80-90');
-                    rangeDisplay = '80-90%';
-                } else if (currentConfidence >= 70 && currentConfidence < 80) {
-                    foundRange = confidenceStats.find(r => r.key === '70-80');
-                    rangeDisplay = '70-80%';
-                } else if (currentConfidence >= 60 && currentConfidence < 70) {
-                    foundRange = confidenceStats.find(r => r.key === '60-70');
-                    rangeDisplay = '60-70%';
-                } else if (currentConfidence >= 50 && currentConfidence < 60) {
-                    foundRange = confidenceStats.find(r => r.key === '50-60');
-                    rangeDisplay = '50-60%';
-                }
+                // Tìm trong confidenceRanges
+                confidenceRanges.forEach(r => {
+                    if (currentConfidence >= r.min && currentConfidence < r.max) {
+                        foundRange = r;
+                        rangeDisplay = `${r.min}-${r.max === 100.1 ? 100 : r.max}%`;
+                    }
+                });
                 
-                if (foundRange && rangeDisplay) {
+                if (foundRange) {
                     details.range = rangeDisplay;
                     
-                    // Round to 1 decimal place
-                    if (foundRange.rate > -1) {
-                        details.rangeAccuracy = parseFloat(foundRange.rate.toFixed(1));
-                    } else {
-                        details.rangeAccuracy = 0;
-                    }
-                    details.rangeTotal = foundRange.total;
-                    details.rangeWins = foundRange.wins;
-                    
-                    // Get predictions in this range for chart
+                    // Tính tỉ lệ cho khoảng này
                     const allPredictions = session.predictions || [];
                     const predictionsInRange = allPredictions.filter(p => {
                         const conf = p.confidence || 0;
-                        if (rangeDisplay === '90-100%') return conf >= 90 && conf <= 100;
-                        if (rangeDisplay === '80-90%') return conf >= 80 && conf < 90;
-                        if (rangeDisplay === '70-80%') return conf >= 70 && conf < 80;
-                        if (rangeDisplay === '60-70%') return conf >= 60 && conf < 70;
-                        if (rangeDisplay === '50-60%') return conf >= 50 && conf < 60;
-                        return false;
-                    }).slice(-20); // Chỉ lấy 20 ván gần nhất cho chart
+                        return conf >= foundRange.min && conf < foundRange.max;
+                    });
                     
-                    // Prepare interval history for chart
+                    details.rangeTotal = predictionsInRange.length;
+                    details.rangeWins = predictionsInRange.filter(p => p.predicted === p.actual).length;
+                    details.rangeAccuracy = details.rangeTotal > 0 ? 
+                        parseFloat((details.rangeWins / details.rangeTotal * 100).toFixed(1)) : 0;
+                    
+                    // Lấy dữ liệu biểu đồ
                     details.intervalHistory = predictionsInRange.map((pred, index) => ({
                         game: index + 1,
                         predicted: pred.predicted,
@@ -1733,31 +1755,24 @@ document.addEventListener('DOMContentLoaded', initializeApp);
                         confidence: pred.confidence,
                         isCorrect: pred.predicted === pred.actual
                     }));
-                    
                 } else {
-                    // If no specific range, show general stats
-                    const allStats = calculateConfidenceRangeStats(session.predictions);
-                    const bestRange = allStats.filter(r => r.total >= 3).sort((a, b) => b.rate - a.rate)[0];
+                    // Nếu không tìm thấy, thử khoảng vàng/khoảng tử
+                    const confidenceStats = calculateConfidenceRangeStats(session.predictions || []);
+                    const bestRange = confidenceStats.filter(r => r.total >= 3).sort((a, b) => b.rate - a.rate)[0];
+                    const worstRange = confidenceStats.filter(r => r.total >= 3).sort((a, b) => a.rate - b.rate)[0];
                     
                     if (bestRange) {
                         const maxDisplay = bestRange.max === 100.1 ? 100 : bestRange.max;
                         details.range = `${bestRange.min}-${maxDisplay}%`;
                         details.rangeAccuracy = bestRange.rate > -1 ? 
                             parseFloat(bestRange.rate.toFixed(1)) : 0;
-                        details.rangeTotal = bestRange.total;
-                        details.rangeWins = bestRange.wins;
-                    } else {
-                        details.range = "Chưa đủ dữ liệu";
-                        details.rangeAccuracy = 0;
+                        details.rangeTotal = bestRange.total || 0;
+                        details.rangeWins = bestRange.wins || 0;
                     }
                 }
-            } else {
-                // No current prediction
-                details.range = "Chưa có dự đoán";
-                details.rangeAccuracy = 0;
             }
             
-            // Gửi chi tiết hệ thống với màu sắc
+            // Gửi thông tin chi tiết hệ thống
             window.parent.postMessage({
                 source: 'ht2',
                 type: 'system_details_update',
@@ -1766,15 +1781,15 @@ document.addEventListener('DOMContentLoaded', initializeApp);
             
         } catch (error) {
             console.error('[HT2] Error sending system details:', error);
-            // Send basic info even on error
+            // Gửi thông tin lỗi
             window.parent.postMessage({
                 source: 'ht2',
                 type: 'system_details_update',
                 details: {
-                    verdict: '-',
-                    verdictSimple: '-',
+                    verdict: null,
+                    verdictSimple: null,
                     verdictColor: 'text-gray-400',
-                    chot: '-',
+                    chot: null,
                     chotColor: 'text-gray-400',
                     range: "Lỗi tính toán",
                     rangeAccuracy: 0,
@@ -1783,6 +1798,506 @@ document.addEventListener('DOMContentLoaded', initializeApp);
             }, '*');
         }
     }
+
+    // =================== SESSION MANAGEMENT FUNCTIONS ===================
+
+    function createSession(sessionData) {
+        if (!sessionData || !sessionData.name) {
+            showToast('Dữ liệu phiên không hợp lệ', 'error');
+            return;
+        }
+        
+        try {
+            const newId = sessionData.id || `session-${Date.now()}`;
+            state.currentSessionId = newId;
+            state.sessions[newId] = {
+                name: sessionData.name,
+                history: [],
+                predictions: [],
+                verdictPredictions: [],
+                chotPredictions: [],
+                lengthPerformance: {},
+                optimalLength: null,
+                chotLengthPerformance: CHOT_SOURCES.reduce((acc, key) => { 
+                    acc[key] = {}; 
+                    return acc; 
+                }, {}),
+                chotOptimalLengths: CHOT_SOURCES.reduce((acc, key) => { 
+                    acc[key] = null; 
+                    return acc; 
+                }, {}),
+            };
+            
+            saveSessions();
+            updateSessionSelector();
+            updateAllUI();
+            
+            // Gửi thông tin cập nhật
+            sendSessionInfo();
+            sendSystemDetails();
+            
+            showToast(`Đã tạo phiên: ${sessionData.name}`, 'success');
+            
+        } catch (error) {
+            console.error('[HT2] Error creating session:', error);
+            showToast('Lỗi khi tạo phiên', 'error');
+        }
+    }
+
+    function renameSession(sessionData) {
+        if (!sessionData || !sessionData.id || !sessionData.name) {
+            showToast('Dữ liệu đổi tên không hợp lệ', 'error');
+            return;
+        }
+        
+        try {
+            if (state.sessions[sessionData.id]) {
+                state.sessions[sessionData.id].name = sessionData.name;
+                if (state.currentSessionId === sessionData.id) {
+                    saveSessions();
+                    updateSessionSelector();
+                    updateAllUI();
+                    
+                    sendSessionInfo();
+                    sendSystemDetails();
+                    
+                    showToast(`Đã đổi tên thành: ${sessionData.name}`, 'success');
+                }
+            } else {
+                showToast('Không tìm thấy phiên', 'error');
+            }
+        } catch (error) {
+            console.error('[HT2] Error renaming session:', error);
+            showToast('Lỗi khi đổi tên phiên', 'error');
+        }
+    }
+
+    function loadSession(sessionData) {
+        if (!sessionData || !sessionData.id) {
+            showToast('Dữ liệu phiên không hợp lệ', 'error');
+            return;
+        }
+        
+        try {
+            // Tạo session nếu chưa tồn tại
+            if (!state.sessions[sessionData.id]) {
+                state.sessions[sessionData.id] = {
+                    name: sessionData.name || `Phiên ${sessionData.id}`,
+                    history: sessionData.history || [],
+                    predictions: [],
+                    verdictPredictions: [],
+                    chotPredictions: [],
+                    lengthPerformance: {},
+                    optimalLength: null,
+                    chotLengthPerformance: CHOT_SOURCES.reduce((acc, key) => { 
+                        acc[key] = {}; 
+                        return acc; 
+                    }, {}),
+                    chotOptimalLengths: CHOT_SOURCES.reduce((acc, key) => { 
+                        acc[key] = null; 
+                        return acc; 
+                    }, {}),
+                };
+            }
+            
+            // Load session
+            state.currentSessionId = sessionData.id;
+            
+            // Nếu có history, mô phỏng lại
+            if (sessionData.history && sessionData.history.length > 0) {
+                // Xóa dữ liệu hiện tại
+                const session = state.sessions[sessionData.id];
+                session.history = [];
+                session.predictions = [];
+                session.verdictPredictions = [];
+                session.chotPredictions = [];
+                
+                // Mô phỏng từng kết quả
+                sessionData.history.forEach((result, index) => {
+                    session.history.push(result);
+                    
+                    // Cập nhật phân tích sau mỗi kết quả
+                    if (index >= 9) {
+                        updateAnalysisUI();
+                        updateChotAnalysisUI();
+                    }
+                });
+                
+                // Tính toán lại mọi thứ
+                updateAllUI();
+            }
+            
+            saveSessions();
+            updateSessionSelector();
+            updateAllUI();
+            
+            // Gửi thông tin cập nhật
+            sendSessionInfo();
+            sendSystemDetails();
+            
+            showToast(`Đã tải phiên: ${state.sessions[sessionData.id].name}`, 'success');
+            
+        } catch (error) {
+            console.error('[HT2] Error loading session:', error);
+            showToast('Lỗi khi tải phiên', 'error');
+        }
+    }
+
+    // =================== GAME ACTION FUNCTIONS ===================
+
+    function addResult(result) {
+        if (!state.currentSessionId) {
+            showToast('Chưa chọn phiên', 'warning');
+            return;
+        }
+        
+        if (result !== 'P' && result !== 'B') {
+            showToast('Kết quả không hợp lệ', 'error');
+            return;
+        }
+        
+        try {
+            const session = state.sessions[state.currentSessionId];
+            if (!session) {
+                showToast('Phiên không tồn tại', 'error');
+                return;
+            }
+            
+            const chotRec = state.currentChotPredictionForLog;
+            const tier1Prediction = state.originalSystemPrediction;
+            
+            // Ghi log Prediction HT2
+            if (state.currentPrediction && state.currentPrediction.prediction) {
+                session.predictions.push({ 
+                    predicted: state.currentPrediction.prediction, 
+                    actual: result, 
+                    confidence: state.currentPrediction.confidence 
+                });
+            }
+            
+            // Ghi log Verdict
+            if (!session.verdictPredictions) session.verdictPredictions = [];
+            if (state.currentFinalPrediction && state.currentFinalPrediction.prediction) {
+                session.verdictPredictions.push({
+                    verdict: state.currentFinalPrediction.verdict,
+                    predicted: state.currentFinalPrediction.prediction,
+                    actual: result
+                });
+            }
+            
+            // Ghi log Chốt
+            if (!session.chotPredictions) session.chotPredictions = [];
+            if (chotRec && chotRec.prediction) {
+                session.chotPredictions.push({ 
+                    predicted: chotRec.prediction, 
+                    actual: result, 
+                    source: 'CHOT_VOTE' 
+                });
+            }
+            
+            // Cập nhật Performance
+            updateChotLengthPerformance(session, tier1Prediction, result);
+            
+            // Thêm kết quả vào history
+            session.history.push(result);
+            
+            // Cập nhật optimal length
+            session.optimalLength = updateLengthPerformanceAndFindOptimal(
+                [...session.history].slice(0, -1), 
+                Object.values(state.sessions), 
+                result
+            );
+            
+            // Reset state cho ván sau
+            state.currentPrediction = null;
+            state.originalSystemPrediction = null;
+            state.currentFinalPrediction = null;
+            state.currentChotPredictionForLog = null;
+            
+            saveSessions();
+            updateAllUI();
+            
+            // Gửi tất cả cập nhật
+            sendAccuracyUpdate();
+            sendChotHistory();
+            sendPrediction();
+            sendSystemDetails();
+            
+            showToast(`Đã thêm kết quả: ${result === 'P' ? 'PLAYER' : 'BANKER'}`, 'success');
+            
+        } catch (error) {
+            console.error('[HT2] Error adding result:', error);
+            showToast('Lỗi khi thêm kết quả', 'error');
+        }
+    }
+
+    function undoLast() {
+        if (!state.currentSessionId) {
+            showToast('Chưa chọn phiên', 'warning');
+            return;
+        }
+        
+        const session = state.sessions[state.currentSessionId];
+        if (session.history.length === 0) {
+            showToast('Không có kết quả để hoàn tác', 'warning');
+            return;
+        }
+        
+        try {
+            const lastResult = session.history.pop();
+            
+            // Hoàn tác Chốt
+            if (session.chotPredictions && session.chotPredictions.length > 0) {
+                session.chotPredictions.pop();
+            }
+
+            // Hoàn tác Predictions
+            if (session.predictions.length > 0) session.predictions.pop();
+            if (session.verdictPredictions && session.verdictPredictions.length > 0) 
+                session.verdictPredictions.pop();
+
+            // Recalculate performance
+            const tier1PredictionToUndo = session.predictions.length > 0 ? 
+                session.predictions[session.predictions.length - 1]?.predicted : null;
+            
+            if (tier1PredictionToUndo) {
+                const actualWLHt1 = (tier1PredictionToUndo === lastResult) ? 'W' : 'L';
+                const allSequencesChot = getChotAnalysisData();
+                const newChotOptimalLengths = { ...session.chotOptimalLengths };
+                
+                for (const sourceKey of CHOT_SOURCES) {
+                    const perfDataChot = session.chotLengthPerformance[sourceKey];
+                    const historicalSequencesChot = { ...allSequencesChot[sourceKey] };
+                    if (historicalSequencesChot) delete historicalSequencesChot[state.currentSessionId];
+                    const prevSequenceChot = allSequencesChot[sourceKey]?.[state.currentSessionId] || "";
+                    const candidatesChot = [];
+                    
+                    for (let len = 3; len <= 20; len++) {
+                        if (prevSequenceChot.length < len) continue;
+                        const pattern = prevSequenceChot.slice(-len);
+                        const stats = findNextOutcomeInHistory(pattern, historicalSequencesChot);
+                        if (stats.total > 0 && stats.W !== stats.L) {
+                            const predictedWL = (stats.W > stats.L) ? 'W' : 'L';
+                            if (perfDataChot[len] && perfDataChot[len].total > 0) {
+                                perfDataChot[len].total--;
+                                if (predictedWL === actualWLHt1 && perfDataChot[len].wins > 0) {
+                                    perfDataChot[len].wins--;
+                                }
+                            }
+                        }
+                        if (perfDataChot[len] && perfDataChot[len].total > 0) {
+                            candidatesChot.push({ 
+                                length: len, 
+                                rate: perfDataChot[len].wins / perfDataChot[len].total, 
+                                total: perfDataChot[len].total 
+                            });
+                        }
+                    }
+                    
+                    if (candidatesChot.length > 0) {
+                        candidatesChot.sort((a, b) => b.rate !== a.rate ? b.rate - a.rate : b.total - a.total);
+                        newChotOptimalLengths[sourceKey] = candidatesChot[0].length;
+                    } else {
+                        newChotOptimalLengths[sourceKey] = null;
+                    }
+                }
+                session.chotOptimalLengths = newChotOptimalLengths;
+            }
+            
+            // Recalculate HT2 optimal length
+            session.optimalLength = updateLengthPerformanceAndFindOptimal(
+                session.history, 
+                Object.values(state.sessions), 
+                null
+            );
+            
+            saveSessions();
+            updateAllUI();
+            
+            // Gửi cập nhật sau khi hoàn tác
+            sendAccuracyUpdate();
+            sendChotHistory();
+            sendSystemDetails();
+            
+            showToast('Đã hoàn tác kết quả cuối cùng', 'success');
+            
+        } catch (error) {
+            console.error('[HT2] Error undoing last result:', error);
+            showToast('Lỗi khi hoàn tác', 'error');
+        }
+    }
+
+    function clearCurrentSessionHistory() {
+        if (!state.currentSessionId) {
+            showToast('Chưa chọn phiên', 'warning');
+            return;
+        }
+        
+        try {
+            const session = state.sessions[state.currentSessionId];
+            session.history = [];
+            session.predictions = [];
+            session.verdictPredictions = [];
+            session.chotPredictions = [];
+            session.lengthPerformance = {};
+            session.optimalLength = null;
+            session.chotLengthPerformance = CHOT_SOURCES.reduce((acc, key) => { 
+                acc[key] = {}; 
+                return acc; 
+            }, {});
+            session.chotOptimalLengths = CHOT_SOURCES.reduce((acc, key) => { 
+                acc[key] = null; 
+                return acc; 
+            }, {});
+            
+            saveSessions();
+            updateAllUI();
+            
+            // Gửi cập nhật
+            sendAccuracyUpdate();
+            sendChotHistory();
+            sendSystemDetails();
+            
+            showToast('Đã xóa lịch sử phiên', 'success');
+            
+        } catch (error) {
+            console.error('[HT2] Error clearing history:', error);
+            showToast('Lỗi khi xóa lịch sử', 'error');
+        }
+    }
+
+    // =================== IMPORT/EXPORT FUNCTIONS ===================
+
+    function importSimulatedData(data) {
+        if (!data || !data.sessions) {
+            showToast('Dữ liệu import không hợp lệ', 'error');
+            return;
+        }
+        
+        showLoadingModal('Đang nhập dữ liệu mô phỏng...');
+        
+        setTimeout(() => {
+            try {
+                // Nếu là master data, cần xử lý khác
+                if (data.isMasterData) {
+                    console.log('[HT2] Importing MASTER data');
+                    // Chuyển đổi sang định dạng HT2
+                    const convertedSessions = {};
+                    
+                    Object.keys(data.sessions).forEach(sessionId => {
+                        const masterSession = data.sessions[sessionId];
+                        convertedSessions[sessionId] = {
+                            name: masterSession.name,
+                            history: masterSession.history || [],
+                            predictions: [],
+                            verdictPredictions: [],
+                            chotPredictions: [],
+                            lengthPerformance: {},
+                            optimalLength: null,
+                            chotLengthPerformance: CHOT_SOURCES.reduce((acc, key) => { 
+                                acc[key] = {}; 
+                                return acc; 
+                            }, {}),
+                            chotOptimalLengths: CHOT_SOURCES.reduce((acc, key) => { 
+                                acc[key] = null; 
+                                return acc; 
+                            }, {}),
+                        };
+                    });
+                    
+                    runSimulation(convertedSessions);
+                } else {
+                    // Dữ liệu HT2 thông thường
+                    runSimulation(data.sessions);
+                }
+                
+                hideLoadingModal();
+                
+                // Gửi tất cả cập nhật
+                sendAccuracyUpdate();
+                sendChotHistory();
+                sendSessionInfo();
+                sendSystemDetails();
+                
+                window.parent.postMessage({
+                    source: 'ht2',
+                    type: 'import_complete'
+                }, '*');
+                
+                showToast('Import dữ liệu thành công', 'success');
+                
+            } catch (error) {
+                hideLoadingModal();
+                console.error('[HT2] Import simulation error:', error);
+                showToast('Lỗi khi import dữ liệu', 'error');
+            }
+        }, 100);
+    }
+
+    function exportSessionData() {
+        try {
+            const sessionsToExport = {};
+            for (const sessionId in state.sessions) {
+                sessionsToExport[sessionId] = {
+                    name: state.sessions[sessionId].name,
+                    history: state.sessions[sessionId].history,
+                    chotPredictions: state.sessions[sessionId].chotPredictions || [],
+                    predictions: state.sessions[sessionId].predictions || [],
+                    verdictPredictions: state.sessions[sessionId].verdictPredictions || [],
+                    chotLengthPerformance: state.sessions[sessionId].chotLengthPerformance || {},
+                    chotOptimalLengths: state.sessions[sessionId].chotOptimalLengths || {},
+                    lengthPerformance: state.sessions[sessionId].lengthPerformance || {},
+                    optimalLength: state.sessions[sessionId].optimalLength
+                };
+            }
+            
+            window.parent.postMessage({
+                source: 'ht2',
+                type: 'export_data',
+                sessions: sessionsToExport
+            }, '*');
+            
+            showToast('Đã chuẩn bị dữ liệu export', 'success');
+            
+        } catch (error) {
+            console.error('[HT2] Error exporting session data:', error);
+            showToast('Lỗi khi export dữ liệu', 'error');
+        }
+    }
+
+    // =================== SYSTEM FUNCTIONS ===================
+
+    function resetSystem() {
+        try {
+            // Xóa tất cả dữ liệu
+            state.sessions = {};
+            state.currentSessionId = null;
+            state.currentPrediction = null;
+            state.originalSystemPrediction = null;
+            state.currentFinalPrediction = null;
+            state.currentChotPredictionForLog = null;
+            
+            // Xóa localStorage
+            localStorage.removeItem('baccaratPatternSessions_v11_sim');
+            localStorage.removeItem('lastActiveSession_v11_sim');
+            
+            // Tạo phiên mới
+            createNewSession();
+            updateAllUI();
+            
+            // Gửi cập nhật
+            sendSessionInfo();
+            sendSystemDetails();
+            
+            showToast('Đã reset hệ thống', 'success');
+            
+        } catch (error) {
+            console.error('[HT2] Error resetting system:', error);
+            showToast('Lỗi khi reset hệ thống', 'error');
+        }
+    }
+
+    // =================== HELPER FUNCTIONS ===================
 
     function calculateConfidenceRangeStats(predictions) {
         const ranges = [
@@ -1805,346 +2320,6 @@ document.addEventListener('DOMContentLoaded', initializeApp);
         return ranges;
     }
 
-    function createSession(sessionData) {
-        if (!sessionData || !sessionData.name) return;
-        
-        const newId = `session-${Date.now()}`;
-        state.currentSessionId = newId;
-        state.sessions[newId] = {
-            name: sessionData.name,
-            history: [],
-            predictions: [],
-            verdictPredictions: [],
-            chotPredictions: [],
-            lengthPerformance: {},
-            optimalLength: null,
-            chotLengthPerformance: CHOT_SOURCES.reduce((acc, key) => { acc[key] = {}; return acc; }, {}),
-            chotOptimalLengths: CHOT_SOURCES.reduce((acc, key) => { acc[key] = null; return acc; }, {}),
-        };
-        
-        saveSessions();
-        updateSessionSelector();
-        updateAllUI();
-        
-        sendSessionInfo();
-        sendSystemDetails();
-    }
-
-    function renameSession(sessionData) {
-        if (!sessionData || !sessionData.id || !sessionData.name) return;
-        
-        if (state.sessions[sessionData.id]) {
-            state.sessions[sessionData.id].name = sessionData.name;
-            if (state.currentSessionId === sessionData.id) {
-                saveSessions();
-                updateSessionSelector();
-                updateAllUI();
-                sendSessionInfo();
-            }
-        }
-    }
-
-    function loadSession(sessionData) {
-        if (!sessionData || !sessionData.id) return;
-        
-        // Create session if doesn't exist
-        if (!state.sessions[sessionData.id]) {
-            state.sessions[sessionData.id] = {
-                name: sessionData.name || `Phiên ${sessionData.id}`,
-                history: sessionData.history || [],
-                predictions: [],
-                verdictPredictions: [],
-                chotPredictions: [],
-                lengthPerformance: {},
-                optimalLength: null,
-                chotLengthPerformance: CHOT_SOURCES.reduce((acc, key) => { acc[key] = {}; return acc; }, {}),
-                chotOptimalLengths: CHOT_SOURCES.reduce((acc, key) => { acc[key] = null; return acc; }, {}),
-            };
-        }
-        
-        // Load the session
-        state.currentSessionId = sessionData.id;
-        
-        // If there's history, simulate it
-        if (sessionData.history && sessionData.history.length > 0) {
-            // Clear existing data
-            state.sessions[sessionData.id].history = [];
-            state.sessions[sessionData.id].predictions = [];
-            state.sessions[sessionData.id].verdictPredictions = [];
-            state.sessions[sessionData.id].chotPredictions = [];
-            
-            // Simulate each result
-            sessionData.history.forEach((result, index) => {
-                state.sessions[sessionData.id].history.push(result);
-                
-                // Update analysis after each result
-                if (index >= 9) {
-                    updateAnalysisUI();
-                    updateChotAnalysisUI();
-                }
-            });
-            
-            // Recalculate everything
-            updateAllUI();
-        }
-        
-        saveSessions();
-        updateSessionSelector();
-        updateAllUI();
-        sendSessionInfo();
-        sendSystemDetails();
-    }
-
-    function addResult(result) {
-        if (!state.currentSessionId) return;
-        
-        const session = state.sessions[state.currentSessionId];
-        if (!session) return;
-        
-        const chotRec = state.currentChotPredictionForLog;
-        const tier1Prediction = state.originalSystemPrediction;
-        
-        if (state.currentPrediction) {
-            session.predictions.push({ 
-                predicted: state.currentPrediction.prediction, 
-                actual: result, 
-                confidence: state.currentPrediction.confidence 
-            });
-        }
-        
-        if (state.currentFinalPrediction) {
-            session.verdictPredictions.push({
-                verdict: state.currentFinalPrediction.verdict,
-                predicted: state.currentFinalPrediction.prediction,
-                actual: result
-            });
-        }
-        
-        if (chotRec && chotRec.prediction) {
-            session.chotPredictions.push({ 
-                predicted: chotRec.prediction, 
-                actual: result, 
-                source: 'CHOT_VOTE' 
-            });
-        }
-        
-        updateChotLengthPerformance(session, tier1Prediction, result);
-        session.history.push(result);
-        session.optimalLength = updateLengthPerformanceAndFindOptimal(
-            [...session.history].slice(0, -1), 
-            Object.values(state.sessions), 
-            result
-        );
-        
-        state.currentPrediction = null;
-        state.originalSystemPrediction = null;
-        state.currentFinalPrediction = null;
-        state.currentChotPredictionForLog = null;
-        
-        saveSessions();
-        updateAllUI();
-        
-        // Send updates including system details
-        sendAccuracyUpdate();
-        sendChotHistory();
-        sendPrediction();
-        sendSystemDetails();
-    }
-
-    function undoLast() {
-        if (!state.currentSessionId) return;
-        const session = state.sessions[state.currentSessionId];
-        if (session.history.length === 0) return;
-        
-        const lastResult = session.history.pop();
-        
-        // Undo predictions
-        if (session.chotPredictions.length > 0) session.chotPredictions.pop();
-        if (session.predictions.length > 0) session.predictions.pop();
-        if (session.verdictPredictions && session.verdictPredictions.length > 0) session.verdictPredictions.pop();
-        
-        // Recalculate performance
-        const tier1PredictionToUndo = session.predictions.length > 0 ? 
-            session.predictions[session.predictions.length - 1]?.predicted : null;
-            
-        if (tier1PredictionToUndo) {
-            const actualWLHt1 = (tier1PredictionToUndo === lastResult) ? 'W' : 'L';
-            const allSequencesChot = getChotAnalysisData();
-            const newChotOptimalLengths = { ...session.chotOptimalLengths };
-            
-            for (const sourceKey of CHOT_SOURCES) {
-                const perfDataChot = session.chotLengthPerformance[sourceKey];
-                const historicalSequencesChot = { ...allSequencesChot[sourceKey] };
-                if (historicalSequencesChot) delete historicalSequencesChot[state.currentSessionId];
-                const prevSequenceChot = allSequencesChot[sourceKey]?.[state.currentSessionId] || "";
-                const candidatesChot = [];
-                
-                for (let len = 3; len <= 20; len++) {
-                    if (prevSequenceChot.length < len) continue;
-                    const pattern = prevSequenceChot.slice(-len);
-                    const stats = findNextOutcomeInHistory(pattern, historicalSequencesChot);
-                    if (stats.total > 0 && stats.W !== stats.L) {
-                        const predictedWL = (stats.W > stats.L) ? 'W' : 'L';
-                        if (perfDataChot[len] && perfDataChot[len].total > 0) {
-                            perfDataChot[len].total--;
-                            if (predictedWL === actualWLHt1 && perfDataChot[len].wins > 0) {
-                                perfDataChot[len].wins--;
-                            }
-                        }
-                    }
-                    if (perfDataChot[len] && perfDataChot[len].total > 0) {
-                        candidatesChot.push({ 
-                            length: len, 
-                            rate: perfDataChot[len].wins / perfDataChot[len].total, 
-                            total: perfDataChot[len].total 
-                        });
-                    }
-                }
-                
-                if (candidatesChot.length > 0) {
-                    candidatesChot.sort((a, b) => b.rate !== a.rate ? b.rate - a.rate : b.total - a.total);
-                    newChotOptimalLengths[sourceKey] = candidatesChot[0].length;
-                } else {
-                    newChotOptimalLengths[sourceKey] = null;
-                }
-            }
-            session.chotOptimalLengths = newChotOptimalLengths;
-        }
-        
-        // Recalculate HT1 optimal length
-        session.optimalLength = updateLengthPerformanceAndFindOptimal(
-            session.history, 
-            Object.values(state.sessions), 
-            null
-        );
-        
-        saveSessions();
-        updateAllUI();
-        
-        // Send updates
-        sendAccuracyUpdate();
-        sendChotHistory();
-        sendSystemDetails();
-    }
-
-    function clearCurrentSessionHistory() {
-        if (!state.currentSessionId) return;
-        const session = state.sessions[state.currentSessionId];
-        session.history = [];
-        session.predictions = [];
-        session.verdictPredictions = [];
-        session.chotPredictions = [];
-        session.lengthPerformance = {};
-        session.optimalLength = null;
-        session.chotLengthPerformance = CHOT_SOURCES.reduce((acc, key) => { acc[key] = {}; return acc; }, {});
-        session.chotOptimalLengths = CHOT_SOURCES.reduce((acc, key) => { acc[key] = null; return acc; }, {});
-        
-        saveSessions();
-        updateAllUI();
-        
-        // Send updates
-        sendAccuracyUpdate();
-        sendChotHistory();
-        sendSystemDetails();
-    }
-
-    function importSimulatedData(data) {
-        if (!data || !data.sessions) return;
-        
-        // Clear existing data
-        state.sessions = {};
-        state.currentSessionId = null;
-        
-        showLoadingModal('Đang nhập dữ liệu mô phỏng...');
-        
-        setTimeout(() => {
-            try {
-                // Check if it's master data
-                if (data.isMasterData) {
-                    console.log('[HT2] Importing MASTER data');
-                    // Convert master data to HT2 format
-                    const convertedSessions = {};
-                    
-                    Object.keys(data.sessions).forEach(sessionId => {
-                        const masterSession = data.sessions[sessionId];
-                        convertedSessions[sessionId] = {
-                            name: masterSession.name,
-                            history: masterSession.history || [],
-                            predictions: [],
-                            verdictPredictions: [],
-                            chotPredictions: [],
-                            lengthPerformance: {},
-                            optimalLength: null,
-                            chotLengthPerformance: CHOT_SOURCES.reduce((acc, key) => { acc[key] = {}; return acc; }, {}),
-                            chotOptimalLengths: CHOT_SOURCES.reduce((acc, key) => { acc[key] = null; return acc; }, {}),
-                        };
-                    });
-                    
-                    runSimulation(convertedSessions);
-                } else {
-                    // Regular HT2 data
-                    runSimulation(data.sessions);
-                }
-                
-                hideLoadingModal();
-                
-                // Send all updates
-                sendAccuracyUpdate();
-                sendChotHistory();
-                sendSessionInfo();
-                sendSystemDetails();
-                
-                window.parent.postMessage({
-                    source: 'ht2',
-                    type: 'import_complete'
-                }, '*');
-            } catch (error) {
-                hideLoadingModal();
-                console.error('[HT2] Import simulation error:', error);
-                showToast('Lỗi khi import dữ liệu', 'error');
-            }
-        }, 100);
-    }
-
-    function exportSessionData() {
-        const sessionsToExport = {};
-        for (const sessionId in state.sessions) {
-            sessionsToExport[sessionId] = {
-                name: state.sessions[sessionId].name,
-                history: state.sessions[sessionId].history,
-                chotPredictions: state.sessions[sessionId].chotPredictions || [],
-                predictions: state.sessions[sessionId].predictions || [],
-                verdictPredictions: state.sessions[sessionId].verdictPredictions || []
-            };
-        }
-        
-        window.parent.postMessage({
-            source: 'ht2',
-            type: 'export_data',
-            sessions: sessionsToExport
-        }, '*');
-    }
-
-    function resetSystem() {
-        state.sessions = {};
-        state.currentSessionId = null;
-        state.currentPrediction = null;
-        state.originalSystemPrediction = null;
-        state.currentFinalPrediction = null;
-        state.currentChotPredictionForLog = null;
-        
-        localStorage.removeItem('baccaratPatternSessions_v11_sim');
-        localStorage.removeItem('lastActiveSession_v11_sim');
-        
-        createNewSession();
-        updateAllUI();
-        
-        // Send updates
-        sendSessionInfo();
-        sendSystemDetails();
-    }
-
-    // Helper function to find next outcome in history (for Chot analysis)
     function findNextOutcomeInHistory(pattern, historicalSequences) {
         if (!pattern || pattern.length < 1) return { W: 0, L: 0, total: 0 };
         let W = 0, L = 0;
@@ -2163,7 +2338,6 @@ document.addEventListener('DOMContentLoaded', initializeApp);
         return { W, L, total: W + L };
     }
 
-    // Helper function to get Chot analysis data
     function getChotAnalysisData() {
         const sequencesBySource = CHOT_SOURCES.reduce((acc, key) => { acc[key] = {}; return acc; }, {});
         for (const sessionId in state.sessions) {
@@ -2199,6 +2373,24 @@ document.addEventListener('DOMContentLoaded', initializeApp);
         }
         return sequencesBySource;
     }
+
+    // =================== INITIALIZATION ===================
+
+    // Khởi tạo sự kiện load
+    window.addEventListener('load', function() {
+        // Gửi thông báo ready sau khi trang đã tải xong
+        setTimeout(() => {
+            window.parent.postMessage({
+                source: 'ht2',
+                type: 'ready'
+            }, '*');
+            
+            // Gửi dữ liệu ban đầu
+            sendSessionInfo();
+            sendSystemDetails();
+        }, 1500);
+    });
+
 })();
 </script>
 </body>
