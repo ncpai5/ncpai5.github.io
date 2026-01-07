@@ -1720,7 +1720,7 @@ document.getElementById('toggleSessionIcon').style.transform = 'rotate(-180deg)'
 document.addEventListener('DOMContentLoaded', initializeApp)
 </script>
 <script>
-// =================== IFRAME COMMUNICATION FOR HT3 - COMPLETE & UPDATED ===================
+// =================== IFRAME COMMUNICATION FOR HT3 - COMPLETE UPGRADED VERSION ===================
 (function() {
     // Notify parent that system is ready
     window.addEventListener('load', function() {
@@ -1740,8 +1740,6 @@ document.addEventListener('DOMContentLoaded', initializeApp)
     });
 
     function handleMasterCommand(data) {
-        console.log("[HT3] Received command:", data.command);
-        
         switch(data.command) {
             case 'get_accuracy':
                 sendAccuracyUpdate();
@@ -1886,7 +1884,7 @@ document.addEventListener('DOMContentLoaded', initializeApp)
         try {
             // Priority: Chốt > Phán Quyết > Hệ thống
             const prediction = state.currentChotPredictionForLog?.prediction || 
-                              state.currentChotPredictionForLog || // If it's a string
+                              state.currentChotPredictionForLog || // Nếu là string
                               state.currentFinalPrediction?.prediction || 
                               state.originalSystemPrediction ||
                               state.currentPrediction?.prediction ||
@@ -1905,37 +1903,51 @@ document.addEventListener('DOMContentLoaded', initializeApp)
     function sendSystemDetails() {
         try {
             const details = {
-                verdict: null,      // 🧠 Phán Quyết (Phân Tích Tổng Hợp)
-                chot: null,         // 🔐 Chốt Phán Quyết
-                range: null,        // Khoảng tỷ lệ
-                rangeAccuracy: null, // Tỉ lệ khoảng
-                rangeTotal: 0,      // Tổng số ván trong khoảng
-                rangeWins: 0,       // Số ván thắng trong khoảng
-                intervalHistory: [] // Dữ liệu biểu đồ
+                verdict: '-',           // 🧠 Phán Quyết
+                verdictSimple: '-',     // 🧠 Phán Quyết đơn giản (P/B)
+                verdictColor: 'text-gray-400',
+                chot: '-',              // 🔐 Chốt Phán Quyết
+                chotColor: 'text-gray-400',
+                range: 'Chưa xác định', // Khoảng tỷ lệ
+                rangeAccuracy: 0,       // Tỉ lệ phần trăm của khoảng
+                rangeTotal: 0,          // Tổng số ván trong khoảng
+                rangeWins: 0,           // Số ván thắng trong khoảng
+                intervalHistory: []     // Dữ liệu biểu đồ
             };
             
             // 1. Lấy 🧠 Phán Quyết (Phân Tích Tổng Hợp)
             if (state.currentFinalPrediction && state.currentFinalPrediction.prediction) {
-                details.verdict = state.currentFinalPrediction.prediction;
+                const verdictType = state.currentFinalPrediction.verdict === 'follow' ? 'THEO' : 
+                                  state.currentFinalPrediction.verdict === 'against' ? 'NGƯỢC' : '';
+                
+                details.verdict = `${state.currentFinalPrediction.prediction} ${verdictType}`.trim();
+                details.verdictSimple = state.currentFinalPrediction.prediction;
+                details.verdictColor = state.currentFinalPrediction.prediction === 'P' ? 'text-blue-400' : 'text-red-400';
             } else if (state.currentPrediction && state.currentPrediction.prediction) {
                 details.verdict = state.currentPrediction.prediction;
+                details.verdictSimple = state.currentPrediction.prediction;
+                details.verdictColor = state.currentPrediction.prediction === 'P' ? 'text-blue-400' : 'text-red-400';
             } else if (state.originalSystemPrediction) {
                 details.verdict = state.originalSystemPrediction;
+                details.verdictSimple = state.originalSystemPrediction;
+                details.verdictColor = state.originalSystemPrediction === 'P' ? 'text-blue-400' : 'text-red-400';
             }
             
             // 2. Lấy 🔐 Chốt Phán Quyết
             if (state.currentChotPredictionForLog) {
                 details.chot = state.currentChotPredictionForLog.prediction || state.currentChotPredictionForLog;
+                details.chotColor = details.chot === 'P' ? 'text-blue-400' : 'text-red-400';
             } else {
                 // Fallback: Kiểm tra từ UI
-                const finalChotResultText = document.getElementById('finalChotResultText') || 
-                                           document.querySelector('#finalChotResult p:nth-child(2)');
-                if (finalChotResultText) {
-                    const text = finalChotResultText.textContent || '';
+                const finalChotResult = document.getElementById('finalChotResult');
+                if (finalChotResult) {
+                    const text = finalChotResult.textContent || '';
                     if (text.includes('PLAYER')) {
                         details.chot = 'P';
+                        details.chotColor = 'text-blue-400';
                     } else if (text.includes('BANKER')) {
                         details.chot = 'B';
+                        details.chotColor = 'text-red-400';
                     }
                 }
             }
@@ -1949,18 +1961,14 @@ document.addEventListener('DOMContentLoaded', initializeApp)
                 let foundRange = null;
                 let rangeDisplay = '';
                 
-                // Kiểm tra từng khoảng trong sessionConfidenceRanges
+                // Tìm trong sessionConfidenceRanges
                 if (state.sessionConfidenceRanges && state.sessionConfidenceRanges.length > 0) {
-                    foundRange = state.sessionConfidenceRanges.find(r => {
-                        if (r.max === 100.1) {
-                            return currentConfidence >= r.min && currentConfidence <= 100;
-                        }
-                        return currentConfidence >= r.min && currentConfidence < r.max;
-                    });
+                    foundRange = state.sessionConfidenceRanges.find(r => 
+                        currentConfidence >= r.min && currentConfidence < r.max
+                    );
                     
                     if (foundRange) {
-                        const maxDisplay = foundRange.max === 100.1 ? 100 : foundRange.max;
-                        rangeDisplay = `${foundRange.min}-${maxDisplay}%`;
+                        rangeDisplay = `${foundRange.min}-${foundRange.max === 100.1 ? 100 : foundRange.max}%`;
                         details.range = rangeDisplay;
                         
                         // Làm tròn tỉ lệ
@@ -1973,9 +1981,6 @@ document.addEventListener('DOMContentLoaded', initializeApp)
                         const allPredictions = session.predictions || [];
                         const predictionsInRange = allPredictions.filter(p => {
                             const conf = p.confidence || 0;
-                            if (foundRange.max === 100.1) {
-                                return conf >= foundRange.min && conf <= 100;
-                            }
                             return conf >= foundRange.min && conf < foundRange.max;
                         });
                         
@@ -2005,18 +2010,11 @@ document.addEventListener('DOMContentLoaded', initializeApp)
                             parseFloat(state.deathRange.rate.toFixed(1)) : 0;
                         details.rangeTotal = state.deathRange.total || 0;
                         details.rangeWins = state.deathRange.wins || 0;
-                    } else {
-                        details.range = "Chưa xác định";
-                        details.rangeAccuracy = 0;
                     }
                 }
-            } else {
-                // Không có confidence hiện tại
-                details.range = "Chưa có dự đoán";
-                details.rangeAccuracy = 0;
             }
             
-            // Gửi chi tiết hệ thống về master
+            // Gửi thông tin chi tiết hệ thống
             window.parent.postMessage({
                 source: 'ht3',
                 type: 'system_details_update',
@@ -2030,10 +2028,11 @@ document.addEventListener('DOMContentLoaded', initializeApp)
                 source: 'ht3',
                 type: 'system_details_update',
                 details: {
-                    verdict: state.currentFinalPrediction?.prediction || 
-                            state.currentPrediction?.prediction || 
-                            state.originalSystemPrediction,
-                    chot: state.currentChotPredictionForLog?.prediction || state.currentChotPredictionForLog,
+                    verdict: '-',
+                    verdictSimple: '-',
+                    verdictColor: 'text-gray-400',
+                    chot: '-',
+                    chotColor: 'text-gray-400',
                     range: "Lỗi tính toán",
                     rangeAccuracy: 0,
                     intervalHistory: []
@@ -2492,19 +2491,6 @@ document.addEventListener('DOMContentLoaded', initializeApp)
         }
     }
 
-    // =================== HELPER FUNCTIONS ===================
-
-    // Helper function to find the element by ID or selector
-    function findElement(selector) {
-        if (typeof selector === 'string') {
-            if (selector.startsWith('#')) {
-                return document.getElementById(selector.substring(1));
-            }
-            return document.querySelector(selector);
-        }
-        return selector;
-    }
-
     // =================== INITIALIZATION ===================
 
     // Khởi tạo sự kiện load
@@ -2521,39 +2507,6 @@ document.addEventListener('DOMContentLoaded', initializeApp)
             sendSystemDetails();
         }, 1500);
     });
-
-    // Đảm bảo các hàm UI cần thiết tồn tại
-    if (typeof showToast === 'undefined') {
-        window.showToast = function(message, type = 'info') {
-            console.log(`[HT3 Toast ${type}]: ${message}`);
-        };
-    }
-
-    if (typeof showLoadingModal === 'undefined') {
-        window.showLoadingModal = function(message) {
-            console.log(`[HT3 Loading]: ${message}`);
-        };
-    }
-
-    if (typeof hideLoadingModal === 'undefined') {
-        window.hideLoadingModal = function() {
-            console.log('[HT3] Hide loading modal');
-        };
-    }
-
-    if (typeof updateAllUI === 'undefined') {
-        window.updateAllUI = function() {
-            console.log('[HT3] Update all UI called');
-            // Gọi các hàm UI cơ bản nếu tồn tại
-            if (typeof updateBigRoadUI === 'function') updateBigRoadUI();
-            if (typeof updateAccuracyUI === 'function') updateAccuracyUI();
-            if (typeof updateGlobalAccuracyUI === 'function') updateGlobalAccuracyUI();
-            if (typeof updateAnalysisUI === 'function') updateAnalysisUI();
-            if (typeof updateConfidenceStatsUI === 'function') updateConfidenceStatsUI();
-            if (typeof updateVerdictStatsUI === 'function') updateVerdictStatsUI();
-            if (typeof updateChotAnalysisUI === 'function') updateChotAnalysisUI();
-        };
-    }
 
 })();
 </script>
