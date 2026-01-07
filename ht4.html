@@ -1859,8 +1859,7 @@ document.addEventListener('DOMContentLoaded', initializeApp)
 
 
 </script>
-<script>
-// =================== IFRAME COMMUNICATION FOR HT4 - COMPLETE ===================
+// =================== IFRAME COMMUNICATION FOR HT4 - COMPLETE & UPDATED ===================
 (function() {
     // Notify parent that system is ready
     window.addEventListener('load', function() {
@@ -2039,7 +2038,6 @@ document.addEventListener('DOMContentLoaded', initializeApp)
         }
     }
 
-    // =================== UPDATED FUNCTION: SYSTEM DETAILS FOR HT4 ===================
     function sendSystemDetails() {
         try {
             const details = {
@@ -2101,7 +2099,7 @@ document.addEventListener('DOMContentLoaded', initializeApp)
                 let foundRange = null;
                 let rangeDisplay = '';
                 
-                // Tìm trong sessionConfidenceRanges
+                // Tìm trong sessionConfidenceRanges (HT4 có thể có cấu trúc tương tự)
                 if (state.sessionConfidenceRanges && state.sessionConfidenceRanges.length > 0) {
                     foundRange = state.sessionConfidenceRanges.find(r => 
                         currentConfidence >= r.min && currentConfidence < r.max
@@ -2134,7 +2132,7 @@ document.addEventListener('DOMContentLoaded', initializeApp)
                     }
                 }
                 
-                // Nếu không tìm thấy, thử khoảng vàng/khoảng tử
+                // Nếu không tìm thấy, thử khoảng vàng/khoảng tử (nếu HT4 có)
                 if (!foundRange) {
                     if (state.goldenRange) {
                         const maxDisplay = state.goldenRange.max === 100.1 ? 100 : state.goldenRange.max;
@@ -2192,6 +2190,8 @@ document.addEventListener('DOMContentLoaded', initializeApp)
         try {
             const newId = sessionData.id || `session-${Date.now()}`;
             state.currentSessionId = newId;
+            
+            // Tạo session với cấu trúc của HT4
             state.sessions[newId] = {
                 name: sessionData.name,
                 history: [],
@@ -2200,14 +2200,9 @@ document.addEventListener('DOMContentLoaded', initializeApp)
                 chotPredictions: [],
                 lengthPerformance: {},
                 optimalLength: null,
-                chotLengthPerformance: CHOT_SOURCES ? CHOT_SOURCES.reduce((acc, key) => { 
-                    acc[key] = {}; 
-                    return acc; 
-                }, {}) : {},
-                chotOptimalLengths: CHOT_SOURCES ? CHOT_SOURCES.reduce((acc, key) => { 
-                    acc[key] = null; 
-                    return acc; 
-                }, {}) : {},
+                // HT4 có thể có thêm các trường khác nếu cần
+                chotLengthPerformance: {},
+                chotOptimalLengths: {},
             };
             
             saveSessions();
@@ -2271,14 +2266,8 @@ document.addEventListener('DOMContentLoaded', initializeApp)
                     chotPredictions: [],
                     lengthPerformance: {},
                     optimalLength: null,
-                    chotLengthPerformance: CHOT_SOURCES ? CHOT_SOURCES.reduce((acc, key) => { 
-                        acc[key] = {}; 
-                        return acc; 
-                    }, {}) : {},
-                    chotOptimalLengths: CHOT_SOURCES ? CHOT_SOURCES.reduce((acc, key) => { 
-                        acc[key] = null; 
-                        return acc; 
-                    }, {}) : {},
+                    chotLengthPerformance: {},
+                    chotOptimalLengths: {},
                 };
             }
             
@@ -2300,8 +2289,8 @@ document.addEventListener('DOMContentLoaded', initializeApp)
                     
                     // Cập nhật phân tích sau mỗi kết quả
                     if (index >= 9) {
-                        if (typeof updateAnalysisUI === 'function') updateAnalysisUI();
-                        if (typeof updateChotAnalysisUI === 'function') updateChotAnalysisUI();
+                        updateAnalysisUI();
+                        updateChotAnalysisUI();
                     }
                 });
                 
@@ -2350,7 +2339,6 @@ document.addEventListener('DOMContentLoaded', initializeApp)
             
             // Ghi log Prediction HT4
             if (state.currentPrediction && state.currentPrediction.prediction) {
-                if (!session.predictions) session.predictions = [];
                 session.predictions.push({ 
                     predicted: state.currentPrediction.prediction, 
                     actual: result, 
@@ -2378,22 +2366,18 @@ document.addEventListener('DOMContentLoaded', initializeApp)
                 });
             }
             
-            // Cập nhật Performance (nếu có hàm tương ứng)
-            if (typeof updateChotLengthPerformance === 'function') {
-                updateChotLengthPerformance(session, tier1Prediction, result);
-            }
+            // Cập nhật Performance (nếu HT4 có cơ chế tương tự)
+            updateChotLengthPerformance(session, tier1Prediction, result);
             
             // Thêm kết quả vào history
             session.history.push(result);
             
-            // Cập nhật optimal length (nếu có hàm tương ứng)
-            if (typeof updateLengthPerformanceAndFindOptimal === 'function') {
-                session.optimalLength = updateLengthPerformanceAndFindOptimal(
-                    [...session.history].slice(0, -1), 
-                    Object.values(state.sessions), 
-                    result
-                );
-            }
+            // Cập nhật optimal length (nếu HT4 có cơ chế tương tự)
+            session.optimalLength = updateLengthPerformanceAndFindOptimal(
+                [...session.history].slice(0, -1), 
+                Object.values(state.sessions), 
+                result
+            );
             
             // Reset state cho ván sau
             state.currentPrediction = null;
@@ -2439,15 +2423,101 @@ document.addEventListener('DOMContentLoaded', initializeApp)
                 session.chotPredictions.pop();
             }
 
-            // Hoàn tác Predictions
-            if (session.predictions && session.predictions.length > 0) {
-                session.predictions.pop();
+            // Hoàn tác Chốt Performance (nếu HT4 có cơ chế tương tự)
+            const tier1PredictionToUndo = session.predictions.length > 0 ? 
+                session.predictions[session.predictions.length - 1].predicted : null;
+            
+            if (tier1PredictionToUndo && session.chotLengthPerformance) {
+                const actualWLHt1 = (tier1PredictionToUndo === lastResult) ? 'W' : 'L';
+                const allSequencesChot = getChotAnalysisData();
+                const newChotOptimalLengths = { ...session.chotOptimalLengths };
+                
+                for (const sourceKey in session.chotLengthPerformance) {
+                    const perfDataChot = session.chotLengthPerformance[sourceKey];
+                    const historicalSequencesChot = { ...allSequencesChot[sourceKey] };
+                    if (historicalSequencesChot) delete historicalSequencesChot[state.currentSessionId];
+                    const prevSequenceChot = allSequencesChot[sourceKey]?.[state.currentSessionId] || "";
+                    const candidatesChot = [];
+                    
+                    for (let len = 3; len <= 20; len++) {
+                        if (prevSequenceChot.length < len) continue;
+                        const pattern = prevSequenceChot.slice(-len);
+                        const stats = findNextOutcomeInHistory(pattern, historicalSequencesChot);
+                        if (stats.total > 0 && stats.W !== stats.L) {
+                            const predictedWL = (stats.W > stats.L) ? 'W' : 'L';
+                            if (perfDataChot[len] && perfDataChot[len].total > 0) {
+                                perfDataChot[len].total--;
+                                if (predictedWL === actualWLHt1 && perfDataChot[len].wins > 0) {
+                                    perfDataChot[len].wins--;
+                                }
+                            }
+                        }
+                        if (perfDataChot[len] && perfDataChot[len].total > 0) {
+                            candidatesChot.push({ 
+                                length: len, 
+                                rate: perfDataChot[len].wins / perfDataChot[len].total, 
+                                total: perfDataChot[len].total 
+                            });
+                        }
+                    }
+                    
+                    if (candidatesChot.length > 0) {
+                        candidatesChot.sort((a, b) => b.rate !== a.rate ? b.rate - a.rate : b.total - a.total);
+                        newChotOptimalLengths[sourceKey] = candidatesChot[0].length;
+                    } else {
+                        newChotOptimalLengths[sourceKey] = null;
+                    }
+                }
+                session.chotOptimalLengths = newChotOptimalLengths;
             }
 
-            // Hoàn tác Verdict predictions
-            if (session.verdictPredictions && session.verdictPredictions.length > 0) {
-                session.verdictPredictions.pop();
+            // Hoàn tác HT4 Performance
+            if (session.lengthPerformance) {
+                for (let len = 10; len <= 20; len++) {
+                    if (historyForUndo.length < len) continue;
+                    const pattern = historyForUndo.slice(-len);
+                    const tempAllSessions = Object.values(state.sessions).map(s =>
+                        s.sessionId === state.currentSessionId ? { ...s, history: [...historyForUndo] } : s
+                    );
+                    const { prediction } = state.matcher.getPredictionForPattern(pattern, tempAllSessions);
+                    if (prediction) {
+                        const stats = session.lengthPerformance[len];
+                        if (stats && stats.total > 0) {
+                            stats.total--;
+                            if (prediction === lastResult && stats.wins > 0) {
+                                stats.wins--;
+                            }
+                        }
+                    }
+                }
             }
+            
+            // Tính lại optimalLength HT4
+            const candidatesHt1 = [];
+            if (session.lengthPerformance) {
+                for (const len in session.lengthPerformance) {
+                    const stats = session.lengthPerformance[len];
+                    if (stats.total > 0) {
+                        candidatesHt1.push({ 
+                            length: parseInt(len, 10), 
+                            rate: stats.wins / stats.total, 
+                            total: stats.total 
+                        });
+                    }
+                }
+            }
+            
+            if (candidatesHt1.length > 0) {
+                candidatesHt1.sort((a, b) => b.rate !== a.rate ? b.rate - a.rate : b.total - a.total);
+                session.optimalLength = candidatesHt1[0].length;
+            } else {
+                session.optimalLength = null;
+            }
+
+            // Pop predictions HT4 và Verdict
+            if (session.predictions.length > 0) session.predictions.pop();
+            if (session.verdictPredictions && session.verdictPredictions.length > 0) 
+                session.verdictPredictions.pop();
 
             saveSessions();
             updateAllUI();
@@ -2480,17 +2550,8 @@ document.addEventListener('DOMContentLoaded', initializeApp)
             session.chotPredictions = [];
             session.lengthPerformance = {};
             session.optimalLength = null;
-            
-            if (CHOT_SOURCES) {
-                session.chotLengthPerformance = CHOT_SOURCES.reduce((acc, key) => { 
-                    acc[key] = {}; 
-                    return acc; 
-                }, {});
-                session.chotOptimalLengths = CHOT_SOURCES.reduce((acc, key) => { 
-                    acc[key] = null; 
-                    return acc; 
-                }, {});
-            }
+            session.chotLengthPerformance = {};
+            session.chotOptimalLengths = {};
             
             saveSessions();
             updateAllUI();
@@ -2536,14 +2597,8 @@ document.addEventListener('DOMContentLoaded', initializeApp)
                             chotPredictions: [],
                             lengthPerformance: {},
                             optimalLength: null,
-                            chotLengthPerformance: CHOT_SOURCES ? CHOT_SOURCES.reduce((acc, key) => { 
-                                acc[key] = {}; 
-                                return acc; 
-                            }, {}) : {},
-                            chotOptimalLengths: CHOT_SOURCES ? CHOT_SOURCES.reduce((acc, key) => { 
-                                acc[key] = null; 
-                                return acc; 
-                            }, {}) : {},
+                            chotLengthPerformance: {},
+                            chotOptimalLengths: {},
                         };
                     });
                     
@@ -2583,12 +2638,12 @@ document.addEventListener('DOMContentLoaded', initializeApp)
                 sessionsToExport[sessionId] = {
                     name: state.sessions[sessionId].name,
                     history: state.sessions[sessionId].history,
-                    chotPredictions: state.sessions[sessionId].chotPredictions || [],
-                    predictions: state.sessions[sessionId].predictions || [],
-                    verdictPredictions: state.sessions[sessionId].verdictPredictions || [],
+                    chotPredictions: state.sessions[sessionId].chotPredictions,
+                    predictions: state.sessions[sessionId].predictions,
+                    verdictPredictions: state.sessions[sessionId].verdictPredictions,
                     chotLengthPerformance: state.sessions[sessionId].chotLengthPerformance || {},
                     chotOptimalLengths: state.sessions[sessionId].chotOptimalLengths || {},
-                    lengthPerformance: state.sessions[sessionId].lengthPerformance || {},
+                    lengthPerformance: state.sessions[sessionId].lengthPerformance,
                     optimalLength: state.sessions[sessionId].optimalLength
                 };
             }
@@ -2619,7 +2674,7 @@ document.addEventListener('DOMContentLoaded', initializeApp)
             state.currentFinalPrediction = null;
             state.currentChotPredictionForLog = null;
             
-            // Xóa localStorage
+            // Xóa localStorage (điều chỉnh tên key cho HT4 nếu cần)
             localStorage.removeItem('baccaratPatternSessions_v11_sim');
             localStorage.removeItem('lastActiveSession_v11_sim');
             
@@ -2637,6 +2692,36 @@ document.addEventListener('DOMContentLoaded', initializeApp)
             console.error('[HT4] Error resetting system:', error);
             showToast('Lỗi khi reset hệ thống', 'error');
         }
+    }
+
+    // =================== HELPER FUNCTIONS (cần cho HT4) ===================
+
+    // Các hàm helper giả định - cần điều chỉnh cho phù hợp với HT4
+    function updateChotLengthPerformance(session, tier1Prediction, result) {
+        // Cài đặt logic cập nhật performance cho HT4
+        // Đây là placeholder - cần thay bằng logic thực tế của HT4
+        if (tier1Prediction) {
+            const actualWLHt1 = (tier1Prediction === result) ? 'W' : 'L';
+            // Logic cập nhật performance
+        }
+    }
+
+    function updateLengthPerformanceAndFindOptimal(history, allSessions, result) {
+        // Cài đặt logic tìm optimal length cho HT4
+        // Đây là placeholder - cần thay bằng logic thực tế của HT4
+        return null;
+    }
+
+    function getChotAnalysisData() {
+        // Trả về dữ liệu phân tích chốt cho HT4
+        // Đây là placeholder - cần thay bằng logic thực tế của HT4
+        return {};
+    }
+
+    function findNextOutcomeInHistory(pattern, historicalSequences) {
+        // Tìm kết quả tiếp theo trong lịch sử
+        // Đây là placeholder - cần thay bằng logic thực tế của HT4
+        return { total: 0, W: 0, L: 0 };
     }
 
     // =================== INITIALIZATION ===================
@@ -2657,6 +2742,5 @@ document.addEventListener('DOMContentLoaded', initializeApp)
     });
 
 })();
-</script>
 </body>
 </html>
