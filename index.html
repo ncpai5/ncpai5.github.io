@@ -132,6 +132,21 @@
         .game-correct { background-color: #10b981; color: white; }
         .game-incorrect { background-color: #ef4444; color: white; }
         .game-neutral { background-color: #6b7280; color: white; }
+        /* Biểu đồ cho QUYẾT ĐỊNH CUỐI CÙNG */
+        .final-decision-bar {
+            flex-shrink: 0;
+            width: 8px;
+            border-radius: 2px;
+            margin: 0 1px;
+        }
+        .final-decision-correct {
+            background-color: #3b82f6; /* Xanh dương */
+            height: 100%;
+        }
+        .final-decision-incorrect {
+            background-color: #ef4444; /* Đỏ */
+            height: 40%;
+        }
     </style>
 </head>
 <body class="p-4 md:p-8">
@@ -482,7 +497,77 @@
                     </div>
                 </div>
 
-                <!-- Biểu đồ cột thống kê đúng sai từng ván -->
+                <!-- PHẦN THỐNG KÊ VÀ BIỂU ĐỒ CHO QUYẾT ĐỊNH CUỐI CÙNG -->
+                <div class="mt-6 bg-gray-900 bg-opacity-50 p-4 rounded-xl">
+                    <h3 class="text-lg font-semibold mb-4 text-center text-cyan-300">📊 THỐNG KÊ ĐÚNG/SAI QUYẾT ĐỊNH CUỐI CÙNG</h3>
+                    
+                    <!-- Stats Summary -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                        <div class="bg-gray-800 p-4 rounded-lg text-center">
+                            <div class="text-gray-300 text-sm mb-1">Tổng số ván</div>
+                            <div id="final-total-games" class="text-3xl font-bold text-white">0</div>
+                        </div>
+                        <div class="bg-gray-800 p-4 rounded-lg text-center">
+                            <div class="text-gray-300 text-sm mb-1">Số ván đúng</div>
+                            <div id="final-correct-games" class="text-3xl font-bold text-green-400">0</div>
+                        </div>
+                        <div class="bg-gray-800 p-4 rounded-lg text-center">
+                            <div class="text-gray-300 text-sm mb-1">Tỷ lệ đúng</div>
+                            <div id="final-accuracy-rate" class="text-3xl font-bold text-yellow-400">0%</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Final Decision History Chart -->
+                    <div class="mb-4">
+                        <h4 class="text-lg font-semibold mb-3 text-center text-gray-300">BIỂU ĐỒ ĐÚNG/SAI TỪNG VÁN - QUYẾT ĐỊNH CUỐI CÙNG</h4>
+                        <div class="bg-gray-800 p-4 rounded-lg">
+                            <div class="mb-3">
+                                <div class="flex items-center justify-center gap-4 mb-2">
+                                    <div class="flex items-center">
+                                        <div class="w-4 h-4 bg-blue-500 mr-2"></div>
+                                        <span class="text-sm text-gray-300">ĐÚNG (cột dài)</span>
+                                    </div>
+                                    <div class="flex items-center">
+                                        <div class="w-4 h-4 bg-red-500 mr-2"></div>
+                                        <span class="text-sm text-gray-300">SAI (cột ngắn)</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div id="final-decision-chart" class="history-chart" style="height: 80px;">
+                                <p class="text-gray-500 text-center">Chưa có dữ liệu...</p>
+                            </div>
+                            <div class="flex justify-between mt-2 text-xs text-gray-400">
+                                <span>Ván 1</span>
+                                <span>Ván cuối</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Recent Final Decisions Table -->
+                    <div class="mt-4 bg-gray-800 p-4 rounded-lg">
+                        <h4 class="text-lg font-semibold mb-3 text-center text-gray-300">LỊCH SỬ QUYẾT ĐỊNH CUỐI CÙNG</h4>
+                        <div id="final-decision-history" class="max-h-48 overflow-y-auto">
+                            <table class="w-full text-sm">
+                                <thead class="bg-gray-700">
+                                    <tr>
+                                        <th class="p-2 text-left">Ván</th>
+                                        <th class="p-2 text-left">Quyết định</th>
+                                        <th class="p-2 text-left">Kết quả</th>
+                                        <th class="p-2 text-left">Trạng thái</th>
+                                        <th class="p-2 text-left">Lý do</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="final-decision-history-body" class="text-gray-300">
+                                    <tr>
+                                        <td colspan="5" class="p-4 text-center text-gray-500">Chưa có dữ liệu...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Biểu đồ cột thống kê đúng sai từng ván (cho từng hệ thống) -->
                 <div class="mt-6 bg-gray-900 bg-opacity-50 p-4 rounded-xl">
                     <h3 class="text-lg font-semibold mb-4 text-center text-cyan-300">📈 BIỂU ĐỒ CỘT THỐNG KÊ ĐÚNG SAI TỪNG VÁN</h3>
                     
@@ -592,6 +677,7 @@
             ht3ChotHistory: [],
             ht4ChotHistory: [],
             lastDecision: null,
+            lastDecisionReason: '',
             systemsReady: {
                 ht1: false,
                 ht2: false,
@@ -609,7 +695,9 @@
                 ht2: { verdict: null, chot: null, range: null, rangeAccuracy: null, intervalHistory: [] },
                 ht3: { verdict: null, chot: null, range: null, rangeAccuracy: null, intervalHistory: [] },
                 ht4: { verdict: null, chot: null, range: null, rangeAccuracy: null, intervalHistory: [] }
-            }
+            },
+            // LỊCH SỬ QUYẾT ĐỊNH CUỐI CÙNG
+            finalDecisionHistory: [] // { gameNumber: số, decision: 'P'/'B', actual: 'P'/'B', correct: boolean, reason: string, timestamp: số }
         };
 
         // Chart instances
@@ -924,6 +1012,133 @@
             
             reasonEl.textContent = reason;
             masterState.lastDecision = decision;
+            masterState.lastDecisionReason = reason;
+        }
+
+        // =================== THỐNG KÊ VÀ BIỂU ĐỒ CHO QUYẾT ĐỊNH CUỐI CÙNG ===================
+        function updateFinalDecisionStats() {
+            const history = masterState.finalDecisionHistory;
+            const totalGames = history.length;
+            const correctGames = history.filter(item => item.correct).length;
+            const accuracyRate = totalGames > 0 ? ((correctGames / totalGames) * 100).toFixed(1) : 0;
+            
+            // Cập nhật thống kê
+            document.getElementById('final-total-games').textContent = totalGames;
+            document.getElementById('final-correct-games').textContent = correctGames;
+            document.getElementById('final-accuracy-rate').textContent = `${accuracyRate}%`;
+            
+            // Cập nhật biểu đồ
+            updateFinalDecisionChart();
+            
+            // Cập nhật lịch sử
+            updateFinalDecisionHistoryTable();
+        }
+
+        function updateFinalDecisionChart() {
+            const history = masterState.finalDecisionHistory;
+            const chartEl = document.getElementById('final-decision-chart');
+            
+            if (!chartEl) return;
+            
+            if (!history || history.length === 0) {
+                chartEl.innerHTML = '<p class="text-gray-500 text-center">Chưa có dữ liệu...</p>';
+                return;
+            }
+            
+            let chartHTML = '';
+            // Lấy tối đa 30 ván gần nhất
+            const recentHistory = history.slice(-30);
+            
+            recentHistory.forEach((item, index) => {
+                const isCorrect = item.correct;
+                const barClass = isCorrect ? 'final-decision-correct' : 'final-decision-incorrect';
+                const gameNumber = history.length - recentHistory.length + index + 1;
+                const title = `Ván ${gameNumber}: ${item.decision === 'P' ? 'PLAYER' : 'BANKER'} - ${isCorrect ? 'ĐÚNG' : 'SAI'}`;
+                
+                chartHTML += `<div class="final-decision-bar ${barClass}" title="${title}"></div>`;
+            });
+            
+            chartEl.innerHTML = chartHTML;
+        }
+
+        function updateFinalDecisionHistoryTable() {
+            const history = masterState.finalDecisionHistory;
+            const tableBody = document.getElementById('final-decision-history-body');
+            
+            if (!tableBody) return;
+            
+            if (!history || history.length === 0) {
+                tableBody.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="p-4 text-center text-gray-500">Chưa có dữ liệu...</td>
+                    </tr>`;
+                return;
+            }
+            
+            // Lấy 10 bản ghi gần nhất (từ mới nhất đến cũ nhất)
+            const recentHistory = history.slice(-10).reverse();
+            
+            let tableHTML = '';
+            recentHistory.forEach((item, index) => {
+                const gameNumber = history.length - (recentHistory.length - index) + 1;
+                const decisionText = item.decision === 'P' ? 'PLAYER' : 'BANKER';
+                const actualText = item.actual === 'P' ? 'PLAYER' : 'BANKER';
+                const statusClass = item.correct ? 'text-green-400' : 'text-red-400';
+                const statusText = item.correct ? 'ĐÚNG' : 'SAI';
+                const shortReason = item.reason.length > 30 ? item.reason.substring(0, 30) + '...' : item.reason;
+                
+                tableHTML += `
+                    <tr class="border-b border-gray-700 hover:bg-gray-700">
+                        <td class="p-2">${gameNumber}</td>
+                        <td class="p-2 font-medium ${item.decision === 'P' ? 'text-blue-400' : 'text-red-400'}">${decisionText}</td>
+                        <td class="p-2 ${item.actual === 'P' ? 'text-blue-400' : 'text-red-400'}">${actualText}</td>
+                        <td class="p-2 ${statusClass} font-medium">${statusText}</td>
+                        <td class="p-2 text-xs text-gray-400" title="${item.reason}">${shortReason}</td>
+                    </tr>`;
+            });
+            
+            tableBody.innerHTML = tableHTML;
+        }
+
+        function addFinalDecisionToHistory(actualResult) {
+            if (!masterState.lastDecision) return;
+            
+            const newRecord = {
+                gameNumber: masterState.finalDecisionHistory.length + 1,
+                decision: masterState.lastDecision,
+                actual: actualResult,
+                correct: masterState.lastDecision === actualResult,
+                reason: masterState.lastDecisionReason || 'Không có lý do',
+                timestamp: Date.now()
+            };
+            
+            masterState.finalDecisionHistory.push(newRecord);
+            
+            // Cập nhật thống kê và biểu đồ
+            updateFinalDecisionStats();
+            
+            // Lưu vào localStorage
+            saveFinalDecisionHistory();
+        }
+
+        function saveFinalDecisionHistory() {
+            try {
+                localStorage.setItem('vanSuNhuY_finalDecisionHistory', JSON.stringify(masterState.finalDecisionHistory));
+            } catch (e) {
+                console.error('Error saving final decision history:', e);
+            }
+        }
+
+        function loadFinalDecisionHistory() {
+            try {
+                const saved = localStorage.getItem('vanSuNhuY_finalDecisionHistory');
+                if (saved) {
+                    masterState.finalDecisionHistory = JSON.parse(saved);
+                    updateFinalDecisionStats();
+                }
+            } catch (e) {
+                console.error('Error loading final decision history:', e);
+            }
         }
 
         // =================== IFRAME COMMUNICATION ===================
@@ -1073,6 +1288,9 @@
             // Load existing sessions from localStorage
             loadMasterSessions();
             
+            // Load final decision history
+            loadFinalDecisionHistory();
+            
             // Request initial data from systems
             setTimeout(() => {
                 broadcastToAll('get_accuracy');
@@ -1182,6 +1400,7 @@
                     version: '2.0',
                     timestamp: new Date().toISOString(),
                     sessions: masterState.sessions,
+                    finalDecisionHistory: masterState.finalDecisionHistory,
                     system_sessions: {
                         ht1: null,
                         ht2: null,
@@ -1266,6 +1485,13 @@
                             updateMasterSessionSelector();
                         }
                         
+                        // Import final decision history
+                        if (data.finalDecisionHistory) {
+                            masterState.finalDecisionHistory = data.finalDecisionHistory;
+                            saveFinalDecisionHistory();
+                            updateFinalDecisionStats();
+                        }
+                        
                         // Kiểm tra xem có dữ liệu hệ thống riêng không
                         const hasSystemData = data.system_sessions && 
                             (data.system_sessions.ht1 || data.system_sessions.ht2 || 
@@ -1299,7 +1525,9 @@
                                     broadcastToAll('get_session_info');
                                     broadcastToAll('get_chot_history');
                                     broadcastToAll('get_system_details');
+                                    updateFinalDecisionStats();
                                 }, 1000);
+                                
                             }, 2000);
                             
                         }, 500);
@@ -1341,6 +1569,9 @@
             // Send to all systems
             broadcastToAll('add_result', result);
             
+            // Thêm vào lịch sử quyết định cuối cùng
+            addFinalDecisionToHistory(result);
+            
             // Request updated data
             setTimeout(() => {
                 broadcastToAll('get_accuracy');
@@ -1372,6 +1603,13 @@
             // Send to all systems
             broadcastToAll('undo_last');
             
+            // Xóa bản ghi cuối cùng trong lịch sử quyết định cuối cùng
+            if (masterState.finalDecisionHistory.length > 0) {
+                masterState.finalDecisionHistory.pop();
+                updateFinalDecisionStats();
+                saveFinalDecisionHistory();
+            }
+            
             // Request updated data
             setTimeout(() => {
                 broadcastToAll('get_accuracy');
@@ -1396,6 +1634,11 @@
                 
                 // Send to all systems
                 broadcastToAll('clear_history');
+                
+                // Xóa lịch sử quyết định cuối cùng
+                masterState.finalDecisionHistory = [];
+                updateFinalDecisionStats();
+                saveFinalDecisionHistory();
                 
                 showToast('Đã xóa toàn bộ lịch sử từ 4 hệ thống', 'info');
             }
@@ -1452,7 +1695,11 @@
                     ht4: { verdict: null, chot: null, range: null, rangeAccuracy: null, intervalHistory: [] }
                 };
                 
+                // Xóa lịch sử quyết định cuối cùng
+                masterState.finalDecisionHistory = [];
+                
                 localStorage.removeItem('vanSuNhuY_sessions_v2');
+                localStorage.removeItem('vanSuNhuY_finalDecisionHistory');
                 updateMasterSessionSelector();
                 updateCurrentSessionInfo();
                 
@@ -1461,6 +1708,9 @@
                 
                 // Reset charts
                 resetCharts();
+                
+                // Reset final decision stats
+                updateFinalDecisionStats();
                 
                 showToast('Đã reset tất cả 4 hệ thống', 'info');
             }
@@ -2191,6 +2441,7 @@
             // Initialize UI
             updateCurrentSessionInfo();
             updateSystemStatus();
+            updateFinalDecisionStats();
             
             // Initialize charts
             renderEmptyChart();
