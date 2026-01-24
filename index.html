@@ -46,6 +46,19 @@
             z-index: 100; animation: slideDown 0.5s ease;
             border-left: 4px solid;
         }
+        .warning-alert {
+            position: fixed; top: 20px; left: 50%;
+            transform: translateX(-50%);
+            background-color: #f59e0b; color: white;
+            padding: 1rem 2rem; border-radius: 0.5rem;
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.3);
+            z-index: 100; animation: slideDown 0.5s ease;
+            border-left: 4px solid #d97706;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
         @keyframes fadeIn {
             from { opacity: 0; }
             to { opacity: 1; }
@@ -132,11 +145,27 @@
         .game-correct { background-color: #10b981; color: white; }
         .game-incorrect { background-color: #ef4444; color: white; }
         .game-neutral { background-color: #6b7280; color: white; }
+        /* Biểu đồ cho QUYẾT ĐỊNH CUỐI CÙNG */
+        .final-decision-bar {
+            flex-shrink: 0;
+            width: 8px;
+            border-radius: 2px;
+            margin: 0 1px;
+        }
+        .final-decision-correct {
+            background-color: #3b82f6;
+            height: 100%;
+        }
+        .final-decision-incorrect {
+            background-color: #ef4444;
+            height: 40%;
+        }
     </style>
 </head>
 <body class="p-4 md:p-8">
     <div id="modal-container"></div>
     <div id="toast-container"></div>
+    <div id="warning-container"></div>
 
     <div class="max-w-7xl mx-auto">
         <!-- Header -->
@@ -332,10 +361,20 @@
                             <span class="text-gray-300">Tỉ lệ khoảng:</span>
                             <span id="ht1-range-accuracy" class="font-bold text-green-400">-</span>
                         </div>
+                        
+                        <!-- Biểu đồ khoảng tỷ lệ -->
                         <div class="bg-gray-900 p-3 rounded-lg mt-4">
                             <h4 class="text-center text-sm text-gray-400 mb-2">Biểu đồ khoảng tỷ lệ</h4>
                             <div id="ht1-interval-chart" class="history-chart" style="height: 60px;"></div>
                             <div id="ht1-range-games" class="mt-2 text-xs text-gray-400 text-center"></div>
+                        </div>
+                        
+                        <!-- BIỂU ĐỒ KẾT HỢP (ĐÃ THÊM VÀO ĐÂY) -->
+                        <div class="bg-gray-900 p-3 rounded-lg mt-4">
+                            <h4 class="text-center text-sm text-gray-400 mb-2">Biểu đồ kết hợp</h4>
+                            <div id="ht1-combined-chart" class="history-chart" style="height: 60px;">
+                                <p class="text-gray-600 text-xs text-center w-full">Đang tải...</p>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -360,10 +399,20 @@
                             <span class="text-gray-300">Tỉ lệ khoảng:</span>
                             <span id="ht2-range-accuracy" class="font-bold text-green-400">-</span>
                         </div>
+                        
+                        <!-- Biểu đồ khoảng tỷ lệ -->
                         <div class="bg-gray-900 p-3 rounded-lg mt-4">
                             <h4 class="text-center text-sm text-gray-400 mb-2">Biểu đồ khoảng tỷ lệ</h4>
                             <div id="ht2-interval-chart" class="history-chart" style="height: 60px;"></div>
                             <div id="ht2-range-games" class="mt-2 text-xs text-gray-400 text-center"></div>
+                        </div>
+                        
+                        <!-- BIỂU ĐỒ KẾT HỢP (ĐÃ THÊM VÀO ĐÂY) -->
+                        <div class="bg-gray-900 p-3 rounded-lg mt-4">
+                            <h4 class="text-center text-sm text-gray-400 mb-2">Biểu đồ kết hợp</h4>
+                            <div id="ht2-combined-chart" class="history-chart" style="height: 60px;">
+                                <p class="text-gray-600 text-xs text-center w-full">Đang tải...</p>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -388,10 +437,20 @@
                             <span class="text-gray-300">Tỉ lệ khoảng:</span>
                             <span id="ht3-range-accuracy" class="font-bold text-green-400">-</span>
                         </div>
+                        
+                        <!-- Biểu đồ khoảng tỷ lệ -->
                         <div class="bg-gray-900 p-3 rounded-lg mt-4">
                             <h4 class="text-center text-sm text-gray-400 mb-2">Biểu đồ khoảng tỷ lệ</h4>
                             <div id="ht3-interval-chart" class="history-chart" style="height: 60px;"></div>
                             <div id="ht3-range-games" class="mt-2 text-xs text-gray-400 text-center"></div>
+                        </div>
+                        
+                        <!-- BIỂU ĐỒ KẾT HỢP (ĐÃ THÊM VÀO ĐÂY) -->
+                        <div class="bg-gray-900 p-3 rounded-lg mt-4">
+                            <h4 class="text-center text-sm text-gray-400 mb-2">Biểu đồ kết hợp</h4>
+                            <div id="ht3-combined-chart" class="history-chart" style="height: 60px;">
+                                <p class="text-gray-600 text-xs text-center w-full">Đang tải...</p>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -416,10 +475,20 @@
                             <span class="text-gray-300">Tỉ lệ khoảng:</span>
                             <span id="ht4-range-accuracy" class="font-bold text-green-400">-</span>
                         </div>
+                        
+                        <!-- Biểu đồ khoảng tỷ lệ -->
                         <div class="bg-gray-900 p-3 rounded-lg mt-4">
                             <h4 class="text-center text-sm text-gray-400 mb-2">Biểu đồ khoảng tỷ lệ</h4>
                             <div id="ht4-interval-chart" class="history-chart" style="height: 60px;"></div>
                             <div id="ht4-range-games" class="mt-2 text-xs text-gray-400 text-center"></div>
+                        </div>
+                        
+                        <!-- BIỂU ĐỒ KẾT HỢP (ĐÃ THÊM VÀO ĐÂY) -->
+                        <div class="bg-gray-900 p-3 rounded-lg mt-4">
+                            <h4 class="text-center text-sm text-gray-400 mb-2">Biểu đồ kết hợp</h4>
+                            <div id="ht4-combined-chart" class="history-chart" style="height: 60px;">
+                                <p class="text-gray-600 text-xs text-center w-full">Đang tải...</p>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -482,7 +551,77 @@
                     </div>
                 </div>
 
-                <!-- Biểu đồ cột thống kê đúng sai từng ván -->
+                <!-- PHẦN THỐNG KÊ VÀ BIỂU ĐỒ CHO QUYẾT ĐỊNH CUỐI CÙNG -->
+                <div class="mt-6 bg-gray-900 bg-opacity-50 p-4 rounded-xl">
+                    <h3 class="text-lg font-semibold mb-4 text-center text-cyan-300">📊 THỐNG KÊ ĐÚNG/SAI QUYẾT ĐỊNH CUỐI CÙNG</h3>
+                    
+                    <!-- Stats Summary -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                        <div class="bg-gray-800 p-4 rounded-lg text-center">
+                            <div class="text-gray-300 text-sm mb-1">Tổng số ván</div>
+                            <div id="final-total-games" class="text-3xl font-bold text-white">0</div>
+                        </div>
+                        <div class="bg-gray-800 p-4 rounded-lg text-center">
+                            <div class="text-gray-300 text-sm mb-1">Số ván đúng</div>
+                            <div id="final-correct-games" class="text-3xl font-bold text-green-400">0</div>
+                        </div>
+                        <div class="bg-gray-800 p-4 rounded-lg text-center">
+                            <div class="text-gray-300 text-sm mb-1">Tỷ lệ đúng</div>
+                            <div id="final-accuracy-rate" class="text-3xl font-bold text-yellow-400">0%</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Final Decision History Chart -->
+                    <div class="mb-4">
+                        <h4 class="text-lg font-semibold mb-3 text-center text-gray-300">BIỂU ĐỒ ĐÚNG/SAI TỪNG VÁN - QUYẾT ĐỊNH CUỐI CÙNG</h4>
+                        <div class="bg-gray-800 p-4 rounded-lg">
+                            <div class="mb-3">
+                                <div class="flex items-center justify-center gap-4 mb-2">
+                                    <div class="flex items-center">
+                                        <div class="w-4 h-4 bg-blue-500 mr-2"></div>
+                                        <span class="text-sm text-gray-300">ĐÚNG (cột dài)</span>
+                                    </div>
+                                    <div class="flex items-center">
+                                        <div class="w-4 h-4 bg-red-500 mr-2"></div>
+                                        <span class="text-sm text-gray-300">SAI (cột ngắn)</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div id="final-decision-chart" class="history-chart" style="height: 80px;">
+                                <p class="text-gray-500 text-center">Chưa có dữ liệu...</p>
+                            </div>
+                            <div class="flex justify-between mt-2 text-xs text-gray-400">
+                                <span>Ván 1</span>
+                                <span>Ván cuối</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Recent Final Decisions Table -->
+                    <div class="mt-4 bg-gray-800 p-4 rounded-lg">
+                        <h4 class="text-lg font-semibold mb-3 text-center text-gray-300">LỊCH SỬ QUYẾT ĐỊNH CUỐI CÙNG</h4>
+                        <div id="final-decision-history" class="max-h-48 overflow-y-auto">
+                            <table class="w-full text-sm">
+                                <thead class="bg-gray-700">
+                                    <tr>
+                                        <th class="p-2 text-left">Ván</th>
+                                        <th class="p-2 text-left">Quyết định</th>
+                                        <th class="p-2 text-left">Kết quả</th>
+                                        <th class="p-2 text-left">Trạng thái</th>
+                                        <th class="p-2 text-left">Lý do</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="final-decision-history-body" class="text-gray-300">
+                                    <tr>
+                                        <td colspan="5" class="p-4 text-center text-gray-500">Chưa có dữ liệu...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Biểu đồ cột thống kê đúng sai từng ván (cho từng hệ thống) -->
                 <div class="mt-6 bg-gray-900 bg-opacity-50 p-4 rounded-xl">
                     <h3 class="text-lg font-semibold mb-4 text-center text-cyan-300">📈 BIỂU ĐỒ CỘT THỐNG KÊ ĐÚNG SAI TỪNG VÁN</h3>
                     
@@ -509,37 +648,6 @@
                         <div class="mt-3 flex justify-between items-center text-sm text-gray-400">
                             <div id="game-stats-summary">Tổng: 0 ván | Đúng: 0 | Sai: 0</div>
                             <div id="game-accuracy-summary">Tỷ lệ đúng: 0%</div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Combined Charts -->
-                <div class="mt-6 bg-gray-900 bg-opacity-50 p-4 rounded-xl">
-                    <h3 class="text-lg font-semibold mb-3 text-center text-cyan-300">BIỂU ĐỒ KẾT HỢP</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                        <div>
-                            <h4 class="font-medium text-gray-300 mb-2 text-center">HT1</h4>
-                            <div id="ht1-combined-chart" class="history-chart bg-gray-800 rounded p-2">
-                                <p class="text-gray-600 text-sm text-center w-full">Đang tải...</p>
-                            </div>
-                        </div>
-                        <div>
-                            <h4 class="font-medium text-gray-300 mb-2 text-center">HT2</h4>
-                            <div id="ht2-combined-chart" class="history-chart bg-gray-800 rounded p-2">
-                                <p class="text-gray-600 text-sm text-center w-full">Đang tải...</p>
-                            </div>
-                        </div>
-                        <div>
-                            <h4 class="font-medium text-gray-300 mb-2 text-center">HT3</h4>
-                            <div id="ht3-combined-chart" class="history-chart bg-gray-800 rounded p-2">
-                                <p class="text-gray-600 text-sm text-center w-full">Đang tải...</p>
-                            </div>
-                        </div>
-                        <div>
-                            <h4 class="font-medium text-gray-300 mb-2 text-center">HT4</h4>
-                            <div id="ht4-combined-chart" class="history-chart bg-gray-800 rounded p-2">
-                                <p class="text-gray-600 text-sm text-center w-full">Đang tải...</p>
-                            </div>
                         </div>
                     </div>
                 </div>
@@ -592,6 +700,7 @@
             ht3ChotHistory: [],
             ht4ChotHistory: [],
             lastDecision: null,
+            lastDecisionReason: '',
             systemsReady: {
                 ht1: false,
                 ht2: false,
@@ -609,12 +718,439 @@
                 ht2: { verdict: null, chot: null, range: null, rangeAccuracy: null, intervalHistory: [] },
                 ht3: { verdict: null, chot: null, range: null, rangeAccuracy: null, intervalHistory: [] },
                 ht4: { verdict: null, chot: null, range: null, rangeAccuracy: null, intervalHistory: [] }
-            }
+            },
+            // LỊCH SỬ QUYẾT ĐỊNH CUỐI CÙNG
+            finalDecisionHistory: [], // { gameNumber: số, decision: 'P'/'B', actual: 'P'/'B', correct: boolean, reason: string, timestamp: số }
+            // Lưu trữ các cảnh báo đã hiển thị để tránh trùng lặp
+            displayedWarnings: {}
         };
 
         // Chart instances
         let gameAccuracyChart = null;
         let currentChartSystem = 'ht1';
+
+        // =================== HÀM HỖ TRỢ ===================
+        function getOriginalVerdict(verdictString) {
+            if (!verdictString) return null;
+            
+            // Chuyển sang chữ hoa và loại bỏ khoảng trắng thừa
+            verdictString = verdictString.trim().toUpperCase();
+            
+            // Nếu chỉ có P hoặc B
+            if (verdictString === 'P' || verdictString === 'B') {
+                return verdictString;
+            }
+            
+            // Nếu có chữ "NGƯỢC"
+            if (verdictString.includes('NGƯỢC')) {
+                // Tìm chữ P hoặc B đầu tiên
+                if (verdictString.includes('P')) return 'B'; // P NGƯỢC -> gốc là B
+                if (verdictString.includes('B')) return 'P'; // B NGƯỢC -> gốc là P
+            }
+            
+            // Nếu có chữ "THEO"
+            if (verdictString.includes('THEO')) {
+                // Tìm chữ P hoặc B trong chuỗi
+                if (verdictString.includes('P')) return 'P';
+                if (verdictString.includes('B')) return 'B';
+            }
+            
+            // Mặc định trả về null
+            return null;
+        }
+
+        // Hàm tìm chuỗi mạnh nhất từ CUỐI biểu đồ (chuỗi hiện tại đang diễn ra)
+        function findCurrentStreakFromEnd(history) {
+            if (!history || history.length === 0) {
+                return { length: 0, color: null };
+            }
+            
+            // Lấy phần tử cuối cùng
+            const lastItem = history[history.length - 1];
+            if (!lastItem) return { length: 0, color: null };
+            
+            // Xác định màu của phần tử cuối
+            let lastIsCorrect = false;
+            if (lastItem.correct !== undefined) {
+                lastIsCorrect = lastItem.correct === true;
+            } else if (lastItem.predicted !== undefined && lastItem.actual !== undefined) {
+                lastIsCorrect = lastItem.predicted === lastItem.actual;
+            } else if (lastItem.isCorrect !== undefined) {
+                lastIsCorrect = lastItem.isCorrect === true;
+            }
+            
+            const lastColor = lastIsCorrect ? 'green' : 'red';
+            let streakLength = 1;
+            
+            // Duyệt ngược từ phần tử áp chót
+            for (let i = history.length - 2; i >= 0; i--) {
+                const item = history[i];
+                if (!item) break;
+                
+                let isCorrect = false;
+                if (item.correct !== undefined) {
+                    isCorrect = item.correct === true;
+                } else if (item.predicted !== undefined && item.actual !== undefined) {
+                    isCorrect = item.predicted === item.actual;
+                } else if (item.isCorrect !== undefined) {
+                    isCorrect = item.isCorrect === true;
+                }
+                
+                const itemColor = isCorrect ? 'green' : 'red';
+                
+                if (itemColor === lastColor) {
+                    streakLength++;
+                } else {
+                    break;
+                }
+            }
+            
+            return {
+                length: streakLength,
+                color: lastColor
+            };
+        }
+
+        // =================== HÀM CẢNH BÁO CHUỖI DÀI ===================
+        function showStreakWarning(system, streakLength, color, chartType) {
+            // Tạo key duy nhất cho cảnh báo để tránh hiển thị trùng lặp
+            const warningKey = `${system}-${color}-${chartType}-${streakLength}`;
+            
+            // Kiểm tra xem cảnh báo đã được hiển thị chưa
+            if (masterState.displayedWarnings[warningKey]) {
+                return; // Đã hiển thị rồi, không hiển thị lại
+            }
+            
+            // Đánh dấu đã hiển thị
+            masterState.displayedWarnings[warningKey] = true;
+            
+            const systemName = system.toUpperCase();
+            const colorText = color === 'green' ? 'XANH (đúng)' : 'ĐỎ (sai)';
+            const chartText = chartType === 'interval' ? 'Biểu đồ khoảng tỷ lệ' : 'Biểu đồ kết hợp';
+            
+            const message = `⚠️ CẢNH BÁO: ${systemName} có chuỗi ${colorText} dài ${streakLength} ở ${chartText}!`;
+            
+            // Hiển thị cảnh báo nổi bật ở giữa màn hình
+            const warningContainer = document.getElementById('warning-container');
+            const warning = document.createElement('div');
+            warning.className = 'warning-alert';
+            warning.innerHTML = `
+                <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                </svg>
+                <span>${message}</span>
+                <button onclick="this.parentElement.remove()" class="ml-4 text-white hover:text-gray-200">
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                    </svg>
+                </button>
+            `;
+            
+            warningContainer.appendChild(warning);
+            
+            // Tự động xóa cảnh báo sau 10 giây
+            setTimeout(() => {
+                if (warning.parentNode) {
+                    warning.style.animation = 'fadeOut 0.5s ease';
+                    setTimeout(() => warning.remove(), 500);
+                }
+            }, 10000);
+            
+            // Cũng hiển thị toast thông báo
+            showToast(message, 'warning');
+        }
+
+        // =================== THUẬT TOÁN TÍNH QUYẾT ĐỊNH CUỐI CÙNG MỚI ===================
+        function calculateFinalDecision() {
+            console.log("Tính toán quyết định cuối cùng với thuật toán mới...");
+            
+            const systems = ['ht1', 'ht2', 'ht3', 'ht4'];
+            
+            // Biến để lưu thông tin tốt nhất
+            let bestDecision = null;
+            let bestReason = '';
+            let bestPrioritySystem = '';
+            let bestStreakLength = 0;
+            let bestChartType = ''; // 'interval' hoặc 'combined'
+            let bestSystem = '';
+            
+            // Duyệt qua từng hệ thống
+            for (const system of systems) {
+                const details = masterState.systemDetails[system];
+                if (!details) {
+                    console.log(`${system}: Không có chi tiết hệ thống`);
+                    continue;
+                }
+                
+                // Lấy dữ liệu từ hai biểu đồ
+                const intervalHistory = details.intervalHistory || [];
+                const combinedHistory = masterState[`${system}ChotHistory`] || [];
+                
+                // Tìm chuỗi mạnh nhất từ CUỐI của mỗi biểu đồ
+                const intervalStreak = findCurrentStreakFromEnd(intervalHistory);
+                const combinedStreak = findCurrentStreakFromEnd(combinedHistory);
+                
+                console.log(`${system}: Interval streak = ${intervalStreak.length} (${intervalStreak.color}), Combined streak = ${combinedStreak.length} (${combinedStreak.color})`);
+                
+                // =================== KIỂM TRA CẢNH BÁO CHUỖI DÀI >= 4 ===================
+                // Kiểm tra và cảnh báo cho Biểu đồ khoảng tỷ lệ
+                if (intervalStreak.length >= 4) {
+                    showStreakWarning(system, intervalStreak.length, intervalStreak.color, 'interval');
+                }
+                
+                // Kiểm tra và cảnh báo cho Biểu đồ kết hợp
+                if (combinedStreak.length >= 4) {
+                    showStreakWarning(system, combinedStreak.length, combinedStreak.color, 'combined');
+                }
+                
+                // Chỉ xem xét nếu chuỗi >= 2 (cho quyết định)
+                if (intervalStreak.length >= 2 || combinedStreak.length >= 2) {
+                    // So sánh và chọn chuỗi dài hơn
+                    let currentStreak = null;
+                    let currentChartType = '';
+                    
+                    if (intervalStreak.length >= 2 && combinedStreak.length >= 2) {
+                        // Cả hai đều có chuỗi >= 2, chọn chuỗi dài hơn
+                        if (intervalStreak.length >= combinedStreak.length) {
+                            currentStreak = intervalStreak;
+                            currentChartType = 'interval';
+                        } else {
+                            currentStreak = combinedStreak;
+                            currentChartType = 'combined';
+                        }
+                    } else if (intervalStreak.length >= 2) {
+                        currentStreak = intervalStreak;
+                        currentChartType = 'interval';
+                    } else if (combinedStreak.length >= 2) {
+                        currentStreak = combinedStreak;
+                        currentChartType = 'combined';
+                    }
+                    
+                    // So sánh với kết quả tốt nhất hiện tại (ưu tiên chuỗi dài hơn)
+                    if (currentStreak && currentStreak.length > bestStreakLength) {
+                        bestStreakLength = currentStreak.length;
+                        bestSystem = system;
+                        bestChartType = currentChartType;
+                        
+                        // Xác định quyết định dựa trên TRƯỜNG HỢP 1 hoặc 2
+                        const systemName = system.toUpperCase();
+                        
+                        if (currentStreak.color === 'red') {
+                            // TRƯỜNG HỢP 1: Chuỗi đỏ (sai)
+                            if (currentChartType === 'interval') {
+                                // Ngược với kết quả gốc của 🧠 Phán Quyết
+                                const originalVerdict = getOriginalVerdict(details.verdict);
+                                if (originalVerdict) {
+                                    bestDecision = originalVerdict === 'P' ? 'B' : 'P';
+                                    bestReason = `TH1: ${systemName} có chuỗi ĐỎ (sai) dài ${currentStreak.length} ở Biểu đồ khoảng tỷ lệ, NGƯỢC với kết quả gốc 🧠 Phán Quyết (${originalVerdict})`;
+                                    bestPrioritySystem = systemName;
+                                }
+                            } else if (currentChartType === 'combined') {
+                                // Ngược với kết quả của 🔐 Chốt Phán Quyết
+                                if (details.chot) {
+                                    const chotDecision = details.chot.trim().toUpperCase();
+                                    const chotLetter = chotDecision.includes('P') ? 'P' : 
+                                                     chotDecision.includes('B') ? 'B' : null;
+                                    if (chotLetter) {
+                                        bestDecision = chotLetter === 'P' ? 'B' : 'P';
+                                        bestReason = `TH1: ${systemName} có chuỗi ĐỎ (sai) dài ${currentStreak.length} ở Biểu đồ kết hợp, NGƯỢC với 🔐 Chốt Phán Quyết (${chotLetter})`;
+                                        bestPrioritySystem = systemName;
+                                    }
+                                }
+                            }
+                        } else if (currentStreak.color === 'green') {
+                            // TRƯỜNG HỢP 2: Chuỗi xanh (đúng)
+                            if (currentChartType === 'interval') {
+                                // Theo với kết quả gốc của 🧠 Phán Quyết
+                                const originalVerdict = getOriginalVerdict(details.verdict);
+                                if (originalVerdict) {
+                                    bestDecision = originalVerdict;
+                                    bestReason = `TH2: ${systemName} có chuỗi XANH (đúng) dài ${currentStreak.length} ở Biểu đồ khoảng tỷ lệ, THEO kết quả gốc 🧠 Phán Quyết (${originalVerdict})`;
+                                    bestPrioritySystem = systemName;
+                                }
+                            } else if (currentChartType === 'combined') {
+                                // Theo với kết quả của 🔐 Chốt Phán Quyết
+                                if (details.chot) {
+                                    const chotDecision = details.chot.trim().toUpperCase();
+                                    const chotLetter = chotDecision.includes('P') ? 'P' : 
+                                                     chotDecision.includes('B') ? 'B' : null;
+                                    if (chotLetter) {
+                                        bestDecision = chotLetter;
+                                        bestReason = `TH2: ${systemName} có chuỗi XANH (đúng) dài ${currentStreak.length} ở Biểu đồ kết hợp, THEO 🔐 Chốt Phán Quyết (${chotLetter})`;
+                                        bestPrioritySystem = systemName;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // Nếu tìm được quyết định từ thuật toán mới
+            if (bestDecision) {
+                console.log(`Quyết định: ${bestDecision}, Lý do: ${bestReason}`);
+                updateFinalDecisionDisplay(bestDecision, bestReason, bestPrioritySystem);
+                return;
+            }
+            
+            // Nếu không có chuỗi mạnh nào (không có hệ thống nào có chuỗi >= 2)
+            console.log("Không có hệ thống nào có chuỗi mạnh (>=2). Không đề xuất quyết định.");
+            updateFinalDecisionDisplay(null, "Không có hệ thống nào có chuỗi mạnh (>=2 cột cùng màu). Chờ tín hiệu.", "CHỜ");
+        }
+
+        // =================== CẬP NHẬT HIỂN THỊ QUYẾT ĐỊNH ===================
+        function updateFinalDecisionDisplay(decision, reason, prioritySystem) {
+            const container = document.getElementById('finalDecisionContainer');
+            const text = document.getElementById('finalDecisionText');
+            const reasonEl = document.getElementById('decisionReason');
+            const priorityEl = document.getElementById('priority-system');
+            
+            priorityEl.textContent = prioritySystem || 'CHỜ';
+            
+            if (decision === 'P') {
+                text.textContent = '👤 CHỐT PLAYER';
+                text.className = 'text-3xl md:text-4xl font-extrabold text-blue-400';
+                container.className = 'py-6 rounded-lg border-2 border-blue-500 mb-4 bg-blue-900 bg-opacity-20';
+            } else if (decision === 'B') {
+                text.textContent = '🏦 CHỐT BANKER';
+                text.className = 'text-3xl md:text-4xl font-extrabold text-red-400';
+                container.className = 'py-6 rounded-lg border-2 border-red-500 mb-4 bg-red-900 bg-opacity-20';
+            } else {
+                text.textContent = '⏳ CHỜ TÍN HIỆU';
+                text.className = 'text-3xl md:text-4xl font-extrabold text-gray-300';
+                container.className = 'py-6 rounded-lg border-2 border-purple-500 mb-4 bg-purple-900 bg-opacity-20';
+            }
+            
+            reasonEl.textContent = reason;
+            masterState.lastDecision = decision;
+            masterState.lastDecisionReason = reason;
+        }
+
+        // =================== THỐNG KÊ VÀ BIỂU ĐỒ CHO QUYẾT ĐỊNH CUỐI CÙNG ===================
+        function updateFinalDecisionStats() {
+            const history = masterState.finalDecisionHistory;
+            const totalGames = history.length;
+            const correctGames = history.filter(item => item.correct).length;
+            const accuracyRate = totalGames > 0 ? ((correctGames / totalGames) * 100).toFixed(1) : 0;
+            
+            // Cập nhật thống kê
+            document.getElementById('final-total-games').textContent = totalGames;
+            document.getElementById('final-correct-games').textContent = correctGames;
+            document.getElementById('final-accuracy-rate').textContent = `${accuracyRate}%`;
+            
+            // Cập nhật biểu đồ
+            updateFinalDecisionChart();
+            
+            // Cập nhật lịch sử
+            updateFinalDecisionHistoryTable();
+        }
+
+        function updateFinalDecisionChart() {
+            const history = masterState.finalDecisionHistory;
+            const chartEl = document.getElementById('final-decision-chart');
+            
+            if (!chartEl) return;
+            
+            if (!history || history.length === 0) {
+                chartEl.innerHTML = '<p class="text-gray-500 text-center">Chưa có dữ liệu...</p>';
+                return;
+            }
+            
+            let chartHTML = '';
+            // Lấy tối đa 30 ván gần nhất
+            const recentHistory = history.slice(-30);
+            
+            recentHistory.forEach((item, index) => {
+                const isCorrect = item.correct;
+                const barClass = isCorrect ? 'final-decision-correct' : 'final-decision-incorrect';
+                const gameNumber = history.length - recentHistory.length + index + 1;
+                const title = `Ván ${gameNumber}: ${item.decision === 'P' ? 'PLAYER' : 'BANKER'} - ${isCorrect ? 'ĐÚNG' : 'SAI'}`;
+                
+                chartHTML += `<div class="final-decision-bar ${barClass}" title="${title}"></div>`;
+            });
+            
+            chartEl.innerHTML = chartHTML;
+        }
+
+        function updateFinalDecisionHistoryTable() {
+            const history = masterState.finalDecisionHistory;
+            const tableBody = document.getElementById('final-decision-history-body');
+            
+            if (!tableBody) return;
+            
+            if (!history || history.length === 0) {
+                tableBody.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="p-4 text-center text-gray-500">Chưa có dữ liệu...</td>
+                    </tr>`;
+                return;
+            }
+            
+            // Lấy 10 bản ghi gần nhất (từ mới nhất đến cũ nhất)
+            const recentHistory = history.slice(-10).reverse();
+            
+            let tableHTML = '';
+            recentHistory.forEach((item, index) => {
+                const gameNumber = history.length - (recentHistory.length - index) + 1;
+                const decisionText = item.decision === 'P' ? 'PLAYER' : 'BANKER';
+                const actualText = item.actual === 'P' ? 'PLAYER' : 'BANKER';
+                const statusClass = item.correct ? 'text-green-400' : 'text-red-400';
+                const statusText = item.correct ? 'ĐÚNG' : 'SAI';
+                const shortReason = item.reason.length > 30 ? item.reason.substring(0, 30) + '...' : item.reason;
+                
+                tableHTML += `
+                    <tr class="border-b border-gray-700 hover:bg-gray-700">
+                        <td class="p-2">${gameNumber}</td>
+                        <td class="p-2 font-medium ${item.decision === 'P' ? 'text-blue-400' : 'text-red-400'}">${decisionText}</td>
+                        <td class="p-2 ${item.actual === 'P' ? 'text-blue-400' : 'text-red-400'}">${actualText}</td>
+                        <td class="p-2 ${statusClass} font-medium">${statusText}</td>
+                        <td class="p-2 text-xs text-gray-400" title="${item.reason}">${shortReason}</td>
+                    </tr>`;
+            });
+            
+            tableBody.innerHTML = tableHTML;
+        }
+
+        function addFinalDecisionToHistory(actualResult) {
+            if (!masterState.lastDecision) return;
+            
+            const newRecord = {
+                gameNumber: masterState.finalDecisionHistory.length + 1,
+                decision: masterState.lastDecision,
+                actual: actualResult,
+                correct: masterState.lastDecision === actualResult,
+                reason: masterState.lastDecisionReason || 'Không có lý do',
+                timestamp: Date.now()
+            };
+            
+            masterState.finalDecisionHistory.push(newRecord);
+            
+            // Cập nhật thống kê và biểu đồ
+            updateFinalDecisionStats();
+            
+            // Lưu vào localStorage
+            saveFinalDecisionHistory();
+        }
+
+        function saveFinalDecisionHistory() {
+            try {
+                localStorage.setItem('vanSuNhuY_finalDecisionHistory', JSON.stringify(masterState.finalDecisionHistory));
+            } catch (e) {
+                console.error('Error saving final decision history:', e);
+            }
+        }
+
+        function loadFinalDecisionHistory() {
+            try {
+                const saved = localStorage.getItem('vanSuNhuY_finalDecisionHistory');
+                if (saved) {
+                    masterState.finalDecisionHistory = JSON.parse(saved);
+                    updateFinalDecisionStats();
+                }
+            } catch (e) {
+                console.error('Error loading final decision history:', e);
+            }
+        }
 
         // =================== IFRAME COMMUNICATION ===================
         function sendToIframe(iframeId, command, data = null) {
@@ -674,13 +1210,15 @@
                     // Store prediction for final decision
                     if (data.prediction) {
                         masterState.predictions[system] = data.prediction;
-                        calculateFinalDecision();
+                        // KHÔNG gọi calculateFinalDecision() ở đây, sẽ gọi sau khi nhận system_details
                     }
                     break;
 
                 case 'system_details_update':
                     // Update system details for display
                     updateSystemDetails(system, data.details);
+                    // Tính toán quyết định cuối cùng sau khi nhận chi tiết từ hệ thống
+                    calculateFinalDecision();
                     break;
 
                 case 'import_complete':
@@ -762,6 +1300,9 @@
         function initializeSystems() {
             // Load existing sessions from localStorage
             loadMasterSessions();
+            
+            // Load final decision history
+            loadFinalDecisionHistory();
             
             // Request initial data from systems
             setTimeout(() => {
@@ -872,6 +1413,7 @@
                     version: '2.0',
                     timestamp: new Date().toISOString(),
                     sessions: masterState.sessions,
+                    finalDecisionHistory: masterState.finalDecisionHistory,
                     system_sessions: {
                         ht1: null,
                         ht2: null,
@@ -956,6 +1498,13 @@
                             updateMasterSessionSelector();
                         }
                         
+                        // Import final decision history
+                        if (data.finalDecisionHistory) {
+                            masterState.finalDecisionHistory = data.finalDecisionHistory;
+                            saveFinalDecisionHistory();
+                            updateFinalDecisionStats();
+                        }
+                        
                         // Kiểm tra xem có dữ liệu hệ thống riêng không
                         const hasSystemData = data.system_sessions && 
                             (data.system_sessions.ht1 || data.system_sessions.ht2 || 
@@ -989,7 +1538,9 @@
                                     broadcastToAll('get_session_info');
                                     broadcastToAll('get_chot_history');
                                     broadcastToAll('get_system_details');
+                                    updateFinalDecisionStats();
                                 }, 1000);
+                                
                             }, 2000);
                             
                         }, 500);
@@ -1031,12 +1582,16 @@
             // Send to all systems
             broadcastToAll('add_result', result);
             
+            // Thêm vào lịch sử quyết định cuối cùng
+            addFinalDecisionToHistory(result);
+            
             // Request updated data
             setTimeout(() => {
                 broadcastToAll('get_accuracy');
                 broadcastToAll('get_chot_history');
                 broadcastToAll('get_prediction');
                 broadcastToAll('get_system_details');
+                // KHÔNG gọi calculateFinalDecision() ở đây vì đã gọi trong handleSystemMessage
             }, 800);
             
             showToast(`Đã thêm kết quả: ${result === 'P' ? 'PLAYER' : 'BANKER'} đến 4 hệ thống`, 'success');
@@ -1061,11 +1616,19 @@
             // Send to all systems
             broadcastToAll('undo_last');
             
+            // Xóa bản ghi cuối cùng trong lịch sử quyết định cuối cùng
+            if (masterState.finalDecisionHistory.length > 0) {
+                masterState.finalDecisionHistory.pop();
+                updateFinalDecisionStats();
+                saveFinalDecisionHistory();
+            }
+            
             // Request updated data
             setTimeout(() => {
                 broadcastToAll('get_accuracy');
                 broadcastToAll('get_chot_history');
                 broadcastToAll('get_system_details');
+                // KHÔNG gọi calculateFinalDecision() ở đây vì đã gọi trong handleSystemMessage
             }, 800);
             
             showToast('Đã hoàn tác kết quả cuối cùng từ 4 hệ thống', 'info');
@@ -1084,6 +1647,14 @@
                 
                 // Send to all systems
                 broadcastToAll('clear_history');
+                
+                // Xóa lịch sử quyết định cuối cùng
+                masterState.finalDecisionHistory = [];
+                updateFinalDecisionStats();
+                saveFinalDecisionHistory();
+                
+                // Xóa tất cả cảnh báo đã lưu
+                masterState.displayedWarnings = {};
                 
                 showToast('Đã xóa toàn bộ lịch sử từ 4 hệ thống', 'info');
             }
@@ -1118,6 +1689,7 @@
                     broadcastToAll('get_chot_history');
                     broadcastToAll('get_prediction');
                     broadcastToAll('get_system_details');
+                    // KHÔNG gọi calculateFinalDecision() ở đây vì đã gọi trong handleSystemMessage
                 }, 1000);
             }, 1500);
         }
@@ -1139,7 +1711,14 @@
                     ht4: { verdict: null, chot: null, range: null, rangeAccuracy: null, intervalHistory: [] }
                 };
                 
+                // Xóa lịch sử quyết định cuối cùng
+                masterState.finalDecisionHistory = [];
+                
+                // Xóa tất cả cảnh báo đã lưu
+                masterState.displayedWarnings = {};
+                
                 localStorage.removeItem('vanSuNhuY_sessions_v2');
+                localStorage.removeItem('vanSuNhuY_finalDecisionHistory');
                 updateMasterSessionSelector();
                 updateCurrentSessionInfo();
                 
@@ -1148,6 +1727,12 @@
                 
                 // Reset charts
                 resetCharts();
+                
+                // Reset final decision stats
+                updateFinalDecisionStats();
+                
+                // Xóa tất cả cảnh báo đang hiển thị
+                document.getElementById('warning-container').innerHTML = '';
                 
                 showToast('Đã reset tất cả 4 hệ thống', 'info');
             }
@@ -1175,8 +1760,6 @@
                     element.className += 'accuracy-low';
                 }
             }
-            
-            calculateFinalDecision();
         }
 
         function updateChotHistory(system, history) {
@@ -1262,6 +1845,9 @@
             
             // Update interval chart
             updateIntervalChart(system, details.intervalHistory);
+            
+            // Update combined chart
+            renderCombinedChart(system);
         }
 
         function updateIntervalChart(system, history) {
@@ -1281,7 +1867,9 @@
             let totalCount = history.length;
             
             history.forEach(prediction => {
-                const isCorrect = prediction.predicted === prediction.actual;
+                const isCorrect = prediction.isCorrect || 
+                                 (prediction.predicted === prediction.actual) || 
+                                 (prediction.correct === true);
                 if (isCorrect) correctCount++;
                 const barClass = isCorrect ? 'history-bar-correct' : 'history-bar-incorrect';
                 const title = `Ván: ${prediction.game || 'N/A'} | Đề xuất: ${prediction.predicted} | Thực tế: ${prediction.actual}`;
@@ -1294,99 +1882,6 @@
                 const accuracy = totalCount > 0 ? ((correctCount / totalCount) * 100).toFixed(1) : 0;
                 rangeGamesEl.textContent = `${totalCount} ván (${correctCount} đúng - ${accuracy}%)`;
             }
-        }
-
-        function calculateFinalDecision() {
-            const accuracies = {
-                ht1: masterState.ht1Accuracy,
-                ht2: masterState.ht2Accuracy,
-                ht3: masterState.ht3Accuracy,
-                ht4: masterState.ht4Accuracy
-            };
-            
-            const predictions = masterState.predictions;
-            
-            let decision = null;
-            let reason = '';
-            let prioritySystem = '';
-            
-            // Priority 1: Systems with accuracy >= 70%
-            const highAccuracySystems = [];
-            Object.entries(accuracies).forEach(([system, acc]) => {
-                if (acc >= 70) {
-                    highAccuracySystems.push({
-                        name: system.toUpperCase(),
-                        acc: acc,
-                        prediction: predictions[system]
-                    });
-                }
-            });
-            
-            if (highAccuracySystems.length === 1) {
-                // Only one system with high accuracy
-                prioritySystem = highAccuracySystems[0].name;
-                decision = highAccuracySystems[0].prediction;
-                reason = `Ưu tiên ${prioritySystem} (độ chính xác Chốt: ${highAccuracySystems[0].acc.toFixed(1)}% ≥ 70%)`;
-            } 
-            else if (highAccuracySystems.length > 1) {
-                // Multiple systems with high accuracy - choose the highest
-                highAccuracySystems.sort((a, b) => b.acc - a.acc);
-                prioritySystem = highAccuracySystems[0].name;
-                decision = highAccuracySystems[0].prediction;
-                reason = `${prioritySystem} có độ chính xác cao nhất (${highAccuracySystems[0].acc.toFixed(1)}%) trong các hệ thống ≥ 70%`;
-            }
-            else {
-                // No system with high accuracy, use majority vote
-                prioritySystem = 'ĐA SỐ';
-                const voteCount = { P: 0, B: 0 };
-                
-                Object.values(predictions).forEach(prediction => {
-                    if (prediction === 'P') voteCount.P++;
-                    else if (prediction === 'B') voteCount.B++;
-                });
-                
-                if (voteCount.P > voteCount.B) {
-                    decision = 'P';
-                    reason = `Đa số hệ thống đề xuất PLAYER (${voteCount.P}/4 phiếu)`;
-                } else if (voteCount.B > voteCount.P) {
-                    decision = 'B';
-                    reason = `Đa số hệ thống đề xuất BANKER (${voteCount.B}/4 phiếu)`;
-                } else if (voteCount.P === voteCount.B && voteCount.P > 0) {
-                    decision = null;
-                    reason = `Các hệ thống phân vân (P:${voteCount.P} - B:${voteCount.B})`;
-                } else {
-                    decision = null;
-                    reason = 'Chưa có đủ dự đoán từ các hệ thống';
-                }
-            }
-            
-            updateFinalDecisionDisplay(decision, reason, prioritySystem);
-        }
-
-        function updateFinalDecisionDisplay(decision, reason, prioritySystem) {
-            const container = document.getElementById('finalDecisionContainer');
-            const text = document.getElementById('finalDecisionText');
-            const reasonEl = document.getElementById('decisionReason');
-            const priorityEl = document.getElementById('priority-system');
-            
-            priorityEl.textContent = prioritySystem || 'Đang tính...';
-            
-            if (decision === 'P') {
-                text.textContent = '👤 CHỐT PLAYER';
-                text.className = 'text-3xl md:text-4xl font-extrabold text-blue-400';
-                container.className = 'py-6 rounded-lg border-2 border-blue-500 mb-4';
-            } else if (decision === 'B') {
-                text.textContent = '🏦 CHỐT BANKER';
-                text.className = 'text-3xl md:text-4xl font-extrabold text-red-400';
-                container.className = 'py-6 rounded-lg border-2 border-red-500 mb-4';
-            } else {
-                text.textContent = '⏳ CHỜ TÍN HIỆU';
-                text.className = 'text-3xl md:text-4xl font-extrabold text-gray-300';
-                container.className = 'py-6 rounded-lg border-2 border-purple-500 mb-4';
-            }
-            
-            reasonEl.textContent = reason;
-            masterState.lastDecision = decision;
         }
 
         function forcePlayerDecision() {
@@ -1407,7 +1902,7 @@
             if (!chartEl) return;
             
             if (!history || history.length === 0) {
-                chartEl.innerHTML = `<p class="text-gray-600 text-sm text-center w-full">Chưa có dữ liệu...</p>`;
+                chartEl.innerHTML = `<p class="text-gray-600 text-xs text-center w-full">Chưa có dữ liệu...</p>`;
                 return;
             }
             
@@ -1968,6 +2463,7 @@
             // Initialize UI
             updateCurrentSessionInfo();
             updateSystemStatus();
+            updateFinalDecisionStats();
             
             // Initialize charts
             renderEmptyChart();
@@ -1995,6 +2491,7 @@
                     broadcastToAll('get_accuracy');
                     broadcastToAll('get_chot_history');
                     broadcastToAll('get_system_details');
+                    // KHÔNG gọi calculateFinalDecision() ở đây vì đã gọi trong handleSystemMessage
                 }
             }, 8000);
             
