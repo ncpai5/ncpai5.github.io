@@ -1209,9 +1209,40 @@
             masterState.lastDecisionReason = reasonHtml.replace(/<[^>]*>?/gm, ' '); 
         }
 
+        /* =========================================================================
+           4. HÀM CẬP NHẬT BIỂU ĐỒ GE TỨC THÌ
+           ========================================================================= */
+        function updateGeHistoryChart(geHistory) {
+            const chartEl = document.getElementById('ge-total-history-chart');
+            const accEl = document.getElementById('ge-overall-accuracy');
+            
+            const validHistory = geHistory.filter(h => h.predicted !== null);
+            if (chartEl && validHistory.length > 0) {
+                let correct = 0;
+                let chartHtml = '<div class="flex items-end justify-start h-full gap-1 px-1 min-w-max">';
+                validHistory.forEach(h => {
+                    if (h.correct) correct++;
+                    const color = h.correct ? 'bg-green-500 shadow-[0_0_5px_rgba(34,197,94,0.6)]' : 'bg-red-500 shadow-[0_0_5px_rgba(239,68,68,0.6)]';
+                    const height = h.correct ? 'h-full' : 'h-2/5';
+                    chartHtml += `<div class="w-2 rounded-[1px] ${color} ${height}" title="Ván ${h.gameNum}: GE dự đoán ${h.predicted} ➜ KQ: ${h.actual} (${h.correct?'ĐÚNG':'SAI'})"></div>`;
+                });
+                chartHtml += '</div>';
+                chartEl.innerHTML = chartHtml;
+                chartEl.scrollLeft = chartEl.scrollWidth;
+                
+                if (accEl) {
+                    const accRate = Math.round((correct / validHistory.length) * 100);
+                    accEl.textContent = `${accRate}%`;
+                    accEl.className = accRate >= 50 ? 'text-green-400' : 'text-red-400';
+                }
+            } else if (chartEl) {
+                chartEl.innerHTML = '<p class="text-gray-600 text-xs w-full text-center">Đang tích lũy...</p>';
+                if (accEl) accEl.textContent = '0%';
+            }
+        }
 
         /* =========================================================================
-           4. THUẬT TOÁN GOD EYE (GE) - TRẠNG THÁI KÉP
+           5. THUẬT TOÁN GOD EYE (GE) - TRẠNG THÁI KÉP
            ========================================================================= */
         function calculateGodEye() {
             const ht1Details = masterState.systemDetails.ht1;
@@ -1263,20 +1294,12 @@
             if (!session.geHistory) session.geHistory = [];
             const geHistory = session.geHistory;
 
-            // --- DỰ ĐOÁN DỰA TRÊN LUẬT GOD EYE ---
+            // --- DỰ ĐOÁN DỰA TRÊN LUẬT GOD EYE (ĐÃ LOẠI BỎ RULE CỨNG & XEN KẼ) ---
             let prediction = null;
             let reason = "";
             let winRateText = "";
 
-            if (currentState === "B Tăng - B Tăng") {
-                prediction = 'B'; 
-                reason = "Trường hợp cứng: B Tăng - B Tăng thường sẽ về B."; 
-                winRateText = "Luật Cố Định";
-            } else if (currentState === "P Tăng - P Tăng") {
-                prediction = 'P'; 
-                reason = "Trường hợp cứng: P Tăng - P Tăng thường sẽ về P."; 
-                winRateText = "Luật Cố Định";
-            } else if (cot1 !== "Chưa rõ" && cot2 !== "Chưa rõ") {
+            if (cot1 !== "Chưa rõ" && cot2 !== "Chưa rõ") {
                 const matches = geHistory.filter(h => h.state === currentState);
                 if (matches.length > 0) {
                     const pCount = matches.filter(m => m.actual === 'P').length;
@@ -1287,27 +1310,15 @@
                     
                     winRateText = `P: ${rateP}% | B: ${rateB}%`;
 
-                    // Tìm mẫu Xen Kẽ
-                    let isXenKe = false;
-                    if (total >= 2) {
-                        isXenKe = true;
-                        for (let i = 1; i < total; i++) {
-                            if (matches[i].actual === matches[i-1].actual) { isXenKe = false; break; }
-                        }
-                    }
-
-                    if (isXenKe) {
-                        const lastActual = matches[total-1].actual;
-                        prediction = lastActual === 'P' ? 'B' : 'P';
-                        reason = `${Math.max(rateP, rateB)}% NHƯNG PHÁT HIỆN TỶ LỆ CHUYỂN ĐỔI XEN KẼ ĐÁNH NHỎ ${prediction}`;
-                    } else if (pCount > bCount) {
+                    if (pCount > bCount) {
                         prediction = 'P'; 
-                        reason = `Dựa vào Tần suất quá khứ nghiêng mạnh về P (${rateP}%).`;
+                        reason = `Dựa vào Tần suất quá khứ nghiêng về P (${rateP}%).`;
                     } else if (bCount > pCount) {
                         prediction = 'B'; 
-                        reason = `Dựa vào Tần suất quá khứ nghiêng mạnh về B (${rateB}%).`;
+                        reason = `Dựa vào Tần suất quá khứ nghiêng về B (${rateB}%).`;
                     } else {
-                        reason = "Tỷ lệ 50/50, chưa hình thành xu hướng xen kẽ. Khuyên quan sát.";
+                        prediction = null;
+                        reason = "Tỷ lệ P và B bằng nhau (50/50). Khuyên quan sát.";
                     }
                 } else {
                     reason = "Trạng thái này chưa từng xuất hiện trong phiên. Chờ quan sát.";
@@ -1374,44 +1385,7 @@
             }
 
             // Render overall history chart
-            const chartEl = document.getElementById('ge-total-history-chart');
-            const accEl = document.getElementById('ge-overall-accuracy');
-            
-            const validHistory = geHistory.filter(h => h.predicted !== null);
-            if (chartEl && validHistory.length > 0) {
-                let correct = 0;
-                let chartHtml = '<div class="flex items-end justify-start h-full gap-1 px-1 min-w-max">';
-                validHistory.forEach(h => {
-                    if (h.correct) correct++;
-                    const color = h.correct ? 'bg-green-500 shadow-[0_0_5px_rgba(34,197,94,0.6)]' : 'bg-red-500 shadow-[0_0_5px_rgba(239,68,68,0.6)]';
-                    const height = h.correct ? 'h-full' : 'h-2/5';
-                    chartHtml += `<div class="w-2 rounded-[1px] ${color} ${height}" title="Ván ${h.gameNum}: GE dự đoán ${h.predicted} ➜ KQ: ${h.actual} (${h.correct?'ĐÚNG':'SAI'})"></div>`;
-                });
-                chartHtml += '</div>';
-                chartEl.innerHTML = chartHtml;
-                chartEl.scrollLeft = chartEl.scrollWidth;
-                
-                if (accEl) {
-                    const accRate = Math.round((correct / validHistory.length) * 100);
-                    accEl.textContent = `${accRate}%`;
-                    accEl.className = accRate >= 50 ? 'text-green-400' : 'text-red-400';
-                }
-            } else if (chartEl) {
-                chartEl.innerHTML = '<p class="text-gray-600 text-xs w-full text-center">Đang tích lũy...</p>';
-                if (accEl) accEl.textContent = '0%';
-            }
-        }
-
-
-        /* =========================================================================
-           5. ĐỒNG BỘ TỰ ĐỘNG & LƯU TRỮ LỊCH SỬ LÕI AI
-           ========================================================================= */
-        function syncFinalDecisionHistoryFromHT1(intervalHistory) {
-            // Placeholder nếu cần đồng bộ lịch sử chốt HT1 cũ.
-        }
-
-        function addFinalDecisionToHistory(actualResult) {
-            // Placeholder nếu cần. God Eye đã được xử lý riêng.
+            updateGeHistoryChart(geHistory);
         }
 
 
@@ -1565,6 +1539,9 @@
                     actual: result,
                     correct: masterState.currentGePrediction === result
                 });
+                
+                // GỌI HÀM VẼ LẠI BIỂU ĐỒ GE TỨC THÌ
+                updateGeHistoryChart(session.geHistory);
             }
             
             saveMasterSessions();
@@ -1592,6 +1569,8 @@
             // Xoá cả lịch sử GE của ván vừa rồi
             if (session.geHistory && session.geHistory.length > 0) {
                 session.geHistory.pop();
+                // Cập nhật lại biểu đồ GE sau khi hoàn tác
+                updateGeHistoryChart(session.geHistory);
             }
 
             saveMasterSessions();
@@ -1797,4 +1776,4 @@
 
     </script>
 </body>
-</html>
+    </html>
