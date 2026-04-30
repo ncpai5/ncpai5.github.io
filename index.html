@@ -99,19 +99,6 @@
             overflow-y: hidden;
             scroll-behavior: smooth;
         }
-        .history-bar {
-            flex-shrink: 0;
-            width: 4px;
-            border-radius: 1px;
-        }
-        .history-bar-correct {
-            background-color: #3b82f6;
-            height: 100%;
-        }
-        .history-bar-incorrect {
-            background-color: #ef4444;
-            height: 40%;
-        }
         .accuracy-badge {
             padding: 0.25rem 0.5rem;
             border-radius: 9999px;
@@ -514,7 +501,7 @@
                 <div class="bg-gray-800 p-6 rounded-xl border border-gray-600 shadow-inner flex flex-col justify-center">
                     <h3 class="text-gray-400 font-bold mb-3 text-sm uppercase text-center tracking-widest">Đánh Giá Độ Tin Cậy Của 4 GE Con</h3>
                     
-                    <div id="ge-total-state" class="text-2xl font-black text-white text-center py-4 bg-gray-900 rounded-lg border border-gray-600 drop-shadow-md">
+                    <div id="ge-total-state" class="text-xl font-black text-white text-center py-4 bg-gray-900 rounded-lg border border-gray-600 drop-shadow-md px-2">
                         Chưa có dữ liệu
                     </div>
                     
@@ -554,7 +541,7 @@
                     </div>
                     <div class="flex-grow bg-gray-900 rounded border border-gray-700 h-[50px] overflow-hidden relative p-1 shadow-inner">
                         <div id="ge1-total-history-chart" class="history-chart h-full w-full items-center">
-                            <p class="text-gray-600 text-[10px] w-full text-center">Đang tích lũy...</p>
+                            <p class="text-gray-600 text-[10px] w-full text-center mt-[15px]">Đang tích lũy...</p>
                         </div>
                     </div>
                     <button onclick="toggleSection('ge1-details', 'ge1-icon')" class="flex flex-col items-center justify-center w-[3.5rem] flex-shrink-0 text-gray-400 hover:text-white transition-colors bg-gray-700/50 rounded py-2 active:scale-95">
@@ -588,7 +575,7 @@
                     </div>
                     <div class="flex-grow bg-gray-900 rounded border border-gray-700 h-[50px] overflow-hidden relative p-1 shadow-inner">
                         <div id="ge2-total-history-chart" class="history-chart h-full w-full items-center">
-                            <p class="text-gray-600 text-[10px] w-full text-center">Đang tích lũy...</p>
+                            <p class="text-gray-600 text-[10px] w-full text-center mt-[15px]">Đang tích lũy...</p>
                         </div>
                     </div>
                     <button onclick="toggleSection('ge2-details', 'ge2-icon')" class="flex flex-col items-center justify-center w-[3.5rem] flex-shrink-0 text-gray-400 hover:text-white transition-colors bg-gray-700/50 rounded py-2 active:scale-95">
@@ -622,7 +609,7 @@
                     </div>
                     <div class="flex-grow bg-gray-900 rounded border border-gray-700 h-[50px] overflow-hidden relative p-1 shadow-inner">
                         <div id="ge3-total-history-chart" class="history-chart h-full w-full items-center">
-                            <p class="text-gray-600 text-[10px] w-full text-center">Đang tích lũy...</p>
+                            <p class="text-gray-600 text-[10px] w-full text-center mt-[15px]">Đang tích lũy...</p>
                         </div>
                     </div>
                     <button onclick="toggleSection('ge3-details', 'ge3-icon')" class="flex flex-col items-center justify-center w-[3.5rem] flex-shrink-0 text-gray-400 hover:text-white transition-colors bg-gray-700/50 rounded py-2 active:scale-95">
@@ -656,7 +643,7 @@
                     </div>
                     <div class="flex-grow bg-gray-900 rounded border border-gray-700 h-[50px] overflow-hidden relative p-1 shadow-inner">
                         <div id="ge4-total-history-chart" class="history-chart h-full w-full items-center">
-                            <p class="text-gray-600 text-[10px] w-full text-center">Đang tích lũy...</p>
+                            <p class="text-gray-600 text-[10px] w-full text-center mt-[15px]">Đang tích lũy...</p>
                         </div>
                     </div>
                     <button onclick="toggleSection('ge4-details', 'ge4-icon')" class="flex flex-col items-center justify-center w-[3.5rem] flex-shrink-0 text-gray-400 hover:text-white transition-colors bg-gray-700/50 rounded py-2 active:scale-95">
@@ -706,7 +693,7 @@
         </div>
 
         <div class="mt-8 text-center text-gray-500 text-xs font-medium space-y-1">
-            <p>Hệ thống Độc quyền "VẠN SỰ NHƯ Ý" - Lõi phân tích AI Pattern Database Tuỳ Chỉnh & Continuous Learning | Phiên bản 8.0 (Master GE Tổng & UI Nén)</p>
+            <p>Hệ thống Độc quyền "VẠN SỰ NHƯ Ý" - Lõi phân tích AI Pattern Database Tuỳ Chỉnh & Continuous Learning | Phiên bản 9.0 (Perfect Sync)</p>
             <p>Thuật toán quét siêu liên kết biểu đồ tỷ lệ HT1 để đưa ra đề xuất chính xác nhất.</p>
         </div>
     </div>
@@ -896,7 +883,6 @@
             showToast('Đang xử lý Kho Mẫu AI...', 'info');
             await initializeOriginalPatternDB();
             showToast('Đã lưu và dạy lại AI thành công!', 'success');
-            calculateFinalDecision();
         }
 
         function resetPatternDBToDefault() {
@@ -960,37 +946,9 @@
             updateLearnedCountDisplay();
         }
 
-        function findAllMatches(inputSeq, minOccur, minConf) {
-            let matches = [];
-            const maxSearchLen = Math.min(inputSeq.length, 20);
-            
-            for (let size = 3; size <= maxSearchLen; size++) {
-                const subSeq = inputSeq.slice(-size);
-                const key = `${size}|${subSeq}`;
-                const rule = patternDatabase[key];
-                
-                if (rule && rule.total >= minOccur) {
-                    const pD = (rule.nextD / rule.total) * 100;
-                    const pS = (rule.nextS / rule.total) * 100;
-                    const confidence = Math.max(pD, pS);
-                    
-                    if (confidence >= minConf) {
-                        const target = pD > pS ? 'D' : 'S';
-                        const logTotal = Math.log10(rule.total > 0 ? rule.total : 1);
-                        const score = (confidence * 1000) + (logTotal * 100);
-                        
-                        matches.push({ target, confidence, total: rule.total, seq: subSeq, size, score, pD, pS });
-                    }
-                }
-            }
-            return matches;
-        }
-
         /* =========================================================================
            2. GLOBAL STATE & CƠ CHẾ AI TỰ HỌC (CONTINUOUS LEARNING)
            ========================================================================= */
-        let patternConfig = { minOccurrences: 10, minConfidence: 100 }; 
-
         const masterState = {
             currentSessionId: null,
             currentSessionName: 'Chưa chọn',
@@ -1060,21 +1018,34 @@
         }
 
         /* =========================================================================
-           3. THUẬT TOÁN QUYẾT ĐỊNH LÕI HT1
-           ========================================================================= */
-        function calculateFinalDecision() {
-            // Placeholder nếu dùng chốt HT1. Chức năng chính nhường cho GE.
-        }
-
-        /* =========================================================================
-           4. THUẬT TOÁN GOD EYE MA TRẬN 2x2 ĐỘC LẬP
+           4. THUẬT TOÁN GOD EYE MA TRẬN 2x2 ĐỘC LẬP (RETROACTIVE SYNC)
            ========================================================================= */
         function calculateGodEyeForSystem(htKey, geKey) {
             const htDetails = masterState.systemDetails[htKey];
             const session = masterState.sessions[masterState.currentSessionId];
             if (!session || !htDetails || !htDetails.intervalHistory) return;
 
-            // CỘT 1 (Trạng thái Biểu đồ HT)
+            const N = htDetails.intervalHistory.length;
+            
+            // 1. Resolve PREVIOUS game if pending
+            if (N > 0 && session[`${geKey}NextPred`] && session[`${geKey}NextPred`].gameNum === N) {
+                const actualResult = session.history[N - 1];
+                if (actualResult) {
+                    const predObj = session[`${geKey}NextPred`];
+                    if (!session[`${geKey}History`]) session[`${geKey}History`] = [];
+                    if (!session[`${geKey}History`].find(h => h.gameNum === N)) {
+                        session[`${geKey}History`].push({
+                            gameNum: N,
+                            state: predObj.state,
+                            predicted: predObj.prediction,
+                            actual: actualResult,
+                            correct: predObj.prediction ? (predObj.prediction === actualResult) : null
+                        });
+                    }
+                }
+            }
+
+            // 2. Calculate State for N + 1
             let cot1 = "Chưa rõ";
             const dsArr = htDetails.intervalHistory.map(x => (x.correct || x.isCorrect || x.predicted === x.actual) ? 'D' : 'S');
             const verdictStr = htDetails.verdict ? htDetails.verdict.toUpperCase().trim() : '';
@@ -1097,9 +1068,8 @@
                 }
             }
 
-            // CỘT 2 (Trạng thái Big Road)
             let cot2 = "Chưa rõ";
-            const br = session.history || [];
+            const br = session.history.slice(0, N);
             if (br.length > 0) {
                 const lastB = br[br.length - 1];
                 let streakB = 1;
@@ -1110,10 +1080,10 @@
             const currentState = `${cot1} - ${cot2}`;
             masterState.geStates[geKey] = currentState;
 
-            if (!session[`${geKey}History`]) session[`${geKey}History`] = [];
-            const geHistory = session[`${geKey}History`];
-
+            // 3. Calculate Prediction for N + 1
+            const geHistory = session[`${geKey}History`] || [];
             let prediction = null; let reason = ""; let winRateText = "";
+            
             if (cot1 !== "Chưa rõ" && cot2 !== "Chưa rõ") {
                 const matches = geHistory.filter(h => h.state === currentState);
                 if (matches.length > 0) {
@@ -1131,6 +1101,14 @@
             } else { reason = "Chờ đủ dữ liệu..."; }
 
             masterState.gePredictions[geKey] = prediction;
+            
+            // 4. Save NextPred for N + 1
+            session[`${geKey}NextPred`] = {
+                gameNum: N + 1,
+                state: currentState,
+                prediction: prediction
+            };
+
             renderGodEyeUI(currentState, prediction, reason, winRateText, geHistory, geKey);
         }
 
@@ -1148,13 +1126,13 @@
             if (decEl) {
                 if (prediction === 'P') {
                     decEl.textContent = 'P';
-                    decEl.className = 'text-4xl font-black text-blue-400 drop-shadow-md leading-none transition-all duration-300';
+                    decEl.className = 'text-3xl font-black text-blue-400 drop-shadow-md leading-none transition-all duration-300';
                 } else if (prediction === 'B') {
                     decEl.textContent = 'B';
-                    decEl.className = 'text-4xl font-black text-red-500 drop-shadow-md leading-none transition-all duration-300';
+                    decEl.className = 'text-3xl font-black text-red-500 drop-shadow-md leading-none transition-all duration-300';
                 } else {
                     decEl.textContent = '-';
-                    decEl.className = 'text-4xl font-black text-gray-600 leading-none transition-all duration-300';
+                    decEl.className = 'text-3xl font-black text-gray-600 leading-none transition-all duration-300';
                 }
             }
 
@@ -1186,17 +1164,20 @@
         function updateGeHistoryChart(geHistory, geKey) {
             const chartEl = document.getElementById(`${geKey}-total-history-chart`);
             
-            const validHistory = geHistory.filter(h => h.predicted !== null);
-            if (chartEl && validHistory.length > 0) {
-                let chartHtml = '<div class="flex items-end justify-start h-full gap-1 px-1 min-w-max">';
-                validHistory.forEach(h => {
-                    const color = h.correct ? 'bg-green-500 shadow-[0_0_5px_rgba(34,197,94,0.6)]' : 'bg-red-500 shadow-[0_0_5px_rgba(239,68,68,0.6)]';
-                    const height = h.correct ? 'h-full' : 'h-2/5';
-                    chartHtml += `<div class="w-[4px] rounded-[1px] ${color} ${height}" title="Ván ${h.gameNum}: ${geKey.toUpperCase()} dự đoán ${h.predicted} ➜ KQ: ${h.actual} (${h.correct?'ĐÚNG':'SAI'})"></div>`;
+            if (chartEl && geHistory.length > 0) {
+                let chartHtml = '<div class="flex items-end justify-start h-full gap-[2px] px-1 min-w-max">';
+                geHistory.forEach(h => {
+                    if (h.predicted === null) {
+                        chartHtml += `<div class="w-[4px] rounded-[1px] bg-gray-600 h-[20%]" title="Ván ${h.gameNum}: BỎ QUA ➜ KQ: ${h.actual}"></div>`;
+                    } else {
+                        const color = h.correct ? 'bg-green-500 shadow-[0_0_5px_rgba(34,197,94,0.6)]' : 'bg-red-500 shadow-[0_0_5px_rgba(239,68,68,0.6)]';
+                        const height = h.correct ? 'h-full' : 'h-2/5';
+                        chartHtml += `<div class="w-[4px] rounded-[1px] ${color} ${height}" title="Ván ${h.gameNum}: ${geKey.toUpperCase()} dự đoán ${h.predicted} ➜ KQ: ${h.actual} (${h.correct?'ĐÚNG':'SAI'})"></div>`;
+                    }
                 });
                 chartHtml += '</div>';
                 chartEl.innerHTML = chartHtml;
-                chartEl.scrollLeft = chartEl.scrollWidth;
+                setTimeout(() => { chartEl.scrollLeft = chartEl.scrollWidth; }, 50);
             } else if (chartEl) {
                 chartEl.innerHTML = '<p class="text-gray-600 text-[10px] w-full text-center mt-[15px]">Đang tích lũy...</p>';
             }
@@ -1263,16 +1244,34 @@
             const session = masterState.sessions[masterState.currentSessionId];
             if (!session) return;
 
+            const N = Math.min(...['ge1','ge2','ge3','ge4'].map(k => (session[k+'History'] || []).length));
+            
+            if (N > 0 && session.geTotalNextPred && session.geTotalNextPred.gameNum === N) {
+                const actualResult = session.history[N - 1];
+                if (actualResult) {
+                    const predObj = session.geTotalNextPred;
+                    if (!session.geTotalHistory) session.geTotalHistory = [];
+                    if (!session.geTotalHistory.find(h => h.gameNum === N)) {
+                        session.geTotalHistory.push({
+                            gameNum: N,
+                            state: predObj.state,
+                            predicted: predObj.prediction,
+                            actual: actualResult,
+                            correct: predObj.prediction ? (predObj.prediction === actualResult) : null
+                        });
+                    }
+                }
+            }
+
             let evaluations = [];
             ['ge1', 'ge2', 'ge3', 'ge4'].forEach(geKey => {
                 const hist = session[`${geKey}History`] || [];
-                const pred = masterState.gePredictions[geKey];
+                const pred = session[`${geKey}NextPred`] ? session[`${geKey}NextPred`].prediction : null;
                 const evalObj = evaluateGEPattern(hist, pred);
                 evalObj.geKey = geKey;
                 evaluations.push(evalObj);
             });
 
-            // Sắp xếp điểm độ tin cậy giảm dần
             evaluations.sort((a, b) => b.score - a.score);
             const bestEval = evaluations[0];
             
@@ -1298,8 +1297,11 @@
                 finalPred = null; finalState = "Biểu đồ hỗn loạn";
             }
 
-            masterState.geTotalState = finalState;
-            masterState.geTotalPrediction = finalPred;
+            session.geTotalNextPred = {
+                gameNum: N + 1,
+                state: finalState,
+                prediction: finalPred
+            };
             
             renderGodEyeTotalUI(finalState, finalPred, finalReason, session.geTotalHistory || []);
         }
@@ -1331,22 +1333,27 @@
             const chartEl = document.getElementById('ge-total-history-chart');
             const accEl = document.getElementById('ge-total-overall-accuracy');
             
-            const validHistory = history.filter(h => h.predicted !== null);
-            if (chartEl && validHistory.length > 0) {
+            if (chartEl && history.length > 0) {
                 let correct = 0;
+                let totalPred = 0;
                 let chartHtml = '<div class="flex items-end justify-start h-full gap-[2px] px-1 min-w-max">';
-                validHistory.forEach(h => {
-                    if (h.correct) correct++;
-                    const color = h.correct ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.8)]' : 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.8)]';
-                    const height = h.correct ? 'h-full' : 'h-2/5';
-                    chartHtml += `<div class="w-[5px] rounded-[1px] ${color} ${height}" title="Ván ${h.gameNum}: GE Tổng chốt ${h.predicted} ➜ KQ: ${h.actual} (${h.correct?'ĐÚNG':'SAI'})"></div>`;
+                history.forEach(h => {
+                    if (h.predicted === null) {
+                        chartHtml += `<div class="w-[5px] rounded-[1px] bg-gray-600 h-[20%]" title="Ván ${h.gameNum}: BỎ QUA ➜ KQ: ${h.actual}"></div>`;
+                    } else {
+                        totalPred++;
+                        if (h.correct) correct++;
+                        const color = h.correct ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.8)]' : 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.8)]';
+                        const height = h.correct ? 'h-full' : 'h-2/5';
+                        chartHtml += `<div class="w-[5px] rounded-[1px] ${color} ${height}" title="Ván ${h.gameNum}: GE Tổng chốt ${h.predicted} ➜ KQ: ${h.actual} (${h.correct?'ĐÚNG':'SAI'})"></div>`;
+                    }
                 });
                 chartHtml += '</div>';
                 chartEl.innerHTML = chartHtml;
-                chartEl.scrollLeft = chartEl.scrollWidth;
+                setTimeout(() => { chartEl.scrollLeft = chartEl.scrollWidth; }, 50);
                 
                 if (accEl) {
-                    const accRate = Math.round((correct / validHistory.length) * 100);
+                    const accRate = totalPred > 0 ? Math.round((correct / totalPred) * 100) : 0;
                     accEl.textContent = `${accRate}%`;
                     accEl.className = accRate >= 50 ? 'text-green-400' : 'text-red-400';
                 }
@@ -1385,6 +1392,17 @@
                 case 'ready':
                     masterState.systemsReady[system] = true;
                     updateSystemStatus();
+                    
+                    // CHỐT CHẶN: Khi Iframe báo ready, Master sẽ bắt nó phải lấy dữ liệu thô từ Master 
+                    // thay vì tự load localStorage của nó, tránh việc HT1 tải nhầm bộ nhớ HT4.
+                    if (masterState.currentSessionId && masterState.sessions[masterState.currentSessionId]) {
+                        const session = masterState.sessions[masterState.currentSessionId];
+                        sendToIframe(`${system}-iframe`, 'load_session', { 
+                            id: masterState.currentSessionId, 
+                            name: session.name, 
+                            history: [...session.history] 
+                        });
+                    }
                     break;
                 case 'accuracy_update':
                     updateSystemAccuracy(system, data.accuracy);
@@ -1399,7 +1417,6 @@
                     const geMap = { ht1: 'ge1', ht2: 'ge2', ht3: 'ge3', ht4: 'ge4' };
                     calculateGodEyeForSystem(system, geMap[system]);
                     
-                    // Kích hoạt tính toán GE Tổng sau khi các HT gửi data
                     triggerMasterGECalculation();
                     break;
                 case 'export_data':
@@ -1479,44 +1496,18 @@
 
 
         /* =========================================================================
-           6. XỬ LÝ NHẬP LỆNH, HOÀN TÁC, SESSION 
+           6. XỬ LÝ NHẬP LỆNH, HOÀN TÁC, SESSION ĐƯỢC TỐI GIẢN CHUYỂN QUA RETROACTIVE
            ========================================================================= */
         function addResultToAll(result) {
             if (!masterState.currentSessionId) { showToast('Vui lòng chọn hoặc tạo phiên trước!', 'warning'); return; }
             const session = masterState.sessions[masterState.currentSessionId];
             if (!session.history) session.history = [];
             
-            // ĐỒNG BỘ 4 GE CON
-            ['ge1', 'ge2', 'ge3', 'ge4'].forEach(geKey => {
-                const currentState = masterState.geStates[geKey];
-                const currentPrediction = masterState.gePredictions[geKey];
-                if (!session[`${geKey}History`]) session[`${geKey}History`] = [];
-                if (currentState && currentState !== "Chưa rõ - Chưa rõ") {
-                    session[`${geKey}History`].push({
-                        gameNum: session.history.length + 1, 
-                        state: currentState, predicted: currentPrediction, actual: result, correct: currentPrediction === result
-                    });
-                }
-            });
-
-            // ĐỒNG BỘ GE TỔNG
-            const geTotalState = masterState.geTotalState;
-            const geTotalPred = masterState.geTotalPrediction;
-            if (!session.geTotalHistory) session.geTotalHistory = [];
-            if (geTotalState && geTotalState !== "Chưa có quy luật" && geTotalState !== "Biểu đồ hỗn loạn") {
-                session.geTotalHistory.push({
-                    gameNum: session.history.length + 1,
-                    state: geTotalState, predicted: geTotalPred, actual: result, correct: geTotalPred === result
-                });
-            }
-
             session.history.push(result);
-            
             saveMasterSessions();
             updateCurrentSessionInfo();
-            ['ge1', 'ge2', 'ge3', 'ge4'].forEach(geKey => updateGeHistoryChart(session[`${geKey}History`] || [], geKey));
-            updateGeTotalHistoryChart(session.geTotalHistory || []);
             
+            // Chỉ gửi kết quả xuống IFrames, việc lưu GE History nhường lại cho hàm Retroactive khi IFrames báo cáo xong
             broadcastToAll('add_result', result);
             
             setTimeout(() => {
@@ -1540,12 +1531,14 @@
                     session[`${geKey}History`].pop();
                     updateGeHistoryChart(session[`${geKey}History`], geKey); 
                 }
+                delete session[`${geKey}NextPred`];
             });
 
             if (session.geTotalHistory && session.geTotalHistory.length > 0) {
                 session.geTotalHistory.pop();
                 updateGeTotalHistoryChart(session.geTotalHistory);
             }
+            delete session.geTotalNextPred;
 
             saveMasterSessions();
             updateCurrentSessionInfo();
@@ -1565,8 +1558,13 @@
             if (confirm('Xóa sạch lịch sử của phiên hiện tại?')) {
                 const session = masterState.sessions[masterState.currentSessionId];
                 session.history = [];
-                ['ge1', 'ge2', 'ge3', 'ge4'].forEach(geKey => { session[`${geKey}History`] = []; });
+                
+                ['ge1', 'ge2', 'ge3', 'ge4'].forEach(geKey => { 
+                    session[`${geKey}History`] = []; 
+                    delete session[`${geKey}NextPred`];
+                });
                 session.geTotalHistory = [];
+                delete session.geTotalNextPred;
                 
                 saveMasterSessions(); updateCurrentSessionInfo();
                 broadcastToAll('clear_history');
@@ -1639,6 +1637,7 @@
             });
             updateGeTotalHistoryChart(session.geTotalHistory || []);
             
+            // CHỐT CHẶN BẢO MẬT: Bắt buộc iframes load phiên từ MASTER
             broadcastToAll('load_session', { id: masterState.currentSessionId, name: session.name, history: [...session.history] });
             document.getElementById('sync-status').textContent = '🔄 Đang đồng bộ...';
             
@@ -1671,7 +1670,7 @@
            7. XUẤT NHẬP DỮ LIỆU & TIỆN ÍCH KHÁC
            ========================================================================= */
         function exportMasterData() {
-            const exportData = { type: 'vanSuNhuY_export', version: '8.0', timestamp: new Date().toISOString(), sessions: masterState.sessions, system_sessions: {} };
+            const exportData = { type: 'vanSuNhuY_export', version: '9.0', timestamp: new Date().toISOString(), sessions: masterState.sessions, system_sessions: {} };
             let systemsCollected = 0;
             const handler = (e) => {
                 if (e.data.source && e.data.type === 'export_data') {
@@ -1696,6 +1695,8 @@
                 try {
                     const data = JSON.parse(e.target.result);
                     if (data.sessions) { masterState.sessions = data.sessions; saveMasterSessions(); updateMasterSessionSelector(); }
+                    
+                    // CHỐT CHẶN IMPORT: Truyền thẳng data.sessions của Master xuống các HT con
                     ['ht1', 'ht2', 'ht3', 'ht4'].forEach(sys => {
                         sendToIframe(`${sys}-iframe`, 'import_data', { sessions: data.system_sessions?.[sys] || data.sessions, simulate: true, isMasterData: !data.system_sessions?.[sys] });
                     });
@@ -1752,9 +1753,8 @@
             
             let checkInit = setInterval(() => {
                 if (allSystemsReady()) { 
-                    broadcastToAll('get_accuracy'); 
-                    broadcastToAll('get_chot_history'); 
-                    broadcastToAll('get_system_details');
+                    // Master force childs to load master session if exists
+                    if (masterState.currentSessionId) syncAllSystems();
                     clearInterval(checkInit);
                 }
             }, 500);
@@ -1762,4 +1762,4 @@
 
     </script>
 </body>
-    </html>
+                                                                                                                                                         </html>
