@@ -92,12 +92,16 @@
             display: flex;
             align-items: flex-end;
             justify-content: flex-start;
-            gap: 2px;
+            gap: 4px; /* Tăng khoảng cách nhìn thoáng hơn */
             height: 60px;
             padding: 5px 0 8px 0;
             overflow-x: auto;
             overflow-y: hidden;
             scroll-behavior: smooth;
+        }
+        .ge-chart {
+            height: 100% !important;
+            min-height: 80px;
         }
         .accuracy-badge {
             padding: 0.25rem 0.5rem;
@@ -372,13 +376,13 @@
                         <div class="bg-gray-900 p-3 rounded-lg mt-4 border border-yellow-500/30 relative">
                             <div class="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-yellow-600 text-black text-[10px] font-bold px-2 py-0.5 rounded-full shadow-lg">NGUỒN DỮ AI</div>
                             <h4 class="text-center text-sm text-yellow-300 mb-2 font-bold">Biểu đồ khoảng tỷ lệ (90-100%)</h4>
-                            <div id="ht1-interval-chart" class="history-chart"></div>
+                            <div id="ht1-interval-chart" class="history-chart h-[70px]"></div>
                             <div id="ht1-range-games" class="mt-2 text-xs text-gray-400 text-center"></div>
                         </div>
                         
                         <div class="bg-gray-900 p-3 rounded-lg mt-4">
                             <h4 class="text-center text-sm text-gray-400 mb-2">Biểu đồ kết hợp (Chốt)</h4>
-                            <div id="ht1-combined-chart" class="history-chart">
+                            <div id="ht1-combined-chart" class="history-chart h-[70px]">
                                 <p class="text-gray-600 text-xs text-center w-full">Đang tải...</p>
                             </div>
                         </div>
@@ -407,13 +411,13 @@
                         
                         <div class="bg-gray-900 p-3 rounded-lg mt-4">
                             <h4 class="text-center text-sm text-gray-400 mb-2">Biểu đồ khoảng tỷ lệ</h4>
-                            <div id="ht2-interval-chart" class="history-chart"></div>
+                            <div id="ht2-interval-chart" class="history-chart h-[70px]"></div>
                             <div id="ht2-range-games" class="mt-2 text-xs text-gray-400 text-center"></div>
                         </div>
                         
                         <div class="bg-gray-900 p-3 rounded-lg mt-4">
                             <h4 class="text-center text-sm text-gray-400 mb-2">Biểu đồ kết hợp (Chốt)</h4>
-                            <div id="ht2-combined-chart" class="history-chart">
+                            <div id="ht2-combined-chart" class="history-chart h-[70px]">
                                 <p class="text-gray-600 text-xs text-center w-full">Đang tải...</p>
                             </div>
                         </div>
@@ -442,13 +446,13 @@
                         
                         <div class="bg-gray-900 p-3 rounded-lg mt-4">
                             <h4 class="text-center text-sm text-gray-400 mb-2">Biểu đồ khoảng tỷ lệ</h4>
-                            <div id="ht3-interval-chart" class="history-chart"></div>
+                            <div id="ht3-interval-chart" class="history-chart h-[70px]"></div>
                             <div id="ht3-range-games" class="mt-2 text-xs text-gray-400 text-center"></div>
                         </div>
                         
                         <div class="bg-gray-900 p-3 rounded-lg mt-4">
                             <h4 class="text-center text-sm text-gray-400 mb-2">Biểu đồ kết hợp (Chốt)</h4>
-                            <div id="ht3-combined-chart" class="history-chart">
+                            <div id="ht3-combined-chart" class="history-chart h-[70px]">
                                 <p class="text-gray-600 text-xs text-center w-full">Đang tải...</p>
                             </div>
                         </div>
@@ -477,13 +481,13 @@
                         
                         <div class="bg-gray-900 p-3 rounded-lg mt-4">
                             <h4 class="text-center text-sm text-gray-400 mb-2">Biểu đồ khoảng tỷ lệ</h4>
-                            <div id="ht4-interval-chart" class="history-chart"></div>
+                            <div id="ht4-interval-chart" class="history-chart h-[70px]"></div>
                             <div id="ht4-range-games" class="mt-2 text-xs text-gray-400 text-center"></div>
                         </div>
                         
                         <div class="bg-gray-900 p-3 rounded-lg mt-4">
                             <h4 class="text-center text-sm text-gray-400 mb-2">Biểu đồ kết hợp (Chốt)</h4>
-                            <div id="ht4-combined-chart" class="history-chart">
+                            <div id="ht4-combined-chart" class="history-chart h-[70px]">
                                 <p class="text-gray-600 text-xs text-center w-full">Đang tải...</p>
                             </div>
                         </div>
@@ -524,10 +528,15 @@
 
             <div class="mt-5 bg-gray-900 p-4 rounded-xl border border-yellow-600/50 shadow-inner">
                 <h3 class="text-xs text-yellow-500 font-bold mb-2 uppercase text-center tracking-widest">LỊCH SỬ GE TỔNG (TỪ VÁN 1 ĐẾN HẾT)</h3>
-                <div id="ge-total-history-chart" class="history-chart h-[50px] items-center">
-                    <p class="text-gray-600 text-xs w-full text-center">Đang phân tích và tổng hợp...</p>
+                
+                <div class="h-[120px] w-full border border-gray-800 rounded-lg bg-gray-950 p-1 mb-2 relative flex flex-col">
+                    <div id="ge-total-history-chart" class="history-chart ge-chart flex-grow items-center">
+                        <p class="text-gray-600 text-xs w-full text-center">Đang phân tích và tổng hợp...</p>
+                    </div>
                 </div>
-                <div class="mt-3 text-xs text-gray-400 text-center">Mỗi cột là 1 ván quyết định của GE Tổng: <span class="text-green-500 font-bold">Xanh = Đúng</span>, <span class="text-red-500 font-bold">Đỏ = Sai</span>.</div>
+                
+                <div id="ge-total-skipped-info" class="text-sm text-gray-400 text-center font-bold mb-2">Đã bỏ qua: 0 ván</div>
+                <div class="mt-1 text-xs text-gray-500 text-center">Mỗi cột là 1 ván quyết định của GE Tổng: <span class="text-green-500 font-bold">Xanh = Đúng</span>, <span class="text-red-500 font-bold">Đỏ = Sai</span>. (Cột xám bỏ qua đã được ẩn)</div>
             </div>
         </div>
 
@@ -539,10 +548,11 @@
                         <span class="text-[10px] text-blue-400 font-bold mb-1 uppercase tracking-wider">GE 1</span>
                         <span id="ge1-final-decision-mini" class="text-3xl font-black text-gray-600 leading-none transition-all duration-300">-</span>
                     </div>
-                    <div class="flex-grow bg-gray-900 rounded border border-gray-700 h-[50px] overflow-hidden relative p-1 shadow-inner">
-                        <div id="ge1-total-history-chart" class="history-chart h-full w-full items-center">
+                    <div class="flex-grow bg-gray-900 rounded border border-gray-700 h-[100px] overflow-hidden relative shadow-inner flex flex-col">
+                        <div id="ge1-total-history-chart" class="history-chart ge-chart flex-grow w-full items-center p-1">
                             <p class="text-gray-600 text-[10px] w-full text-center mt-[15px]">Đang tích lũy...</p>
                         </div>
+                        <div id="ge1-skipped-info" class="text-[10px] text-gray-400 font-medium text-center border-t border-gray-800 bg-gray-800 py-0.5">Đã bỏ qua: 0 ván</div>
                     </div>
                     <button onclick="toggleSection('ge1-details', 'ge1-icon')" class="flex flex-col items-center justify-center w-[3.5rem] flex-shrink-0 text-gray-400 hover:text-white transition-colors bg-gray-700/50 rounded py-2 active:scale-95">
                         <span class="text-[9px] uppercase font-bold mb-1">Chi tiết</span>
@@ -573,10 +583,11 @@
                         <span class="text-[10px] text-green-400 font-bold mb-1 uppercase tracking-wider">GE 2</span>
                         <span id="ge2-final-decision-mini" class="text-3xl font-black text-gray-600 leading-none transition-all duration-300">-</span>
                     </div>
-                    <div class="flex-grow bg-gray-900 rounded border border-gray-700 h-[50px] overflow-hidden relative p-1 shadow-inner">
-                        <div id="ge2-total-history-chart" class="history-chart h-full w-full items-center">
+                    <div class="flex-grow bg-gray-900 rounded border border-gray-700 h-[100px] overflow-hidden relative shadow-inner flex flex-col">
+                        <div id="ge2-total-history-chart" class="history-chart ge-chart flex-grow w-full items-center p-1">
                             <p class="text-gray-600 text-[10px] w-full text-center mt-[15px]">Đang tích lũy...</p>
                         </div>
+                        <div id="ge2-skipped-info" class="text-[10px] text-gray-400 font-medium text-center border-t border-gray-800 bg-gray-800 py-0.5">Đã bỏ qua: 0 ván</div>
                     </div>
                     <button onclick="toggleSection('ge2-details', 'ge2-icon')" class="flex flex-col items-center justify-center w-[3.5rem] flex-shrink-0 text-gray-400 hover:text-white transition-colors bg-gray-700/50 rounded py-2 active:scale-95">
                         <span class="text-[9px] uppercase font-bold mb-1">Chi tiết</span>
@@ -607,10 +618,11 @@
                         <span class="text-[10px] text-orange-400 font-bold mb-1 uppercase tracking-wider">GE 3</span>
                         <span id="ge3-final-decision-mini" class="text-3xl font-black text-gray-600 leading-none transition-all duration-300">-</span>
                     </div>
-                    <div class="flex-grow bg-gray-900 rounded border border-gray-700 h-[50px] overflow-hidden relative p-1 shadow-inner">
-                        <div id="ge3-total-history-chart" class="history-chart h-full w-full items-center">
+                    <div class="flex-grow bg-gray-900 rounded border border-gray-700 h-[100px] overflow-hidden relative shadow-inner flex flex-col">
+                        <div id="ge3-total-history-chart" class="history-chart ge-chart flex-grow w-full items-center p-1">
                             <p class="text-gray-600 text-[10px] w-full text-center mt-[15px]">Đang tích lũy...</p>
                         </div>
+                        <div id="ge3-skipped-info" class="text-[10px] text-gray-400 font-medium text-center border-t border-gray-800 bg-gray-800 py-0.5">Đã bỏ qua: 0 ván</div>
                     </div>
                     <button onclick="toggleSection('ge3-details', 'ge3-icon')" class="flex flex-col items-center justify-center w-[3.5rem] flex-shrink-0 text-gray-400 hover:text-white transition-colors bg-gray-700/50 rounded py-2 active:scale-95">
                         <span class="text-[9px] uppercase font-bold mb-1">Chi tiết</span>
@@ -641,10 +653,11 @@
                         <span class="text-[10px] text-pink-400 font-bold mb-1 uppercase tracking-wider">GE 4</span>
                         <span id="ge4-final-decision-mini" class="text-3xl font-black text-gray-600 leading-none transition-all duration-300">-</span>
                     </div>
-                    <div class="flex-grow bg-gray-900 rounded border border-gray-700 h-[50px] overflow-hidden relative p-1 shadow-inner">
-                        <div id="ge4-total-history-chart" class="history-chart h-full w-full items-center">
+                    <div class="flex-grow bg-gray-900 rounded border border-gray-700 h-[100px] overflow-hidden relative shadow-inner flex flex-col">
+                        <div id="ge4-total-history-chart" class="history-chart ge-chart flex-grow w-full items-center p-1">
                             <p class="text-gray-600 text-[10px] w-full text-center mt-[15px]">Đang tích lũy...</p>
                         </div>
+                        <div id="ge4-skipped-info" class="text-[10px] text-gray-400 font-medium text-center border-t border-gray-800 bg-gray-800 py-0.5">Đã bỏ qua: 0 ván</div>
                     </div>
                     <button onclick="toggleSection('ge4-details', 'ge4-icon')" class="flex flex-col items-center justify-center w-[3.5rem] flex-shrink-0 text-gray-400 hover:text-white transition-colors bg-gray-700/50 rounded py-2 active:scale-95">
                         <span class="text-[9px] uppercase font-bold mb-1">Chi tiết</span>
@@ -1023,9 +1036,10 @@
         function calculateGodEyeForSystem(htKey, geKey) {
             const htDetails = masterState.systemDetails[htKey];
             const session = masterState.sessions[masterState.currentSessionId];
-            if (!session || !htDetails || !htDetails.intervalHistory) return;
+            if (!session || !htDetails) return;
 
-            const N = htDetails.intervalHistory.length;
+            // BẮT BUỘC DÙNG CHIỀU DÀI LỊCH SỬ THỰC ĐỂ TRÁNH LỖI ĐÓNG BĂNG GE4
+            const N = session.history ? session.history.length : 0;
             
             // 1. Resolve PREVIOUS game if pending
             if (N > 0 && session[`${geKey}NextPred`] && session[`${geKey}NextPred`].gameNum === N) {
@@ -1047,7 +1061,8 @@
 
             // 2. Calculate State for N + 1
             let cot1 = "Chưa rõ";
-            const dsArr = htDetails.intervalHistory.map(x => (x.correct || x.isCorrect || x.predicted === x.actual) ? 'D' : 'S');
+            const intHist = htDetails.intervalHistory || [];
+            const dsArr = intHist.map(x => (x.correct || x.isCorrect || x.predicted === x.actual) ? 'D' : 'S');
             const verdictStr = htDetails.verdict ? htDetails.verdict.toUpperCase().trim() : '';
             
             if (dsArr.length > 0 && verdictStr) {
@@ -1163,19 +1178,26 @@
 
         function updateGeHistoryChart(geHistory, geKey) {
             const chartEl = document.getElementById(`${geKey}-total-history-chart`);
+            const skipEl = document.getElementById(`${geKey}-skipped-info`);
+            
+            let skippedCount = 0;
+            if (geHistory) skippedCount = geHistory.filter(h => h.predicted === null).length;
+            if (skipEl) skipEl.textContent = `Đã bỏ qua: ${skippedCount} ván`;
             
             if (chartEl && geHistory.length > 0) {
-                let chartHtml = '<div class="flex items-end justify-start h-full gap-[2px] px-1 min-w-max">';
-                geHistory.forEach(h => {
-                    if (h.predicted === null) {
-                        chartHtml += `<div class="w-[4px] rounded-[1px] bg-gray-600 h-[20%]" title="Ván ${h.gameNum}: BỎ QUA ➜ KQ: ${h.actual}"></div>`;
-                    } else {
-                        const color = h.correct ? 'bg-green-500 shadow-[0_0_5px_rgba(34,197,94,0.6)]' : 'bg-red-500 shadow-[0_0_5px_rgba(239,68,68,0.6)]';
+                let chartHtml = '<div class="flex items-end justify-start h-full gap-[4px] px-1 min-w-max">';
+                const actionableHistory = geHistory.filter(h => h.predicted !== null);
+                
+                if (actionableHistory.length === 0) {
+                    chartHtml = '<p class="text-gray-500 text-[10px] w-full text-center mt-[15px] font-bold italic">Chưa có lệnh chốt (Toàn bỏ qua)</p>';
+                } else {
+                    actionableHistory.forEach(h => {
+                        const color = h.correct ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]' : 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]';
                         const height = h.correct ? 'h-full' : 'h-2/5';
-                        chartHtml += `<div class="w-[4px] rounded-[1px] ${color} ${height}" title="Ván ${h.gameNum}: ${geKey.toUpperCase()} dự đoán ${h.predicted} ➜ KQ: ${h.actual} (${h.correct?'ĐÚNG':'SAI'})"></div>`;
-                    }
-                });
-                chartHtml += '</div>';
+                        chartHtml += `<div class="w-[8px] rounded-[2px] ${color} ${height}" title="Ván ${h.gameNum}: ${geKey.toUpperCase()} chốt ${h.predicted} ➜ KQ: ${h.actual} (${h.correct?'ĐÚNG':'SAI'})"></div>`;
+                    });
+                    chartHtml += '</div>';
+                }
                 chartEl.innerHTML = chartHtml;
                 setTimeout(() => { chartEl.scrollLeft = chartEl.scrollWidth; }, 50);
             } else if (chartEl) {
@@ -1244,7 +1266,8 @@
             const session = masterState.sessions[masterState.currentSessionId];
             if (!session) return;
 
-            const N = Math.min(...['ge1','ge2','ge3','ge4'].map(k => (session[k+'History'] || []).length));
+            // BẮT BUỘC DÙNG CHIỀU DÀI THỰC, LOẠI BỎ SỰ CHẦM CHẬP CỦA MATH.MIN NẾU 1 HT BỊ LAG
+            const N = session.history ? session.history.length : 0;
             
             if (N > 0 && session.geTotalNextPred && session.geTotalNextPred.gameNum === N) {
                 const actualResult = session.history[N - 1];
@@ -1332,23 +1355,31 @@
         function updateGeTotalHistoryChart(history) {
             const chartEl = document.getElementById('ge-total-history-chart');
             const accEl = document.getElementById('ge-total-overall-accuracy');
+            const skipEl = document.getElementById('ge-total-skipped-info');
+            
+            let skippedCount = 0;
+            if (history) skippedCount = history.filter(h => h.predicted === null).length;
+            if (skipEl) skipEl.textContent = `Đã bỏ qua: ${skippedCount} ván`;
             
             if (chartEl && history.length > 0) {
                 let correct = 0;
                 let totalPred = 0;
-                let chartHtml = '<div class="flex items-end justify-start h-full gap-[2px] px-1 min-w-max">';
-                history.forEach(h => {
-                    if (h.predicted === null) {
-                        chartHtml += `<div class="w-[5px] rounded-[1px] bg-gray-600 h-[20%]" title="Ván ${h.gameNum}: BỎ QUA ➜ KQ: ${h.actual}"></div>`;
-                    } else {
+                let chartHtml = '<div class="flex items-end justify-start h-full gap-[6px] px-1 min-w-max">';
+                
+                const actionableHistory = history.filter(h => h.predicted !== null);
+                
+                if (actionableHistory.length === 0) {
+                    chartHtml = '<p class="text-gray-500 text-xs w-full text-center mt-4 font-bold italic">Chưa có lệnh chốt nào (Toàn bỏ qua)</p>';
+                } else {
+                    actionableHistory.forEach(h => {
                         totalPred++;
                         if (h.correct) correct++;
-                        const color = h.correct ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.8)]' : 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.8)]';
+                        const color = h.correct ? 'bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.8)]' : 'bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.8)]';
                         const height = h.correct ? 'h-full' : 'h-2/5';
-                        chartHtml += `<div class="w-[5px] rounded-[1px] ${color} ${height}" title="Ván ${h.gameNum}: GE Tổng chốt ${h.predicted} ➜ KQ: ${h.actual} (${h.correct?'ĐÚNG':'SAI'})"></div>`;
-                    }
-                });
-                chartHtml += '</div>';
+                        chartHtml += `<div class="w-[10px] rounded-[2px] ${color} ${height}" title="Ván ${h.gameNum}: GE Tổng chốt ${h.predicted} ➜ KQ: ${h.actual} (${h.correct?'ĐÚNG':'SAI'})"></div>`;
+                    });
+                    chartHtml += '</div>';
+                }
                 chartEl.innerHTML = chartHtml;
                 setTimeout(() => { chartEl.scrollLeft = chartEl.scrollWidth; }, 50);
                 
@@ -1358,7 +1389,7 @@
                     accEl.className = accRate >= 50 ? 'text-green-400' : 'text-red-400';
                 }
             } else if (chartEl) {
-                chartEl.innerHTML = '<p class="text-gray-600 text-xs w-full text-center mt-3">Đang phân tích và tổng hợp quy luật...</p>';
+                chartEl.innerHTML = '<p class="text-gray-600 text-xs w-full text-center mt-4">Đang phân tích và tổng hợp quy luật...</p>';
                 if (accEl) accEl.textContent = '0%';
             }
         }
@@ -1527,15 +1558,15 @@
             session.history.pop();
             
             ['ge1', 'ge2', 'ge3', 'ge4'].forEach(geKey => {
-                if (session[`${geKey}History`] && session[`${geKey}History`].length > 0) {
-                    session[`${geKey}History`].pop();
-                    updateGeHistoryChart(session[`${geKey}History`], geKey); 
+                if (session[`${geKey}History`] && session[`${geKey}History`].length > session.history.length) {
+                    session[`${geKey}History`] = session[`${geKey}History`].filter(h => h.gameNum <= session.history.length);
                 }
+                updateGeHistoryChart(session[`${geKey}History`] || [], geKey); 
                 delete session[`${geKey}NextPred`];
             });
 
-            if (session.geTotalHistory && session.geTotalHistory.length > 0) {
-                session.geTotalHistory.pop();
+            if (session.geTotalHistory) {
+                session.geTotalHistory = session.geTotalHistory.filter(h => h.gameNum <= session.history.length);
                 updateGeTotalHistoryChart(session.geTotalHistory);
             }
             delete session.geTotalNextPred;
