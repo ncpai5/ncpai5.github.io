@@ -49,19 +49,6 @@
             z-index: 100; animation: slideDown 0.5s ease;
             border-left: 4px solid;
         }
-        .warning-alert {
-            position: fixed; top: 20px; left: 50%;
-            transform: translateX(-50%);
-            background-color: #f59e0b; color: white;
-            padding: 1rem 2rem; border-radius: 0.5rem;
-            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.3);
-            z-index: 100; animation: slideDown 0.5s ease;
-            border-left: 4px solid #d97706;
-            font-weight: bold;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
         @keyframes fadeIn {
             from { opacity: 0; }
             to { opacity: 1; }
@@ -92,7 +79,7 @@
             display: flex;
             align-items: flex-end;
             justify-content: flex-start;
-            gap: 4px; /* Tăng khoảng cách nhìn thoáng hơn */
+            gap: 4px;
             height: 60px;
             padding: 5px 0 8px 0;
             overflow-x: auto;
@@ -954,7 +941,7 @@
             patternDatabase = await buildPatternDatabaseAsync(sampleStrings);
 
             masterState.totalLearnedPatterns = 0;
-            masterState.lastLearnedGameCount = 0;
+            masterState.lastLearnedGameCount = 0; // Đặt lại bộ đếm để chuẩn bị học data mới
             updatePatternCountUI();
             updateLearnedCountDisplay();
         }
@@ -988,9 +975,13 @@
             geTotalPrediction: null
         };
 
-        function learnFromNewData(intervalHistory) {
+        // BẢN VÁ #1: Hàm bất đồng bộ (Async) để chống Race Condition khi học lại não bộ AI
+        async function learnFromNewData(intervalHistory) {
             if (!intervalHistory || intervalHistory.length === 0) return;
-            if (intervalHistory.length < masterState.lastLearnedGameCount) initializeOriginalPatternDB();
+            if (intervalHistory.length < masterState.lastLearnedGameCount) {
+                // Nếu dữ liệu bị lùi lại (Undo), bắt buộc CHỜ nạp lại kho mẫu trắng
+                await initializeOriginalPatternDB(); 
+            }
             if (intervalHistory.length < 4) { masterState.lastLearnedGameCount = intervalHistory.length; return; }
 
             let learnedSomething = false;
@@ -1038,7 +1029,6 @@
             const session = masterState.sessions[masterState.currentSessionId];
             if (!session || !htDetails) return;
 
-            // BẮT BUỘC DÙNG CHIỀU DÀI LỊCH SỬ THỰC ĐỂ TRÁNH LỖI ĐÓNG BĂNG GE4
             const N = session.history ? session.history.length : 0;
             
             // 1. Resolve PREVIOUS game if pending
@@ -1214,7 +1204,6 @@
             const bools = geHistory.filter(h => h.predicted !== null).map(h => h.correct);
             if (bools.length < 2) return { score: 0, recommend: null, pattern: "Chưa đủ dữ liệu" };
             
-            // Check Streak (Bệt)
             const lastVal = bools[bools.length - 1];
             let streak = 1;
             for (let i = bools.length - 2; i >= 0; i--) {
@@ -1222,7 +1211,6 @@
                 else break;
             }
             
-            // Check Alternating (Xen kẽ 1-1)
             let altStreak = 1;
             for (let i = bools.length - 2; i >= 0; i--) {
                 if (bools[i] !== bools[i+1]) altStreak++;
@@ -1266,7 +1254,6 @@
             const session = masterState.sessions[masterState.currentSessionId];
             if (!session) return;
 
-            // BẮT BUỘC DÙNG CHIỀU DÀI THỰC, LOẠI BỎ SỰ CHẦM CHẬP CỦA MATH.MIN NẾU 1 HT BỊ LAG
             const N = session.history ? session.history.length : 0;
             
             if (N > 0 && session.geTotalNextPred && session.geTotalNextPred.gameNum === N) {
@@ -1394,7 +1381,6 @@
             }
         }
 
-
         /* =========================================================================
            5. LIÊN KẾT IFRAME VÀ UI CÁC HỆ THỐNG CON
            ========================================================================= */
@@ -1417,15 +1403,13 @@
             }
         });
 
+        // BẢN VÁ #1 (Tiếp): Bắt đồng bộ chuỗi logic để tránh Race Condition khi Iframe phản hồi
         function handleSystemMessage(data) {
             const system = data.source; 
             switch(data.type) {
                 case 'ready':
                     masterState.systemsReady[system] = true;
                     updateSystemStatus();
-                    
-                    // CHỐT CHẶN: Khi Iframe báo ready, Master sẽ bắt nó phải lấy dữ liệu thô từ Master 
-                    // thay vì tự load localStorage của nó, tránh việc HT1 tải nhầm bộ nhớ HT4.
                     if (masterState.currentSessionId && masterState.sessions[masterState.currentSessionId]) {
                         const session = masterState.sessions[masterState.currentSessionId];
                         sendToIframe(`${system}-iframe`, 'load_session', { 
@@ -1443,12 +1427,19 @@
                     break;
                 case 'system_details_update':
                     updateSystemDetails(system, data.details);
-                    if (system === 'ht1') learnFromNewData(data.details.intervalHistory); 
                     
-                    const geMap = { ht1: 'ge1', ht2: 'ge2', ht3: 'ge3', ht4: 'ge4' };
-                    calculateGodEyeForSystem(system, geMap[system]);
-                    
-                    triggerMasterGECalculation();
+                    if (system === 'ht1') {
+                        // Gọi Async và bắt .then() để tránh lỗi tính toán
+                        learnFromNewData(data.details.intervalHistory).then(() => {
+                            const geMap = { ht1: 'ge1', ht2: 'ge2', ht3: 'ge3', ht4: 'ge4' };
+                            calculateGodEyeForSystem(system, geMap[system]);
+                            triggerMasterGECalculation();
+                        });
+                    } else {
+                        const geMap = { ht1: 'ge1', ht2: 'ge2', ht3: 'ge3', ht4: 'ge4' };
+                        calculateGodEyeForSystem(system, geMap[system]);
+                        triggerMasterGECalculation();
+                    }
                     break;
                 case 'export_data':
                     if (data.sessions) masterState[`${system}Sessions`] = data.sessions;
@@ -1538,7 +1529,6 @@
             saveMasterSessions();
             updateCurrentSessionInfo();
             
-            // Chỉ gửi kết quả xuống IFrames, việc lưu GE History nhường lại cho hàm Retroactive khi IFrames báo cáo xong
             broadcastToAll('add_result', result);
             
             setTimeout(() => {
@@ -1584,6 +1574,7 @@
             showToast('Đã hoàn tác 1 kết quả', 'info');
         }
 
+        // BẢN VÁ #3: Khởi tạo lại Master State đúng chuẩn khi Xóa Lịch Sử
         function clearHistoryAll() {
             if (!masterState.currentSessionId) return;
             if (confirm('Xóa sạch lịch sử của phiên hiện tại?')) {
@@ -1597,6 +1588,9 @@
                 session.geTotalHistory = [];
                 delete session.geTotalNextPred;
                 
+                // Đảm bảo AI phải xoá sạch và sẵn sàng học lại từ ván số 0
+                masterState.lastLearnedGameCount = 0; 
+
                 saveMasterSessions(); updateCurrentSessionInfo();
                 broadcastToAll('clear_history');
                 
@@ -1657,18 +1651,18 @@
             const session = masterState.sessions[masterState.currentSessionId];
             if (session && session.history) document.getElementById('totalGamesMaster').textContent = session.history.length;
         }
+
+        // BẢN VÁ #2: Tối ưu gọi Sync để chống tràn lệnh Duplicate Init DB
         function syncAllSystems() {
             if (!masterState.currentSessionId) { showToast('Vui lòng chọn phiên trước!', 'warning'); return; }
             const session = masterState.sessions[masterState.currentSessionId];
             
-            initializeOriginalPatternDB();
-            
+            // Chỉ cần vẽ lại biểu đồ, iframe khi load_session sẽ tự gửi system_details lên để AI học lại.
             ['ge1', 'ge2', 'ge3', 'ge4'].forEach(geKey => {
                 updateGeHistoryChart(session[`${geKey}History`] || [], geKey);
             });
             updateGeTotalHistoryChart(session.geTotalHistory || []);
             
-            // CHỐT CHẶN BẢO MẬT: Bắt buộc iframes load phiên từ MASTER
             broadcastToAll('load_session', { id: masterState.currentSessionId, name: session.name, history: [...session.history] });
             document.getElementById('sync-status').textContent = '🔄 Đang đồng bộ...';
             
@@ -1679,6 +1673,7 @@
                 broadcastToAll('get_system_details');
             }, 150);
         }
+
         function resetAllSystems() {
             if (confirm('Xoá tất cả phiên làm việc và reset toàn bộ hệ thống?')) {
                 masterState.sessions = {}; masterState.currentSessionId = null; masterState.currentSessionName = 'Chưa chọn';
@@ -1722,18 +1717,16 @@
         function importMasterData(event) {
             const file = event.target.files[0]; if (!file) return;
             const reader = new FileReader();
-            reader.onload = (e) => {
+            reader.onload = async (e) => {
                 try {
                     const data = JSON.parse(e.target.result);
                     if (data.sessions) { masterState.sessions = data.sessions; saveMasterSessions(); updateMasterSessionSelector(); }
                     
-                    // CHỐT CHẶN IMPORT: Truyền thẳng data.sessions của Master xuống các HT con
                     ['ht1', 'ht2', 'ht3', 'ht4'].forEach(sys => {
                         sendToIframe(`${sys}-iframe`, 'import_data', { sessions: data.system_sessions?.[sys] || data.sessions, simulate: true, isMasterData: !data.system_sessions?.[sys] });
                     });
                     
-                    initializeOriginalPatternDB(); 
-                    
+                    await initializeOriginalPatternDB(); 
                     showToast('Phục hồi dữ liệu thành công', 'success');
                     setTimeout(() => { syncAllSystems(); }, 1000);
                 } catch (err) { showToast('File lỗi', 'error'); }
@@ -1784,13 +1777,27 @@
             
             let checkInit = setInterval(() => {
                 if (allSystemsReady()) { 
-                    // Master force childs to load master session if exists
                     if (masterState.currentSessionId) syncAllSystems();
                     clearInterval(checkInit);
                 }
             }, 500);
         });
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        
     </script>
 </body>
     </html>
