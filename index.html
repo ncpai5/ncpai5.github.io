@@ -634,33 +634,33 @@
 
                 <div class="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div class="bg-gray-800 p-4 rounded-xl border border-blue-500/30">
-                        <div class="text-center font-bold text-blue-300 mb-2 border-b border-gray-700 pb-2">TT1. BIG ROAD</div>
-                        <div id="sge-chart-br" class="flex items-center justify-start overflow-x-auto h-12 gap-1.5 mb-3 custom-scrollbar px-1 py-1"></div>
-                        <div class="flex justify-between items-center text-sm bg-gray-900 p-2 rounded">
+                        <div class="text-center font-bold text-blue-300 mb-2 border-b border-gray-700 pb-2 text-lg">TT1. BIG ROAD</div>
+                        <div id="sge-chart-br" class="flex items-center justify-start overflow-x-auto h-16 gap-2 mb-4 custom-scrollbar px-2 py-2 bg-gray-900/50 rounded-lg"></div>
+                        <div class="flex justify-between items-center text-sm bg-gray-900 p-3 rounded-lg border border-gray-700">
                             <span class="text-gray-400">Đề xuất:</span>
-                            <span id="sge-prop-br" class="font-bold text-gray-500">-</span>
+                            <span id="sge-prop-br" class="font-bold text-gray-500 text-lg">-</span>
                         </div>
-                        <div id="sge-desc-br" class="text-xs text-gray-400 mt-2 text-center h-8">-</div>
+                        <div id="sge-desc-br" class="text-sm text-gray-400 mt-3 text-center h-10 flex items-center justify-center">-</div>
                     </div>
 
                     <div class="bg-gray-800 p-4 rounded-xl border border-green-500/30">
-                        <div class="text-center font-bold text-green-300 mb-2 border-b border-gray-700 pb-2">TT2. BĐKTL (HT1)</div>
-                        <div id="sge-chart-ht1" class="flex items-end justify-start overflow-x-auto h-12 gap-1.5 mb-3 custom-scrollbar px-1 py-1"></div>
-                        <div class="flex justify-between items-center text-sm bg-gray-900 p-2 rounded">
+                        <div class="text-center font-bold text-green-300 mb-2 border-b border-gray-700 pb-2 text-lg">TT2. BĐKTL (HT1)</div>
+                        <div id="sge-chart-ht1" class="flex items-end justify-start overflow-x-auto h-16 gap-2 mb-4 custom-scrollbar px-2 py-2 bg-gray-900/50 rounded-lg"></div>
+                        <div class="flex justify-between items-center text-sm bg-gray-900 p-3 rounded-lg border border-gray-700">
                             <span class="text-gray-400">Đề xuất:</span>
-                            <span id="sge-prop-ht1" class="font-bold text-gray-500">-</span>
+                            <span id="sge-prop-ht1" class="font-bold text-gray-500 text-lg">-</span>
                         </div>
-                        <div id="sge-desc-ht1" class="text-xs text-gray-400 mt-2 text-center h-8">-</div>
+                        <div id="sge-desc-ht1" class="text-sm text-gray-400 mt-3 text-center h-10 flex items-center justify-center">-</div>
                     </div>
 
                     <div class="bg-gray-800 p-4 rounded-xl border border-purple-500/30">
-                        <div class="text-center font-bold text-purple-300 mb-2 border-b border-gray-700 pb-2">TT3. GE HISTORY</div>
-                        <div id="sge-chart-ge" class="flex items-end justify-start overflow-x-auto h-12 gap-1.5 mb-3 custom-scrollbar px-1 py-1"></div>
-                        <div class="flex justify-between items-center text-sm bg-gray-900 p-2 rounded">
+                        <div class="text-center font-bold text-purple-300 mb-2 border-b border-gray-700 pb-2 text-lg">TT3. GE HISTORY</div>
+                        <div id="sge-chart-ge" class="flex items-end justify-start overflow-x-auto h-16 gap-2 mb-4 custom-scrollbar px-2 py-2 bg-gray-900/50 rounded-lg"></div>
+                        <div class="flex justify-between items-center text-sm bg-gray-900 p-3 rounded-lg border border-gray-700">
                             <span class="text-gray-400">Đề xuất:</span>
-                            <span id="sge-prop-ge" class="font-bold text-gray-500">-</span>
+                            <span id="sge-prop-ge" class="font-bold text-gray-500 text-lg">-</span>
                         </div>
-                        <div id="sge-desc-ge" class="text-xs text-gray-400 mt-2 text-center h-8">-</div>
+                        <div id="sge-desc-ge" class="text-sm text-gray-400 mt-3 text-center h-10 flex items-center justify-center">-</div>
                     </div>
                 </div>
             </div>
@@ -1511,21 +1511,21 @@
             const container = document.getElementById(containerId);
             if (!container) return;
             if (!array || array.length === 0) { 
-                container.innerHTML = '<span class="text-xs text-gray-500 italic flex items-center justify-center w-full h-full">Chưa có dữ liệu</span>'; 
+                container.innerHTML = '<span class="text-sm text-gray-500 italic flex items-center justify-center w-full h-full">Chưa có dữ liệu</span>'; 
                 return; 
             }
             
             let html = '';
             // Tăng số lượng kết quả hiển thị cho đẹp
-            const displayArr = array.slice(-25);
+            const displayArr = array.slice(-30);
             displayArr.forEach(val => {
                 if (type === 'PB') {
-                    const color = val === 'P' ? 'bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.6)]' : 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]';
-                    html += `<div class="w-7 h-7 rounded-full ${color} flex-shrink-0 flex items-center justify-center text-xs text-white font-black border border-white/20 transform hover:scale-110 transition-transform cursor-default" title="${val === 'P' ? 'Player' : 'Banker'}">${val}</div>`;
+                    const color = val === 'P' ? 'bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.6)]' : 'bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.6)]';
+                    html += `<div class="w-8 h-8 md:w-9 md:h-9 rounded-full ${color} flex-shrink-0 flex items-center justify-center text-sm md:text-base text-white font-black border-2 border-white/20 transform hover:scale-110 transition-transform cursor-default" title="${val === 'P' ? 'Player' : 'Banker'}">${val}</div>`;
                 } else {
-                    const color = val === 'D' ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]' : 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]';
+                    const color = val === 'D' ? 'bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.6)]' : 'bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.6)]';
                     const height = val === 'D' ? 'h-full' : 'h-1/3';
-                    html += `<div class="w-2.5 rounded-[2px] ${color} ${height} flex-shrink-0 border border-white/10 hover:brightness-125 transition-all cursor-default" title="${val === 'D' ? 'Đúng (D)' : 'Sai (S)'}"></div>`;
+                    html += `<div class="w-3 md:w-4 rounded-[3px] ${color} ${height} flex-shrink-0 border border-white/10 hover:brightness-125 transition-all cursor-default" title="${val === 'D' ? 'Đúng (D)' : 'Sai (S)'}"></div>`;
                 }
             });
             container.innerHTML = html;
@@ -1548,8 +1548,8 @@
             if (ht1BaseVerdictRaw.includes('P')) ht1BaseSignal = 'P'; else if (ht1BaseVerdictRaw.includes('B')) ht1BaseSignal = 'B';
             const ht1IsReverse = ht1BaseVerdictRaw.includes('NGƯỢC');
 
-            // TT3: GE History
-            const arrGE = session.geHistory ? session.geHistory.map(x => x.correct ? 'D' : 'S') : [];
+            // TT3: GE History (Đã lọc bỏ các ván không dự đoán để đồng bộ với biểu đồ gốc)
+            const arrGE = session.geHistory ? session.geHistory.filter(x => x.predicted !== null).map(x => x.correct ? 'D' : 'S') : [];
             const geBaseSignal = masterState.currentGePrediction; // P hoặc B
 
             // --- PHÂN TÍCH ---
@@ -1601,13 +1601,31 @@
                 sgeDecisionText = 'BỎ QUA DO CẦU LOẠN';
                 reasonsList.push(`<li class="mt-2 pt-2 border-t border-gray-700 text-yellow-400 font-bold">=> TỔNG HỢP: Cả 3 biểu đồ đều không có dạng cầu đẹp. Khuyên nghỉ.</li>`);
             } else if (scoreP > scoreB) {
-                if (diff >= 4) { sgeDecisionText = '👤 PLAYER ĐÁNH MẠNH TAY'; sgeDecisionClass = 'text-blue-400 drop-shadow-[0_0_15px_rgba(59,130,246,0.8)]'; }
-                else { sgeDecisionText = '👤 CHỐT PLAYER (Tự Tin)'; sgeDecisionClass = 'text-blue-400'; }
-                reasonsList.push(`<li class="mt-2 pt-2 border-t border-gray-700 text-green-400 font-bold">=> TỔNG HỢP: Lực kéo về P đang áp đảo (Điểm P: ${scoreP} > Điểm B: ${scoreB}).</li>`);
+                const agreeP = (resBR.signal === 'P' && finalSignalHT1 === 'P' && finalSignalGE === 'P');
+                const strongTrendP = (scoreP >= 5 && diff >= 3.5); 
+
+                if (agreeP || strongTrendP) {
+                    sgeDecisionText = '👤 PLAYER ĐÁNH MẠNH TAY'; 
+                    sgeDecisionClass = 'text-blue-400 drop-shadow-[0_0_15px_rgba(59,130,246,0.8)]';
+                    reasonsList.push(`<li class="mt-2 pt-2 border-t border-gray-700 text-green-400 font-bold">=> TỔNG HỢP: Cầu cực đẹp (Đồng thuận 3 hệ thống hoặc xu hướng dài). ĐÁNH MẠNH TAY! (P: ${scoreP} > B: ${scoreB}).</li>`);
+                } else {
+                    sgeDecisionText = '👤 CHỐT PLAYER (Đánh nhẹ tay)'; 
+                    sgeDecisionClass = 'text-blue-400';
+                    reasonsList.push(`<li class="mt-2 pt-2 border-t border-gray-700 text-green-400 font-bold">=> TỔNG HỢP: Nghiêng về P nhưng chưa đủ mạnh. ĐÁNH NHẸ TAY (P: ${scoreP} > B: ${scoreB}).</li>`);
+                }
             } else if (scoreB > scoreP) {
-                if (diff >= 4) { sgeDecisionText = '🏦 BANKER ĐÁNH MẠNH TAY'; sgeDecisionClass = 'text-red-400 drop-shadow-[0_0_15px_rgba(239,68,68,0.8)]'; }
-                else { sgeDecisionText = '🏦 CHỐT BANKER (Tự Tin)'; sgeDecisionClass = 'text-red-400'; }
-                reasonsList.push(`<li class="mt-2 pt-2 border-t border-gray-700 text-green-400 font-bold">=> TỔNG HỢP: Lực kéo về B đang áp đảo (Điểm B: ${scoreB} > Điểm P: ${scoreP}).</li>`);
+                const agreeB = (resBR.signal === 'B' && finalSignalHT1 === 'B' && finalSignalGE === 'B');
+                const strongTrendB = (scoreB >= 5 && diff >= 3.5);
+
+                if (agreeB || strongTrendB) {
+                    sgeDecisionText = '🏦 BANKER ĐÁNH MẠNH TAY'; 
+                    sgeDecisionClass = 'text-red-400 drop-shadow-[0_0_15px_rgba(239,68,68,0.8)]';
+                    reasonsList.push(`<li class="mt-2 pt-2 border-t border-gray-700 text-green-400 font-bold">=> TỔNG HỢP: Cầu cực đẹp (Đồng thuận 3 hệ thống hoặc xu hướng dài). ĐÁNH MẠNH TAY! (B: ${scoreB} > P: ${scoreP}).</li>`);
+                } else {
+                    sgeDecisionText = '🏦 CHỐT BANKER (Đánh nhẹ tay)'; 
+                    sgeDecisionClass = 'text-red-400';
+                    reasonsList.push(`<li class="mt-2 pt-2 border-t border-gray-700 text-green-400 font-bold">=> TỔNG HỢP: Nghiêng về B nhưng chưa đủ mạnh. ĐÁNH NHẸ TAY (B: ${scoreB} > P: ${scoreP}).</li>`);
+                }
             } else {
                 sgeDecisionText = 'BỎ QUA - XUNG ĐỘT TÍN HIỆU';
                 reasonsList.push(`<li class="mt-2 pt-2 border-t border-gray-700 text-red-400 font-bold">=> TỔNG HỢP: Tín hiệu đang đánh nhau (Điểm P: ${scoreP} = Điểm B: ${scoreB}). Tỷ lệ rủi ro cao!</li>`);
@@ -1627,16 +1645,16 @@
             const setProp = (id, res, finSignal, typeStr) => {
                 const el = document.getElementById(id);
                 if(el) {
-                    if(!res.signal) { el.textContent = 'Bỏ qua'; el.className = 'font-bold text-gray-500'; }
+                    if(!res.signal) { el.textContent = 'Bỏ qua'; el.className = 'font-bold text-gray-500 text-lg'; }
                     else if(typeStr === 'PB') {
                         el.textContent = res.signal === 'P' ? 'PLAYER' : 'BANKER';
-                        el.className = `font-bold ${res.signal === 'P' ? 'text-blue-400' : 'text-red-400'}`;
+                        el.className = `font-bold text-lg ${res.signal === 'P' ? 'text-blue-400' : 'text-red-400'}`;
                     } else { // DS -> Final P/B
                         if (finSignal) {
                             el.textContent = finSignal === 'P' ? 'PLAYER' : 'BANKER';
-                            el.className = `font-bold ${finSignal === 'P' ? 'text-blue-400' : 'text-red-400'}`;
+                            el.className = `font-bold text-lg ${finSignal === 'P' ? 'text-blue-400' : 'text-red-400'}`;
                         } else {
-                            el.textContent = 'Chờ lệnh'; el.className = 'font-bold text-gray-500';
+                            el.textContent = 'Chờ lệnh'; el.className = 'font-bold text-gray-500 text-lg';
                         }
                     }
                 }
@@ -2077,4 +2095,4 @@
 
     </script>
 </body>
-    </html>
+                            </html>
